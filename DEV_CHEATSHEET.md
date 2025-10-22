@@ -10,10 +10,10 @@ python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 # Development
-./balloon init-db               # Initialize the SQLite database
-./balloon runserver                # Start development server (wraps uvicorn)
-./balloon create-admin USER        # Promote an existing user to administrator
-./balloon create-invite [options]  # Generate invite tokens (admin required)
+./wb init-db               # Initialize the SQLite database
+./wb runserver                # Start development server (wraps uvicorn)
+./wb create-admin USER        # Promote an existing user to administrator
+./wb create-invite [options]  # Generate invite tokens (admin required)
 
 # Environment Configuration
 cp .env.example .env                # Copy defaults and adjust as needed
@@ -34,7 +34,7 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - `app/modules/` – Optional feature modules loaded via plug-in registration
 - `templates/` – Jinja templates shared by modules
 - `static/css/app.css` – Vanilla CSS design system for layout/components
-- `balloon` – Git-style wrapper around the Typer CLI
+- `wb` – Git-style wrapper around the Typer CLI
 
 ## Environment Variables
 ```bash

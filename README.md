@@ -13,15 +13,15 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 ## Quick start
 1. **Bootstrap the environment**
    ```bash
-   ./balloon setup
+   ./wb setup
    ```
 2. **Initialize the database**
    ```bash
-   ./balloon init-db
+   ./wb init-db
    ```
 3. **Run the development server**
    ```bash
-   ./balloon runserver
+   ./wb runserver
    ```
    Visit `http://127.0.0.1:8000` to access the interface.
 
@@ -35,8 +35,8 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 
 The CLI exposes helpers for administration:
 ```bash
-./balloon create-admin <username>
-./balloon create-invite --username <admin> --max-uses 3 --expires-in-days 7
+./wb create-admin <username>
+./wb create-invite --username <admin> --max-uses 3 --expires-in-days 7
 ```
 
 ## Request feed basics
@@ -58,7 +58,7 @@ app/
   services/             # Domain services (authentication helpers)
 static/css/app.css      # Vanilla CSS design system
 templates/              # Jinja templates and HTMX partials
-tools/dev.py            # Typer CLI (invoked via ./balloon)
+tools/dev.py            # Typer CLI (invoked via ./wb)
 ```
 
 ## Adding new modules
