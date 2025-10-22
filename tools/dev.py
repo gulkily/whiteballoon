@@ -3,7 +3,7 @@ from __future__ import annotations
 import typer
 import uvicorn
 
-from app.main import create_app
+from app.db import init_db
 
 cli = typer.Typer(help="Developer utilities for the WhiteBalloon project.")
 
@@ -16,14 +16,15 @@ def runserver(
 ) -> None:
     """Start the FastAPI application using uvicorn."""
 
-    uvicorn.run(create_app(), host=host, port=port, reload=reload)
+    uvicorn.run("app.main:app", host=host, port=port, reload=reload, factory=False)
 
 
-@cli.command()
-def init_db() -> None:
-    """Initialize the local database (implemented in Stage 2)."""
+@cli.command(name="init-db")
+def init_db_command() -> None:
+    """Initialize the local database."""
 
-    typer.echo("Database initialization not yet implemented. Complete Stage 2 first.")
+    init_db()
+    typer.echo("Database ready.")
 
 
 @cli.command()
