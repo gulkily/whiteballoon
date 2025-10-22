@@ -15,7 +15,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 class RegisterPayload(BaseModel):
     username: str
-    display_name: Optional[str] = None
     contact_email: Optional[str] = None
     invite_token: Optional[str] = None
 
@@ -39,12 +38,11 @@ def register_user(payload: RegisterPayload, db: SessionDep) -> dict:
     user = auth_service.create_user_with_invite(
         db,
         username=payload.username,
-        display_name=payload.display_name,
         contact_email=payload.contact_email,
         invite_token=payload.invite_token,
     )
 
-    return {"username": user.username, "display_name": user.display_name, "is_admin": user.is_admin}
+    return {"username": user.username, "is_admin": user.is_admin}
 
 
 @router.post("/login", status_code=status.HTTP_202_ACCEPTED)

@@ -111,19 +111,17 @@ def register_submit(
     db: SessionDep,
     *,
     username: Annotated[str, Form(...)],
-    display_name: Annotated[Optional[str], Form()] = None,
     invite_token: Annotated[Optional[str], Form()] = None,
     contact_email: Annotated[Optional[str], Form()] = None,
 ):
     user = auth_service.create_user_with_invite(
         db,
         username=username,
-        display_name=display_name,
         contact_email=contact_email,
         invite_token=invite_token,
     )
 
-    context = {"request": request, "username": user.username, "display_name": user.display_name}
+    context = {"request": request, "username": user.username}
     return templates.TemplateResponse("auth/register_success.html", context)
 
 

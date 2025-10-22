@@ -80,6 +80,7 @@ def create_invite(username: Optional[str], max_uses: int, expires_in_days: Optio
         click.secho(f"Invite token: {invite.token}", fg="green")
         if invite.expires_at:
             click.echo(f"Expires at: {invite.expires_at.isoformat()}Z")
+        click.echo("Claim by visiting /register in the web UI and entering the token, or POST to /auth/register with invite_token.")
 
 
 if __name__ == "__main__":

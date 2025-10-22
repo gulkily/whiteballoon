@@ -33,7 +33,6 @@ def create_user_with_invite(
     session: Session,
     *,
     username: str,
-    display_name: Optional[str],
     contact_email: Optional[str],
     invite_token: Optional[str],
 ) -> User:
@@ -61,7 +60,6 @@ def create_user_with_invite(
 
     new_user = User(
         username=normalized,
-        display_name=display_name or normalized,
         contact_email=contact_email,
         is_admin=False,
     )

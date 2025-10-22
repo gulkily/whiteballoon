@@ -14,7 +14,6 @@ class User(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     username: str = Field(sa_column=Column(String, unique=True, index=True))
-    display_name: Optional[str] = Field(default=None, max_length=120)
     is_admin: bool = Field(default=False, nullable=False)
     contact_email: Optional[str] = Field(default=None, max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
