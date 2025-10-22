@@ -12,8 +12,8 @@ pip install -r requirements.txt
 # Development
 python tools/dev.py init-db         # Create or reset the SQLite database
 python tools/dev.py runserver       # Start development server (wraps uvicorn)
-python tools/dev.py create-admin    # Promote a user to administrator
-pytest                              # Run the full test suite
+python tools/dev.py create-admin    # Promote an existing user to administrator
+python tools/dev.py create-invite   # Generate invite tokens (admin required)
 
 # Environment Configuration
 cp .env.example .env                # Copy defaults and adjust as needed
@@ -30,11 +30,10 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - `app/main.py` – App factory, middleware, and router registration
 - `app/models.py` – SQLModel definitions (`User`, `Session`, `HelpRequest`, and future module models)
 - `app/services/` – Shared domain services (invites, sessions, request feed)
-- `app/routes/` – APIRouter modules for authentication and base request flows
+- `app/routes/` – API + UI routers
 - `app/modules/` – Optional feature modules loaded via plug-in registration
 - `templates/` – Jinja templates shared by modules
 - `static/css/app.css` – Vanilla CSS design system for layout/components
-- `tests/` – Pytest suite organized by feature/module
 
 ## Environment Variables
 ```bash
@@ -46,12 +45,6 @@ COOKIE_SECURE=false                 # Set true in production
 # Optional features
 ENABLE_CONTACT_EMAIL=true           # Allow users to store a contact email
 ```
-
-## Testing Guidelines
-- Use pytest markers (`unit`, `integration`, `functional`) to categorize coverage
-- Prefer async tests with `pytest-asyncio` and `httpx.AsyncClient`
-- Include template rendering tests for HTML partials used by HTMX
-- Add regression tests when introducing new modules or altering shared services
 
 ## Module Playbook (High-Level)
 When creating a new module:
