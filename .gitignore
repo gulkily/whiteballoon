@@ -20,3 +20,5 @@ htmlcov/
 *.sqlite3
 *.db
 /data/app.db
+
+*.egg-info/

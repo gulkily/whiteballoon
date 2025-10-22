@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-import typer
+import click
 import uvicorn
 from sqlmodel import Session, select
 
@@ -10,15 +10,17 @@ from app.db import get_engine, init_db
 from app.models import User
 from app.services import auth_service
 
-cli = typer.Typer(help="Developer utilities for the WhiteBalloon project.")
+
+@click.group(help="Developer utilities for the WhiteBalloon project.")
+def cli() -> None:
+    """Entry point for the CLI group."""
 
 
 @cli.command()
-def runserver(
-    host: str = typer.Option("127.0.0.1", help="Interface to bind the development server"),
-    port: int = typer.Option(8000, help="Port to bind the development server"),
-    reload: bool = typer.Option(True, help="Enable auto-reload on code changes"),
-) -> None:
+@click.option("--host", default="127.0.0.1", show_default=True, help="Interface to bind the development server")
+@click.option("--port", default=8000, show_default=True, type=int, help="Port to bind the development server")
+@click.option("--reload/--no-reload", default=True, show_default=True, help="Enable auto-reload on code changes")
+def runserver(host: str, port: int, reload: bool) -> None:
     """Start the FastAPI application using uvicorn."""
 
     uvicorn.run("app.main:app", host=host, port=port, reload=reload, factory=False)
@@ -29,10 +31,11 @@ def init_db_command() -> None:
     """Initialize the local database."""
 
     init_db()
-    typer.echo("Database ready.")
+    click.secho("Database ready.", fg="green")
 
 
 @cli.command(name="create-admin")
+@click.argument("username")
 def create_admin(username: str) -> None:
     """Promote an existing user to administrator."""
 
@@ -41,19 +44,18 @@ def create_admin(username: str) -> None:
     with Session(engine) as session:
         user = session.exec(select(User).where(User.username == normalized)).first()
         if not user:
-            typer.echo(f"User '{normalized}' not found. Register the user first.")
-            raise typer.Exit(code=1)
+            click.echo(f"User '{normalized}' not found. Register the user first.")
+            raise click.Abort()
         user.is_admin = True
         session.commit()
-        typer.echo(f"User '{normalized}' promoted to admin.")
+        click.secho(f"User '{normalized}' promoted to admin.", fg="green")
 
 
 @cli.command(name="create-invite")
-def create_invite(
-    username: Optional[str] = typer.Option(None, help="Existing admin username to attribute the invite to"),
-    max_uses: int = typer.Option(1, min=1, help="Maximum number of times the invite can be used"),
-    expires_in_days: Optional[int] = typer.Option(None, help="Number of days before the invite expires"),
-) -> None:
+@click.option("--username", default=None, help="Admin username to attribute the invite to")
+@click.option("--max-uses", default=1, show_default=True, type=int, help="Maximum number of times the invite can be used")
+@click.option("--expires-in-days", default=None, type=int, help="Number of days before the invite expires")
+def create_invite(username: Optional[str], max_uses: int, expires_in_days: Optional[int]) -> None:
     """Create a new invite token."""
 
     engine = get_engine()
@@ -63,11 +65,11 @@ def create_invite(
             normalized = auth_service.normalize_username(username)
             creator = session.exec(select(User).where(User.username == normalized)).first()
             if not creator:
-                typer.echo(f"User '{normalized}' not found.")
-                raise typer.Exit(code=1)
+                click.echo(f"User '{normalized}' not found.")
+                raise click.Abort()
             if not creator.is_admin:
-                typer.echo(f"User '{normalized}' is not an admin.")
-                raise typer.Exit(code=1)
+                click.echo(f"User '{normalized}' is not an admin.")
+                raise click.Abort()
 
         invite = auth_service.create_invite_token(
             session,
@@ -75,9 +77,9 @@ def create_invite(
             max_uses=max_uses,
             expires_in_days=expires_in_days,
         )
-        typer.echo(f"Invite token: {invite.token}")
+        click.secho(f"Invite token: {invite.token}", fg="green")
         if invite.expires_at:
-            typer.echo(f"Expires at: {invite.expires_at.isoformat()}Z")
+            click.echo(f"Expires at: {invite.expires_at.isoformat()}Z")
 
 
 if __name__ == "__main__":

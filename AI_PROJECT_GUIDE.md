@@ -34,7 +34,7 @@ The base authentication and request feed modules serve as reference implementati
 - `templates/` – Jinja2 templates (base layout, auth pages, request feed views, HTMX fragments)
 - `static/css/app.css` – Custom vanilla CSS design system (no external frameworks)
 - `data/` – SQLite database files and derived artifacts
-- `tools/dev.py` – Typer CLI (invoked via `./wb`)
+- `tools/dev.py` – Click CLI (invoked via `./wb`)
 - `balloon` – Git-style wrapper for developer commands
 - `docs/plans/` – Planning documents for each feature/module stage
 

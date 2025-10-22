@@ -34,7 +34,7 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - `app/modules/` – Optional feature modules loaded via plug-in registration
 - `templates/` – Jinja templates shared by modules
 - `static/css/app.css` – Vanilla CSS design system for layout/components
-- `wb` – Git-style wrapper around the Typer CLI
+- `wb` – Git-style wrapper around the Click CLI
 
 ## Environment Variables
 ```bash

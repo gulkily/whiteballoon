@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -40,9 +40,10 @@ def login_form(
 @router.post("/login")
 def login_submit(
     request: Request,
+    db: SessionDep,
     response: Response,
-    username: str = Form(...),
-    db: SessionDep = Depends(),
+    *,
+    username: Annotated[str, Form(...)],
 ):
     normalized = auth_service.normalize_username(username)
     user = db.exec(select(User).where(User.username == normalized)).first()
@@ -69,10 +70,11 @@ def login_submit(
 @router.post("/login/verify")
 def verify_login(
     request: Request,
+    db: SessionDep,
     response: Response,
-    username: str = Form(...),
-    verification_code: str = Form(...),
-    db: SessionDep = Depends(),
+    *,
+    username: Annotated[str, Form(...)],
+    verification_code: Annotated[str, Form(...)],
 ):
     auth_request = auth_service.find_pending_auth_request(
         db,
@@ -106,11 +108,12 @@ def register_form(request: Request) -> Response:
 @router.post("/register")
 def register_submit(
     request: Request,
-    username: str = Form(...),
-    display_name: Optional[str] = Form(None),
-    invite_token: Optional[str] = Form(None),
-    contact_email: Optional[str] = Form(None),
-    db: SessionDep = Depends(),
+    db: SessionDep,
+    *,
+    username: Annotated[str, Form(...)],
+    display_name: Annotated[Optional[str], Form()] = None,
+    invite_token: Annotated[Optional[str], Form()] = None,
+    contact_email: Annotated[Optional[str], Form()] = None,
 ):
     user = auth_service.create_user_with_invite(
         db,
@@ -166,11 +169,12 @@ def request_list_partial(
 @router.post("/requests")
 def create_request(
     request: Request,
-    title: str = Form(...),
-    description: str = Form(""),
-    contact_email: Optional[str] = Form(None),
-    db: SessionDep = Depends(),
+    db: SessionDep,
     user: User = Depends(require_authenticated_user),
+    *,
+    title: Annotated[str, Form(...)],
+    description: Annotated[str, Form()] = "",
+    contact_email: Annotated[Optional[str], Form()] = None,
 ):
     request_services.create_request(
         db,
