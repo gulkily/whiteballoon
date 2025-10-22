@@ -1,0 +1,24 @@
+<form hx-post="/requests"
+      hx-target="#request-list"
+      hx-swap="outerHTML"
+      class="form-grid">
+  <div class="input-group">
+    <label for="title">Title</label>
+    <input id="title" name="title" type="text" placeholder="Describe the need" required />
+  </div>
+  <div class="input-group">
+    <label for="description">Description</label>
+    <textarea id="description" name="description" placeholder="Add details others should know"></textarea>
+  </div>
+  <div class="input-group">
+    <label for="contact_email">Contact email <span class="muted">(optional)</span></label>
+    <input id="contact_email" name="contact_email" type="email" value="{{ user.contact_email or '' }}" />
+  </div>
+  <div class="actions">
+    <button type="submit" class="button">Post request</button>
+    <button type="button" class="button button--ghost"
+            hx-get="/requests/partials/form/cancel"
+            hx-target="#request-form-card"
+            hx-swap="innerHTML">Cancel</button>
+  </div>
+</form>

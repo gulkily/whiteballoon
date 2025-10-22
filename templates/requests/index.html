@@ -10,23 +10,12 @@
 
 {% block content %}
 <section class="section">
-  <div class="card stack">
-    <h1>Help requests</h1>
-    <form hx-post="/requests" hx-target="#request-list" hx-swap="outerHTML" class="form-grid">
-      <div class="input-group">
-        <label for="title">Title</label>
-        <input id="title" name="title" type="text" placeholder="Describe the need" required />
-      </div>
-      <div class="input-group">
-        <label for="description">Description</label>
-        <textarea id="description" name="description" placeholder="Add details others should know"></textarea>
-      </div>
-      <div class="input-group">
-        <label for="contact_email">Contact email <span class="muted">(optional)</span></label>
-        <input id="contact_email" name="contact_email" type="email" />
-      </div>
-      <button type="submit" class="button">Post request</button>
-    </form>
+  <div class="card stack" id="request-form-card">
+    <header class="stack stack--row stack--center">
+      <h1 class="grow">Help requests</h1>
+      <button type="button" class="button" hx-get="/requests/partials/form/show" hx-target="#request-form-card" hx-swap="innerHTML">Share a request</button>
+    </header>
+    <div class="muted">View the latest needs below or add a new one.</div>
   </div>
 
   <div id="request-list" hx-get="/requests/partials/list" hx-trigger="load" hx-swap="outerHTML">
