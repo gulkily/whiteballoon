@@ -142,8 +142,17 @@ def logout_user(
 def home(
     request: Request,
     db: SessionDep,
-    user: User = Depends(require_authenticated_user),
+    session_record: Optional[UserSession] = Depends(get_current_session),
 ) -> Response:
+    if not session_record or not session_record.is_fully_authenticated:
+        return templates.TemplateResponse("auth/logged_out.html", {"request": request})
+
+    user = db.exec(select(User).where(User.id == session_record.user_id)).first()
+    if not user:
+        response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+        response.delete_cookie(auth_service.SESSION_COOKIE_NAME, path="/")
+        return response
+
     items = _serialize_requests(request_services.list_requests(db))
     return templates.TemplateResponse(
         "requests/index.html",

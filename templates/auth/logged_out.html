@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  <a class="button" href="/login">Sign in</a>
+  <a class="button button--ghost" href="/register">Use invite token</a>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h1>WhiteBalloon</h1>
+    <p class="muted">Connect with your community, share needs, and respond together.</p>
+    <div class="stack">
+      <a class="button" href="/login">Request access</a>
+      <a class="button button--ghost" href="/register">Have an invite token?</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
