@@ -48,7 +48,7 @@
 6. **Stage 6 – Documentation, QA, and Module Playbook**
    - Dependencies: All prior stages complete.
    - Changes: Write README with setup instructions, CSS guidelines, module playbook, and CLI usage; add docs explaining how to create new modules; ensure CLI commands work end-to-end.
-   - Testing: Full `pytest`; run CLI commands (`python tools/dev.py init-db`, `python tools/dev.py runserver --dry-run`), optional `uvicorn` smoke test.
+   - Testing: Full `pytest`; run CLI commands (`python tools/dev.py init-db`, `python tools/dev.py runserver`), optional `uvicorn` smoke test.
    - Risks: Documentation drift; mitigate with final checklist and plan for future module docs.
 
 7. **Stage 7 – Future Module Scaffold (Optional)**

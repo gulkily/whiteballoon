@@ -28,7 +28,7 @@ The base authentication and request feed modules serve as reference implementati
 
 ## Repository Layout (Target)
 - `app/main.py` – FastAPI app factory and router registration
-- `app/models.py` – SQLModel models for `User`, `Session`, and `Request`
+- `app/models.py` – SQLModel models for `User`, `Session`, and `HelpRequest`
 - `app/services/` – Authentication, session, and request feed services
 - `app/routes/` – APIRouter definitions for auth and request management
 - `app/modules/` – Optional directory for plug-in modules packaged independently

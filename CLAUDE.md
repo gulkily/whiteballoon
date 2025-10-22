@@ -38,7 +38,7 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 
 ## Environment Variables
 ```bash
-DATABASE_URL=sqlite+aiosqlite:///data/app.db
+DATABASE_URL=sqlite:///data/app.db
 SECRET_KEY=changeme
 SESSION_EXPIRY_MINUTES=20160        # 14 days
 COOKIE_SECURE=false                 # Set true in production
@@ -64,5 +64,4 @@ When creating a new module:
 ## Tooling Tips
 - Keep dependencies minimal; prefer standard library or existing packages
 - Run `pytest --maxfail=1` during development for quick feedback
-- Use `python tools/dev.py runserver --reload` for live reload if implemented
 - Document any new CLI commands or module hooks as they are added
