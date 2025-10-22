@@ -3,11 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>WhiteBalloon</title>
+    <title>{% block title %}WhiteBalloon{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/app.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.12" defer></script>
   </head>
-  <body>
-    <main>
+  <body class="page">
+    <header class="top-nav">
+      <div class="container stack stack--row stack--center">
+        <a class="brand" href="/">WhiteBalloon</a>
+        <nav class="nav-links">
+          {% block nav %}{% endblock %}
+        </nav>
+      </div>
+    </header>
+    <main class="container">
       {% block content %}{% endblock %}
     </main>
   </body>

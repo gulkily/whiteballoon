@@ -10,7 +10,7 @@ from app.dependencies import SessionDep, require_authenticated_user
 from app.models import HelpRequest, User
 from app.modules.requests import services
 
-router = APIRouter(prefix="/requests", tags=["requests"])
+router = APIRouter(prefix="/api/requests", tags=["requests"])
 
 
 class RequestCreatePayload(BaseModel):

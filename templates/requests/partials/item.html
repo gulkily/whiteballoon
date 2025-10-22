@@ -1,0 +1,24 @@
+<article class="request-item">
+  <header class="request-meta">
+    <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">
+      {{ item.status|title }}
+    </span>
+    <time datetime="{{ item.created_at }}" class="muted">{{ item.created_at | replace('T', ' ') | replace('Z', '') }}</time>
+  </header>
+  <div>
+    <h2>{{ item.title }}</h2>
+    <p>{{ item.description or 'No additional details.' }}</p>
+  </div>
+  <footer class="actions">
+    {% if item.status != 'completed' %}
+      <form hx-post="/requests/{{ item.id }}/complete" hx-target="#request-list" hx-swap="outerHTML" class="inline">
+        <button type="submit" class="button">Mark completed</button>
+      </form>
+    {% else %}
+      <span class="muted">Completed {{ item.completed_at | default('recently') | replace('T', ' ') | replace('Z', '') }}</span>
+    {% endif %}
+    {% if item.contact_email %}
+      <span class="muted">Contact: {{ item.contact_email }}</span>
+    {% endif %}
+  </footer>
+</article>

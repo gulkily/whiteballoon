@@ -1,0 +1,13 @@
+<div class="card stack" id="login-panel">
+  <h2>Approval requested</h2>
+  <p class="muted">Share this verification code with an administrator or trusted device to complete login.</p>
+  <div class="alert">Verification code: <strong>{{ verification_code }}</strong></div>
+  <form hx-post="/login/verify" hx-target="body" hx-swap="innerHTML" class="form-grid">
+    <input type="hidden" name="username" value="{{ username }}" />
+    <div class="input-group">
+      <label for="verification_code">Enter verification code</label>
+      <input id="verification_code" name="verification_code" type="text" required />
+    </div>
+    <button type="submit" class="button">Verify and continue</button>
+  </form>
+</div>

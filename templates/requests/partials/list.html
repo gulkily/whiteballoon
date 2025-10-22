@@ -1,0 +1,11 @@
+{% if requests %}
+  <div class="requests-grid" id="request-list">
+    {% for item in requests %}
+      {% include "requests/partials/item.html" %}
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" id="request-list">
+    <p class="muted">No requests yet. Be the first to share a need.</p>
+  </div>
+{% endif %}

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Requests · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  <form action="/logout" method="post" class="inline">
+    <button type="submit" class="button button--ghost">Sign out</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h1>Help requests</h1>
+    <form hx-post="/requests" hx-target="#request-list" hx-swap="outerHTML" class="form-grid">
+      <div class="input-group">
+        <label for="title">Title</label>
+        <input id="title" name="title" type="text" placeholder="Describe the need" required />
+      </div>
+      <div class="input-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" placeholder="Add details others should know"></textarea>
+      </div>
+      <div class="input-group">
+        <label for="contact_email">Contact email <span class="muted">(optional)</span></label>
+        <input id="contact_email" name="contact_email" type="email" />
+      </div>
+      <button type="submit" class="button">Post request</button>
+    </form>
+  </div>
+
+  <div id="request-list" hx-get="/requests/partials/list" hx-trigger="load" hx-swap="outerHTML">
+    <p class="muted">Loading requests…</p>
+  </div>
+</section>
+{% endblock %}

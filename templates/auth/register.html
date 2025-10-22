@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Register · WhiteBalloon{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h1>Create account</h1>
+    <p class="muted">Use a valid invite token unless you are the first person configuring the system.</p>
+    <form method="post" class="form-grid">
+      <div class="input-group">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" required />
+      </div>
+      <div class="input-group">
+        <label for="display_name">Display name <span class="muted">(optional)</span></label>
+        <input id="display_name" name="display_name" type="text" />
+      </div>
+      <div class="input-group">
+        <label for="contact_email">Contact email <span class="muted">(optional)</span></label>
+        <input id="contact_email" name="contact_email" type="email" />
+      </div>
+      <div class="input-group">
+        <label for="invite_token">Invite token</label>
+        <input id="invite_token" name="invite_token" type="text" />
+      </div>
+      <button type="submit" class="button">Register</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

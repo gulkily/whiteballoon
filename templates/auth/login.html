@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In · WhiteBalloon{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h1>Sign in</h1>
+    <p class="muted">Enter your username to request access from an approved device.</p>
+    <form hx-post="/login" hx-target="#login-panel" hx-swap="outerHTML" class="form-grid" id="login-panel">
+      <div class="input-group">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" required autofocus />
+      </div>
+      <div class="actions">
+        <button type="submit" class="button">Request access</button>
+        <a class="button button--ghost" href="/register">Need an invite?</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Registration Complete · WhiteBalloon{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h1>Welcome, {{ display_name }}</h1>
+    <p>Your account has been created. You can now <a href="/login">request access</a> from a trusted device.</p>
+  </div>
+</section>
+{% endblock %}
