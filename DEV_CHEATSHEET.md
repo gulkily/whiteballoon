@@ -29,7 +29,7 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 ## Core Architecture Reminders
 - `app/main.py` – App factory, middleware, and router registration
 - `app/models.py` – SQLModel definitions (`User`, `Session`, `HelpRequest`, and future module models)
-- `app/services/` – Shared domain services (auth, sessions, request feed)
+- `app/services/` – Shared domain services (invites, sessions, request feed)
 - `app/routes/` – APIRouter modules for authentication and base request flows
 - `app/modules/` – Optional feature modules loaded via plug-in registration
 - `templates/` – Jinja templates shared by modules

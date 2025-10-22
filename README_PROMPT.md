@@ -7,10 +7,10 @@ Use this prompt to kick off implementation:
 ```
 You are starting from an empty folder to create a fresh project that delivers secure authentication and a minimal request feed, while establishing a foundation for future plug-in modules. Build a FastAPI + SQLModel backend with the following structure:
 - Project layout: `app/` (FastAPI app package), `app/services/`, `app/routes/`, `app/modules/`, `app/models.py`, `templates/`, `static/css/`, `tests/`, `tools/`.
-- Features: user authentication with password hashing, session tokens stored in DB, optional contact email capture on profile, CRUD endpoints and HTMX-friendly templates for a "help requests" feed (list, create, mark complete).
+- Features: invite-based user onboarding with username authentication, session tokens stored in DB, optional contact email capture on profile, CRUD endpoints and HTMX-friendly templates for a "help requests" feed (list, create, mark complete).
 - Dependencies: FastAPI, SQLModel, Jinja2, passlib[bcrypt], python-multipart, httpx (for tests), pytest, pytest-asyncio, uvicorn.
 - Database: SQLite `data/app.db` with SQLModel models for `User`, `Session`, `HelpRequest` (includes `title`, `description`, `created_at`, `status`, `contact_email` optional).
-- Authentication: registration, login, logout, session cookie, password reset placeholder endpoint, admin flag to gate future features.
+- Authentication: invite-only registration, multi-device login approvals, logout, session cookie, and an admin flag to gate future features.
 - Frontend: Jinja base template with custom vanilla CSS variables, layout primitives, and HTMX-enhanced interactions. No Tailwind or external CSS frameworks; ship plain CSS in `static/css/app.css` without build tooling.
 - CLI: `tools/dev.py` (Typer) with commands `runserver`, `init-db`, `create-admin`.
 - Tests: pytest suite covering auth flow and help request CRUD (async client via httpx AsyncClient + LifespanManager).

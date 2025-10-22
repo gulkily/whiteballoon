@@ -13,7 +13,7 @@ WhiteBalloon is a modular community platform built on FastAPI and SQLModel. The 
 - **Backend**: FastAPI application packaged under `app/`
 - **Database**: SQLite with SQLModel ORM, stored at `data/app.db`
 - **Frontend**: Jinja2 templates rendered by FastAPI with vanilla CSS and HTMX enhancements
-- **Authentication**: Password-based registration/login backed by hashed credentials and session tokens stored in the database
+- **Authentication**: Invite-only registration/login backed by multi-device approvals and session tokens stored in the database
 - **CLI Tooling**: Typer-based developer commands in `tools/dev.py`
 - **Testing**: Pytest with `httpx.AsyncClient` + FastAPI Lifespan Manager for end-to-end coverage
 

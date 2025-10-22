@@ -7,9 +7,9 @@
   - As a frontend developer, I want a lightweight template and CSS system so that I can build additional modules without fighting external frameworks.
   - As a backend engineer, I want module boundaries defined from day one so that future capabilities plug in cleanly.
 - **Core requirements**:
-  - Implement a FastAPI project with authentication, session tracking, and CRUD operations for a help/request feed.
+  - Implement a FastAPI project with invite-only authentication, session tracking, and CRUD operations for a help/request feed.
   - Establish a vanilla CSS design system (tokens, layout primitives, components) shared across templates.
-  - Provide HTMX-friendly templates for auth flows and request management without relying on Tailwind or other frameworks.
+  - Provide HTMX-friendly templates for invite entry, login approvals, and request management without relying on Tailwind or other frameworks.
   - Document how future modules register routes, services, templates, and static assets.
   - Ship developer tooling (Typer CLI, tests) that encourages modular extensions.
 - **User flow**:
@@ -21,4 +21,3 @@
   - Core authentication and request feed features work end-to-end with FastAPI, SQLModel, and Jinja templates.
   - Frontend ships using only our custom CSS assets and HTMX for interactivity.
   - Documentation explains how to add future modules (directory structure, registration points, testing expectations).
-  - Automated tests cover auth flows and request CRUD, providing a baseline for future module regression coverage.
