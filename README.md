@@ -11,23 +11,17 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - JSON API under `/api/requests` for programmatic access to the request feed
 
 ## Quick start
-1. **Create a virtual environment and install dependencies**
+1. **Bootstrap the environment**
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -e .
+   ./balloon setup
    ```
-2. **Configure environment variables**
+2. **Initialize the database**
    ```bash
-   cp .env.example .env
+   ./balloon init-db
    ```
-3. **Initialize the database**
+3. **Run the development server**
    ```bash
-   python tools/dev.py init-db
-   ```
-4. **Run the development server**
-   ```bash
-   python tools/dev.py runserver
+   ./balloon runserver
    ```
    Visit `http://127.0.0.1:8000` to access the interface.
 
@@ -39,10 +33,10 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 3. The user (or an administrator) completes verification by submitting the generated code, upgrading the session to fully authenticated.
 4. Sessions are stored in the database and tracked through the `wb_session_id` cookie.
 
-The Typer CLI exposes helpers for administration:
+The CLI exposes helpers for administration:
 ```bash
-python tools/dev.py create-admin <username>
-python tools/dev.py create-invite --username <admin> --max-uses 3 --expires-in-days 7
+./balloon create-admin <username>
+./balloon create-invite --username <admin> --max-uses 3 --expires-in-days 7
 ```
 
 ## Request feed basics
@@ -64,7 +58,7 @@ app/
   services/             # Domain services (authentication helpers)
 static/css/app.css      # Vanilla CSS design system
 templates/              # Jinja templates and HTMX partials
-tools/dev.py            # Typer CLI commands (init-db, runserver, invites, admin)
+tools/dev.py            # Typer CLI (invoked via ./balloon)
 ```
 
 ## Adding new modules

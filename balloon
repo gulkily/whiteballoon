@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="$SCRIPT_DIR/.venv"
+DEV_TOOL="$SCRIPT_DIR/tools/dev.py"
+PROJECT_NAME="WhiteBalloon"
+VERSION="0.1.0"
+
+log() {
+  printf '\033[0;34m[INFO]\033[0m %s\n' "$1"
+}
+
+warn() {
+  printf '\033[1;33m[WARN]\033[0m %s\n' "$1"
+}
+
+fail() {
+  printf '\033[0;31m[ERROR]\033[0m %s\n' "$1" >&2
+  exit 1
+}
+
+python_exec() {
+  if [ -x "$VENV_DIR/bin/python" ]; then
+    echo "$VENV_DIR/bin/python"
+    return
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    echo "$(command -v python3)"
+    return
+  fi
+  if command -v python >/dev/null 2>&1; then
+    echo "$(command -v python)"
+    return
+  fi
+  fail "Python 3 is required. Please install it and re-run."
+}
+
+ensure_cli_ready() {
+  local py
+  py="$(python_exec)"
+  "$py" - <<'PY' 2>/dev/null
+try:
+    import fastapi  # noqa: F401
+    import typer  # noqa: F401
+except Exception:
+    raise SystemExit(1)
+PY
+  if [ "$?" -ne 0 ]; then
+    fail "Dependencies missing. Run './balloon setup' first."
+  fi
+}
+
+run_dev() {
+  ensure_cli_ready
+  local py
+  py="$(python_exec)"
+  "$py" "$DEV_TOOL" "$@"
+}
+
+create_env_file() {
+  if [ -f "$SCRIPT_DIR/.env" ] || [ ! -f "$SCRIPT_DIR/.env.example" ]; then
+    return
+  fi
+  cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
+  log "Created .env from .env.example"
+}
+
+setup_cmd() {
+  local base_py
+  base_py="$(python_exec)"
+  if [ ! -x "$VENV_DIR/bin/python" ]; then
+    log "Creating virtual environment at .venv"
+    "$base_py" -m venv "$VENV_DIR"
+  fi
+  local vpy="$VENV_DIR/bin/python"
+  log "Installing project dependencies"
+  "$vpy" -m pip install --upgrade pip >/dev/null
+  "$vpy" -m pip install -e "$SCRIPT_DIR" >/dev/null
+  create_env_file
+  log "Setup complete"
+}
+
+print_help() {
+  cat <<'USAGE'
+WhiteBalloon CLI Wrapper
+Usage: ./balloon <command> [options]
+
+Core commands:
+  setup                 Create virtualenv and install dependencies
+  runserver [--opts]    Start the development server
+  init-db               Initialize the SQLite database
+  create-admin USER     Promote a user to admin
+  create-invite [opts]  Generate invite tokens
+  version               Display CLI version info
+  help                  Show this help message
+
+Any other arguments are forwarded to the underlying Typer CLI in tools/dev.py.
+USAGE
+}
+
+COMMAND="${1-}"
+if [ -z "$COMMAND" ]; then
+  print_help
+  exit 0
+fi
+shift
+
+case "$COMMAND" in
+  help|-h|--help)
+    print_help
+    ;;
+  version|-v|--version)
+    printf '%s CLI %s\n' "$PROJECT_NAME" "$VERSION"
+    ;;
+  setup)
+    setup_cmd
+    ;;
+  runserver|init-db|create-admin|create-invite)
+    run_dev "$COMMAND" "$@"
+    ;;
+  *)
+    run_dev "$COMMAND" "$@"
+    ;;
+esac

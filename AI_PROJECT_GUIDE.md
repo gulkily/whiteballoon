@@ -4,7 +4,7 @@
 - All development happens in the local environment contained in this repository
 - Do not attempt to diagnose or change production systems directly from this workspace
 - Avoid `sudo` and global package installs; rely on project tooling instead
-- Use the Typer CLI we ship in `tools/dev.py` to run local workflows (server, database init, admin creation)
+- Use the git-style `./balloon` wrapper (backed by `tools/dev.py`) to run local workflows (server, database init, admin creation)
 
 ## Project Overview
 WhiteBalloon is a modular community platform built on FastAPI and SQLModel. The initial milestone focuses on foundational authentication and a feed of user-submitted requests. Over time we will layer in additional atomic modules (e.g., announcements, lightweight CRM, analytics) that plug into the same scaffolding without rewriting the core stack.
@@ -34,7 +34,8 @@ The base authentication and request feed modules serve as reference implementati
 - `templates/` – Jinja2 templates (base layout, auth pages, request feed views, HTMX fragments)
 - `static/css/app.css` – Custom vanilla CSS design system (no external frameworks)
 - `data/` – SQLite database files and derived artifacts
-- `tools/dev.py` – Typer CLI for `runserver`, `init-db`, `create-admin`, `create-invite`
+- `tools/dev.py` – Typer CLI (invoked via `./balloon`)
+- `balloon` – Git-style wrapper for developer commands
 - `docs/plans/` – Planning documents for each feature/module stage
 
 ## Core Features (Milestone 1)
