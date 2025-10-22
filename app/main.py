@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.modules import register_modules
 from app.routes import auth
 
 
@@ -11,6 +12,7 @@ def create_app() -> FastAPI:
         return {"status": "ok"}
 
     app.include_router(auth.router)
+    register_modules(app)
 
     return app
 
