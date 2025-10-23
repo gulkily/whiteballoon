@@ -73,3 +73,8 @@ Follow the four-step process documented in `FEATURE_DEVELOPMENT_PROCESS.md`:
 - `README.md` – Setup instructions and project overview
 - `README_PROMPT.md` – Bootstrap prompt for regenerating the foundation if needed
 - `docs/plans/` – Authoritative source for all feature planning artifacts
+
+## Documentation Expectations
+- Keep the living specification in `docs/spec.md` up to date with core features, flows, and interaction patterns.
+- Update the spec alongside code changes so the project can be reimplemented from scratch if needed.
+- Summarize behavioural expectations (auth, request lifecycle, progressive enhancement) and critical configuration in the spec.
