@@ -11,7 +11,7 @@
 {% block content %}
 <section class="section">
   <div class="card stack" id="request-form-card" data-request-card>
-    <div class="stack" data-request-collapsed hidden>
+    <div class="stack" data-request-collapsed>
       <header class="stack stack--row stack--center">
         <h1 class="grow">Help requests</h1>
         <button type="button" class="button" data-request-action="show-form">Share a request</button>
@@ -19,7 +19,7 @@
       <p class="muted">View the latest needs below or add a new one.</p>
     </div>
 
-    <form method="post" action="/requests" class="form-grid" data-request-form>
+    <form method="post" action="/requests" class="form-grid" data-request-form hidden>
       <div class="input-group">
         <label for="description">How can we help?</label>
         <textarea id="description" name="description" placeholder="Share the need" required></textarea>
@@ -36,8 +36,21 @@
     </form>
 
     <noscript>
-      <p class="muted">JavaScript is disabled, so the form remains visible.</p>
-    </noscript>
+    <style>[data-request-collapsed]{display:none;}</style>
+    <form method="post" action="/requests" class="form-grid">
+      <div class="input-group">
+        <label for="noscript-description">How can we help?</label>
+        <textarea id="noscript-description" name="description" placeholder="Share the need" required></textarea>
+      </div>
+      <div class="input-group">
+        <label for="noscript-contact">Contact email <span class="muted">(optional)</span></label>
+        <input id="noscript-contact" name="contact_email" type="email" />
+      </div>
+      <div class="actions">
+        <button type="submit" class="button">Post request</button>
+      </div>
+    </form>
+  </noscript>
   </div>
 
   <div id="request-list" data-request-list>
