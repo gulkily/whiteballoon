@@ -12,7 +12,7 @@ WhiteBalloon is a modular community platform built on FastAPI and SQLModel. The 
 ## Technology Stack
 - **Backend**: FastAPI application packaged under `app/`
 - **Database**: SQLite with SQLModel ORM, stored at `data/app.db`
-- **Frontend**: Jinja2 templates rendered by FastAPI with vanilla CSS and HTMX enhancements
+- **Frontend**: Jinja2 templates rendered by FastAPI with vanilla CSS and progressive enhancement (minimal JS fetch helpers)
 - **Authentication**: Invite-only registration/login backed by multi-device approvals and session tokens stored in the database
 - **CLI Tooling**: Typer-based developer commands in `tools/dev.py`
 
@@ -31,7 +31,7 @@ The base authentication and request feed modules serve as reference implementati
 - `app/services/` – Domain services (authentication helpers, request feed)
 - `app/routes/` – API router (`auth.py`) and UI router (`ui.py`)
 - `app/modules/` – Optional directory for plug-in modules packaged independently
-- `templates/` – Jinja2 templates (base layout, auth pages, request feed views, HTMX fragments)
+- `templates/` – Jinja2 templates (base layout, auth pages, request feed views)
 - `static/css/app.css` – Custom vanilla CSS design system (no external frameworks)
 - `data/` – SQLite database files and derived artifacts
 - `tools/dev.py` – Click CLI (invoked via `./wb`)
@@ -42,10 +42,15 @@ The base authentication and request feed modules serve as reference implementati
 1. User registration, login, logout, and session management
 2. Optional profile contact email capture for follow-up
 3. Request feed that lists, creates, and completes user-submitted requests
-4. HTMX-powered interactions for in-place request creation/completion
-5. Vanilla CSS design system with tokens, layout primitives, and component patterns
+4. Vanilla CSS design system with tokens, layout primitives, and component patterns
+5. Progressive enhancement for request lifecycle actions without heavy dependencies
 
 ## Extensibility Guidelines
+
+## Frontend Guidelines
+- Render primary pages fully on the server so first load includes required data.
+- Layer progressive enhancement sparingly (vanilla JS fetch helpers) for actions that benefit from in-page updates.
+- Keep interactions functional without JavaScript to preserve graceful degradation.
 - Each module should ship with its own tests and documentation
 - Favor configuration-driven behavior over schema changes whenever possible
 - Use SQLModel relationships and services to encapsulate database logic per module

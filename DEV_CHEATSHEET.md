@@ -1,7 +1,7 @@
 # WhiteBalloon - Development Cheatsheet
 
 ## Project Snapshot
-Modular FastAPI/SQLModel application with authentication, request feed, HTMX-enhanced templates, and Typer CLI tooling. Future capabilities will be delivered as atomic modules packaged under `app/modules/`.
+Modular FastAPI/SQLModel application with authentication, request feed, server-rendered templates, and progressive enhancement via light JavaScript helpers. Future capabilities will be delivered as atomic modules packaged under `app/modules/`.
 
 ## Quick Start Commands
 ```bash
@@ -35,6 +35,7 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - `templates/` – Jinja templates shared by modules
 - `static/css/app.css` – Vanilla CSS design system for layout/components
 - `wb` – Git-style wrapper around the Click CLI
+- `static/js/` (optional) – Minimal progressive-enhancement scripts
 
 ## Environment Variables
 ```bash

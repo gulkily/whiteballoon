@@ -6,7 +6,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Invite-based registration with automatic admin bootstrap for the first user
 - Multi-device login approvals powered by verification codes
 - Session management via secure cookies backed by the database
-- Help-request feed with HTMX-enhanced forms for creating and completing requests
+- Help-request feed with progressive enhancement for creating and completing requests
 - Vanilla CSS design system with reusable layout primitives and components
 - JSON API under `/api/requests` for programmatic access to the request feed
 
@@ -40,7 +40,7 @@ The CLI exposes helpers for administration:
 ```
 
 ## Request feed basics
-- HTMX drives in-place request creation and completion actions.
+- Lightweight JavaScript helpers drive optional in-place updates; initial pages remain server-rendered.
 - The feed page loads from `/` and the backing API lives under `/api/requests`.
 - Authenticated users can post new requests, optionally sharing a contact email for follow-up.
 - Authors and administrators can mark requests as completed; the UI reflects updates instantly.
@@ -57,7 +57,7 @@ app/
   routes/               # API + UI routers
   services/             # Domain services (authentication helpers)
 static/css/app.css      # Vanilla CSS design system
-templates/              # Jinja templates and HTMX partials
+templates/              # Jinja templates and enhancement-friendly partials
 tools/dev.py            # Typer CLI (invoked via ./wb)
 ```
 

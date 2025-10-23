@@ -4,11 +4,11 @@
   ```
   You are starting from an empty folder to create a fresh project that delivers secure authentication and a minimal request feed, while establishing a foundation for future plug-in modules. Build a FastAPI + SQLModel backend with the following structure:
   - Project layout: `app/` (FastAPI app package), `app/services/`, `app/routes/`, `app/modules/`, `app/models.py`, `templates/`, `static/css/`, `tests/`, `tools/`.
-  - Features: invite-based authentication flow, session tokens stored in DB, optional contact email capture on profile, CRUD endpoints and HTMX-friendly templates for a "help requests" feed (list, create, mark complete).
+  - Features: invite-based authentication flow, session tokens stored in DB, optional contact email capture on profile, CRUD endpoints and progressively enhanced templates for a "help requests" feed (list, create, mark complete).
   - Dependencies: FastAPI, SQLModel, Jinja2, passlib[bcrypt], python-multipart, httpx (for tests), pytest, pytest-asyncio, uvicorn.
   - Database: SQLite `data/app.db` with SQLModel models for `User`, `Session`, `HelpRequest` (includes `title`, `description`, `created_at`, `status`, `contact_email` optional).
   - Authentication: invite-only registration, multi-device login approvals, logout, session cookie, admin flag to gate future features.
-  - Frontend: Jinja base template with custom vanilla CSS variables, layout primitives, and HTMX-enhanced interactions. No Tailwind or external CSS frameworks; ship plain CSS in `static/css/app.css` without build tooling.
+  - Frontend: Jinja base template with custom vanilla CSS variables, layout primitives, and lightweight progressive enhancement. No Tailwind or external CSS frameworks; ship plain CSS in `static/css/app.css` without build tooling.
   - CLI: `tools/dev.py` (Typer) with commands `runserver`, `init-db`, `create-admin`.
   - Tests: pytest suite covering auth flow and help request CRUD (async client via httpx AsyncClient + LifespanManager).
   - Docs: `README.md` with setup, CSS guidelines, architecture overview, and notes on how additional modules can hook into the project.
@@ -32,7 +32,7 @@
 
 4. **Stage 4 – Request Feed Module (Core Module 1)**
    - Dependencies: Stage 3 authentication available.
-   - Changes: Implement module scaffold under `app/modules/requests/` with routes, services, templates, and HTMX fragments for listing, creating, and completing requests.
+   - Changes: Implement module scaffold under `app/modules/requests/` with routes, services, templates, and progressive enhancement hooks for listing, creating, and completing requests.
    - Risks: Module coupling; mitigate by encapsulating business logic in module service layer and exposing clean interfaces.
 
 5. **Stage 5 – Frontend Templates & Custom CSS System**
