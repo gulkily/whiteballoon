@@ -235,3 +235,16 @@ form.inline {
 [data-request-status][data-tone="info"] {
   color: var(--color-muted);
 }
+
+[data-request-card] [data-request-form] {
+  display: none;
+}
+[data-request-card].is-expanded [data-request-form] {
+  display: grid;
+}
+[data-request-card].is-expanded [data-request-collapsed] {
+  display: none;
+}
+[data-request-card].is-collapsed [data-request-form] {
+  display: none;
+}

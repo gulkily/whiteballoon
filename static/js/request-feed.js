@@ -25,8 +25,9 @@
 
     if (collapsed) {
       collapsed.hidden = false;
-      hideForm(card);
     }
+
+    hideForm(card);
 
     showButton?.addEventListener('click', (event) => {
       event.preventDefault();
@@ -174,6 +175,8 @@
     if (collapsed) {
       collapsed.hidden = true;
     }
+    card.classList.add('is-expanded');
+    card.classList.remove('is-collapsed');
   }
 
   function hideForm(card) {
@@ -185,6 +188,8 @@
     if (collapsed) {
       collapsed.hidden = false;
     }
+    card.classList.remove('is-expanded');
+    card.classList.add('is-collapsed');
   }
 
   function hideStatus(card) {
