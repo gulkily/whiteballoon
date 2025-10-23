@@ -14,14 +14,12 @@ router = APIRouter(prefix="/api/requests", tags=["requests"])
 
 
 class RequestCreatePayload(BaseModel):
-    title: str
-    description: str = ""
+    description: str
     contact_email: str | None = None
 
 
 class RequestResponse(BaseModel):
     id: int
-    title: str
     description: str
     status: str
     contact_email: str | None
@@ -33,7 +31,6 @@ class RequestResponse(BaseModel):
     def from_model(cls, request: HelpRequest) -> "RequestResponse":
         return cls(
             id=request.id,
-            title=request.title,
             description=request.description,
             status=request.status,
             contact_email=request.contact_email,
@@ -58,7 +55,6 @@ def create_request(
     help_request = services.create_request(
         db,
         user=user,
-        title=payload.title,
         description=payload.description,
         contact_email=payload.contact_email,
     )

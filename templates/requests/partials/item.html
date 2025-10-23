@@ -6,7 +6,6 @@
     <time datetime="{{ item.created_at }}" class="muted">{{ item.created_at | replace('T', ' ') | replace('Z', '') }}</time>
   </header>
   <div>
-    <h2>{{ item.title }}</h2>
     <p>{{ item.description or 'No additional details.' }}</p>
   </div>
   <footer class="actions">

@@ -22,16 +22,18 @@ def create_request(
     session: Session,
     *,
     user: User,
-    title: str,
     description: str,
     contact_email: str | None,
 ) -> HelpRequest:
-    if not title.strip():
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Title required")
+    summary = description.strip()
+    if not summary:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Description required")
+
+    normalized_title = summary.splitlines()[0][:200]
 
     help_request = HelpRequest(
-        title=title.strip(),
-        description=description.strip(),
+        title=normalized_title or None,
+        description=summary,
         contact_email=contact_email or user.contact_email,
         created_by_user_id=user.id,
     )

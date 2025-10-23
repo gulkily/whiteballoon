@@ -7,6 +7,9 @@
   <div class="card stack">
     <h1>Welcome!</h1>
     <p>User <strong>{{ username }}</strong> is ready. You can now <a href="/login">request access</a> from a trusted device.</p>
+    {% if created_request %}
+    <div class="alert">Your first request is live in the feed.</div>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

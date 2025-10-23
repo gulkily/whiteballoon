@@ -37,7 +37,7 @@ class HelpRequest(SQLModel, table=True):
     __tablename__ = "help_requests"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    title: str = Field(max_length=200, nullable=False)
+    title: Optional[str] = Field(default=None, max_length=200)
     description: str = Field(default="", max_length=4000)
     status: str = Field(default="open", index=True, nullable=False)
     contact_email: Optional[str] = Field(default=None, max_length=255)

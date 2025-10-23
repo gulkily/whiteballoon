@@ -27,6 +27,33 @@ def _serialize_requests(items):
     return [RequestResponse.from_model(item).model_dump() for item in items]
 
 
+
+
+@router.get("/requests/partials/form/show")
+def show_request_form(
+    request: Request,
+    db: SessionDep,
+    session_record: Optional[UserSession] = Depends(get_current_session),
+):
+    if not session_record or not session_record.is_fully_authenticated:
+        return templates.TemplateResponse(
+            "auth/login_required_fragment.html",
+            {"request": request, "message": "Sign in to share a request."},
+        )
+
+    user = db.exec(select(User).where(User.id == session_record.user_id)).first()
+    if not user:
+        response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+        response.delete_cookie(auth_service.SESSION_COOKIE_NAME, path="/")
+        return response
+
+    return templates.TemplateResponse("requests/partials/form.html", {"request": request, "user": user})
+
+
+@router.get("/requests/partials/form/cancel")
+def cancel_request_form(request: Request) -> Response:
+    return templates.TemplateResponse("requests/partials/form_closed.html", {"request": request})
+
 @router.get("/login")
 def login_form(
     request: Request,
@@ -113,6 +140,7 @@ def register_submit(
     username: Annotated[str, Form(...)],
     invite_token: Annotated[Optional[str], Form()] = None,
     contact_email: Annotated[Optional[str], Form()] = None,
+    initial_request: Annotated[Optional[str], Form()] = None,
 ):
     user = auth_service.create_user_with_invite(
         db,
@@ -121,7 +149,17 @@ def register_submit(
         invite_token=invite_token,
     )
 
-    context = {"request": request, "username": user.username}
+    created_request = False
+    if initial_request and initial_request.strip():
+        request_services.create_request(
+            db,
+            user=user,
+            description=initial_request,
+            contact_email=contact_email,
+        )
+        created_request = True
+
+    context = {"request": request, "username": user.username, "created_request": created_request}
     return templates.TemplateResponse("auth/register_success.html", context)
 
 
@@ -166,10 +204,11 @@ def request_list_partial(
     db: SessionDep,
     user: User = Depends(require_authenticated_user),
 ):
-    items = _serialize_requests(request_services.list_requests(db))
+    items = request_services.list_requests(db)
+    payload = _serialize_requests(items)
     return templates.TemplateResponse(
         "requests/partials/list.html",
-        {"request": request, "requests": items, "user": user},
+        {"request": request, "requests": payload, "user": user},
     )
 
 
@@ -179,14 +218,12 @@ def create_request(
     db: SessionDep,
     user: User = Depends(require_authenticated_user),
     *,
-    title: Annotated[str, Form(...)],
-    description: Annotated[str, Form()] = "",
+    description: Annotated[str, Form()],
     contact_email: Annotated[Optional[str], Form()] = None,
 ):
     request_services.create_request(
         db,
         user=user,
-        title=title,
         description=description,
         contact_email=contact_email,
     )

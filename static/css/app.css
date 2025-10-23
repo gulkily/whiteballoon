@@ -10,6 +10,7 @@
   --color-success: #15803d;
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
   --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --gap-sm: 0.5rem;
   --radius-md: 12px;
   --radius-sm: 6px;
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -215,4 +216,8 @@ form.inline {
   .nav-links {
     width: 100%;
   }
+}
+
+.grow {
+  flex: 1;
 }

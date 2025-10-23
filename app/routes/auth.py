@@ -8,6 +8,7 @@ from sqlmodel import Session, select
 
 from app.dependencies import SessionDep, apply_session_cookie, get_current_session, require_admin
 from app.models import AuthenticationRequest, AuthApproval, User, UserSession
+from app.modules.requests import services as request_services
 from app.services import auth_service
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -17,6 +18,7 @@ class RegisterPayload(BaseModel):
     username: str
     contact_email: Optional[str] = None
     invite_token: Optional[str] = None
+    initial_request: Optional[str] = None
 
 
 class LoginPayload(BaseModel):
@@ -41,6 +43,14 @@ def register_user(payload: RegisterPayload, db: SessionDep) -> dict:
         contact_email=payload.contact_email,
         invite_token=payload.invite_token,
     )
+
+    if payload.initial_request and payload.initial_request.strip():
+        request_services.create_request(
+            db,
+            user=user,
+            description=payload.initial_request,
+            contact_email=payload.contact_email,
+        )
 
     return {"username": user.username, "is_admin": user.is_admin}
 
