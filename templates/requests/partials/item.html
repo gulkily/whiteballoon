@@ -10,7 +10,7 @@
   </div>
   <footer class="actions">
     {% if item.status != 'completed' %}
-      <form hx-post="/requests/{{ item.id }}/complete" hx-target="#request-list" hx-swap="outerHTML" class="inline">
+      <form method="post" action="/requests/{{ item.id }}/complete" data-request-complete data-request-id="{{ item.id }}" class="inline">
         <button type="submit" class="button">Mark completed</button>
       </form>
     {% else %}

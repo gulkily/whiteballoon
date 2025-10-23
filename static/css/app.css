@@ -221,3 +221,17 @@ form.inline {
 .grow {
   flex: 1;
 }
+
+[data-request-status] {
+  min-height: 1.2rem;
+  font-size: 0.85rem;
+}
+[data-request-status][data-tone="success"] {
+  color: #15803d;
+}
+[data-request-status][data-tone="error"] {
+  color: #dc2626;
+}
+[data-request-status][data-tone="info"] {
+  color: var(--color-muted);
+}

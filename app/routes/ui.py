@@ -29,31 +29,6 @@ def _serialize_requests(items):
 
 
 
-@router.get("/requests/partials/form/show")
-def show_request_form(
-    request: Request,
-    db: SessionDep,
-    session_record: Optional[UserSession] = Depends(get_current_session),
-):
-    if not session_record or not session_record.is_fully_authenticated:
-        return templates.TemplateResponse(
-            "auth/login_required_fragment.html",
-            {"request": request, "message": "Sign in to share a request."},
-        )
-
-    user = db.exec(select(User).where(User.id == session_record.user_id)).first()
-    if not user:
-        response = RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
-        response.delete_cookie(auth_service.SESSION_COOKIE_NAME, path="/")
-        return response
-
-    return templates.TemplateResponse("requests/partials/form.html", {"request": request, "user": user})
-
-
-@router.get("/requests/partials/form/cancel")
-def cancel_request_form(request: Request) -> Response:
-    return templates.TemplateResponse("requests/partials/form_closed.html", {"request": request})
-
 @router.get("/login")
 def login_form(
     request: Request,
