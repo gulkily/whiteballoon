@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
+from dataclasses import dataclass
 from datetime import datetime
 
 from fastapi import Cookie, Depends, HTTPException, Request, status
@@ -36,6 +37,26 @@ def get_current_session(
 
     touch_session(db, session_record=session_record)
     return session_record
+
+
+@dataclass
+class SessionUser:
+    user: User
+    session: UserSession
+
+
+def require_session_user(
+    db: SessionDep,
+    session_record: Annotated[Optional[UserSession], Depends(get_current_session)],
+) -> SessionUser:
+    if not session_record:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
+
+    user = db.exec(select(User).where(User.id == session_record.user_id)).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+
+    return SessionUser(user=user, session=session_record)
 
 
 def require_authenticated_user(db: SessionDep, session_record: Annotated[Optional[UserSession], Depends(get_current_session)]) -> User:

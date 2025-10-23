@@ -12,6 +12,7 @@ from app.models import HelpRequest, User
 def list_requests(session: Session, *, limit: int = 50) -> List[HelpRequest]:
     statement = (
         select(HelpRequest)
+        .where(HelpRequest.status != "pending")
         .order_by(HelpRequest.created_at.desc())
         .limit(limit)
     )
@@ -24,6 +25,7 @@ def create_request(
     user: User,
     description: str,
     contact_email: str | None,
+    status_value: str = "open",
 ) -> HelpRequest:
     summary = description.strip()
     if not summary:
@@ -36,6 +38,7 @@ def create_request(
         description=summary,
         contact_email=contact_email or user.contact_email,
         created_by_user_id=user.id,
+        status=status_value,
     )
     session.add(help_request)
     session.commit()
@@ -59,3 +62,27 @@ def mark_completed(session: Session, *, request_id: int, user: User) -> HelpRequ
     session.commit()
     session.refresh(help_request)
     return help_request
+
+
+
+def list_pending_requests_for_user(session: Session, *, user_id: int) -> List[HelpRequest]:
+    statement = (
+        select(HelpRequest)
+        .where(HelpRequest.created_by_user_id == user_id, HelpRequest.status == "pending")
+        .order_by(HelpRequest.created_at.asc())
+    )
+    return list(session.exec(statement).all())
+
+
+def promote_pending_requests(session: Session, *, user_id: int) -> None:
+    pending_requests = list_pending_requests_for_user(session, user_id=user_id)
+    if not pending_requests:
+        return
+
+    now = datetime.utcnow()
+    for request in pending_requests:
+        request.status = "open"
+        request.updated_at = now
+        session.add(request)
+
+    session.commit()

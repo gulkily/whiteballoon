@@ -44,6 +44,7 @@ The CLI exposes helpers for administration:
 - Lightweight JavaScript helpers drive optional in-place updates; initial pages remain server-rendered.
 - The feed page loads from `/` and the backing API lives under `/api/requests`.
 - Authenticated users can post new requests, optionally sharing a contact email for follow-up.
+- Half-authenticated users can submit requests which remain private (`pending` status) until approval.
 - Authors and administrators can mark requests as completed; the UI reflects updates instantly.
 
 ## Project layout

@@ -16,6 +16,7 @@ from app.models import (
     User,
     UserSession,
 )
+from app.modules.requests import services as request_services
 
 SESSION_COOKIE_NAME = "wb_session_id"
 
@@ -153,6 +154,10 @@ def approve_auth_request(
         session_record.is_fully_authenticated = True
 
     session.commit()
+
+    # Promote any pending requests now that the user is fully authenticated.
+    request_services.promote_pending_requests(session, user_id=auth_request.user_id)
+
     session.refresh(auth_request)
     return auth_request
 

@@ -36,7 +36,7 @@
       <p class="muted">Drafts remain private until an admin approves you.</p>
     </div>
 
-    <form class="form-grid" data-request-form hidden>
+    <form method="post" action="/requests" class="form-grid" data-request-form hidden>
       <div class="input-group">
         <label for="pending-description">How can we help?</label>
         <textarea id="pending-description" name="description" placeholder="Share the need" required></textarea>
@@ -56,6 +56,19 @@
       <p class="muted">Enable JavaScript to keep a draft while you wait for approval.</p>
     </noscript>
   </div>
+
+  {% if pending_requests %}
+  <div class="card stack">
+    <h2>Your pending requests</h2>
+    <div class="requests-grid">
+      {% for item in pending_requests %}
+        {% set readonly = True %}
+        {% include "requests/partials/item.html" %}
+      {% endfor %}
+    </div>
+    <p class="muted">These will publish automatically once you are approved.</p>
+  </div>
+  {% endif %}
 
   <div class="card stack">
     <h2>Community requests</h2>

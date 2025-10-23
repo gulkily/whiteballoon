@@ -4,9 +4,8 @@ from typing import List
 
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
-from sqlmodel import Session
 
-from app.dependencies import SessionDep, require_authenticated_user
+from app.dependencies import SessionDep, SessionUser, require_authenticated_user, require_session_user
 from app.models import HelpRequest, User
 from app.modules.requests import services
 
@@ -41,22 +40,30 @@ class RequestResponse(BaseModel):
 
 
 @router.get("/", response_model=List[RequestResponse])
-def list_requests(db: SessionDep, user: User = Depends(require_authenticated_user)) -> List[RequestResponse]:
+def list_requests(db: SessionDep, session_user: SessionUser = Depends(require_session_user)) -> List[RequestResponse]:
     requests = services.list_requests(db)
     return [RequestResponse.from_model(item) for item in requests]
+
+
+@router.get("/pending", response_model=List[RequestResponse])
+def list_pending_requests(db: SessionDep, session_user: SessionUser = Depends(require_session_user)) -> List[RequestResponse]:
+    pending_requests = services.list_pending_requests_for_user(db, user_id=session_user.user.id)
+    return [RequestResponse.from_model(item) for item in pending_requests]
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=RequestResponse)
 def create_request(
     payload: RequestCreatePayload,
     db: SessionDep,
-    user: User = Depends(require_authenticated_user),
+    session_user: SessionUser = Depends(require_session_user),
 ) -> RequestResponse:
+    status_value = "open" if session_user.session.is_fully_authenticated else "pending"
     help_request = services.create_request(
         db,
-        user=user,
+        user=session_user.user,
         description=payload.description,
         contact_email=payload.contact_email,
+        status_value=status_value,
     )
     return RequestResponse.from_model(help_request)
 

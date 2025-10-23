@@ -1,3 +1,4 @@
+{% set readonly = readonly if readonly is defined else False %}
 <article class="request-item">
   <header class="request-meta">
     <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">

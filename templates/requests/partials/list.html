@@ -1,3 +1,4 @@
+{% set readonly = readonly if readonly is defined else False %}
 {% if requests %}
   <div class="requests-grid">
     {% for item in requests %}

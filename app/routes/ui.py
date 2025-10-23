@@ -9,9 +9,11 @@ from sqlmodel import select
 
 from app.dependencies import (
     SessionDep,
+    SessionUser,
     apply_session_cookie,
     get_current_session,
     require_authenticated_user,
+    require_session_user,
 )
 from app.models import AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
@@ -184,21 +186,27 @@ def home(
                 select(AuthenticationRequest).where(AuthenticationRequest.id == session_record.auth_request_id)
             ).first()
 
-        items = _serialize_requests(request_services.list_requests(db))
+        public_requests = _serialize_requests(request_services.list_requests(db))
+        pending_requests = [
+            RequestResponse.from_model(item).model_dump()
+            for item in request_services.list_pending_requests_for_user(db, user_id=user.id)
+        ]
+
         context = {
             "request": request,
             "user": user,
-            "requests": items,
+            "requests": public_requests,
+            "pending_requests": pending_requests,
             "verification_code": auth_request.verification_code if auth_request else None,
             "auth_request": auth_request,
             "readonly": True,
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
-    items = _serialize_requests(request_services.list_requests(db))
+    public_requests = _serialize_requests(request_services.list_requests(db))
     return templates.TemplateResponse(
         "requests/index.html",
-        {"request": request, "user": user, "requests": items, "readonly": False},
+        {"request": request, "user": user, "requests": public_requests, "readonly": False},
     )
 
 
@@ -206,16 +214,18 @@ def home(
 def create_request(
     request: Request,
     db: SessionDep,
-    user: User = Depends(require_authenticated_user),
+    session_user: SessionUser = Depends(require_session_user),
     *,
     description: Annotated[str, Form()],
     contact_email: Annotated[Optional[str], Form()] = None,
 ):
+    status_value = "open" if session_user.session.is_fully_authenticated else "pending"
     request_services.create_request(
         db,
-        user=user,
+        user=session_user.user,
         description=description,
         contact_email=contact_email,
+        status_value=status_value,
     )
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
