@@ -7,7 +7,10 @@
   <div class="card stack">
     <h1>Sign in</h1>
     <p class="muted">Enter your username to request access from an approved device.</p>
-    <form hx-post="/login" hx-target="#login-panel" hx-swap="outerHTML" class="form-grid" id="login-panel">
+    {% if error %}
+      <div class="alert">{{ error }}</div>
+    {% endif %}
+    <form method="post" class="form-grid">
       <div class="input-group">
         <label for="username">Username</label>
         <input id="username" name="username" type="text" required autofocus />

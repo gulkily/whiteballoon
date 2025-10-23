@@ -1,13 +1,24 @@
-<div class="card stack" id="login-panel">
-  <h2>Approval requested</h2>
-  <p class="muted">Share this verification code with an administrator or trusted device to complete login.</p>
-  <div class="alert">Verification code: <strong>{{ verification_code }}</strong></div>
-  <form hx-post="/login/verify" hx-target="body" hx-swap="innerHTML" class="form-grid">
-    <input type="hidden" name="username" value="{{ username }}" />
-    <div class="input-group">
-      <label for="verification_code">Enter verification code</label>
-      <input id="verification_code" name="verification_code" type="text" required />
-    </div>
-    <button type="submit" class="button">Verify and continue</button>
-  </form>
-</div>
+{% extends "base.html" %}
+
+{% block title %}Verify Login · WhiteBalloon{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h2>Approval requested</h2>
+    <p class="muted">Share this verification code with an administrator or trusted device to complete login.</p>
+    <div class="alert">Verification code: <strong>{{ verification_code }}</strong></div>
+    {% if error %}
+      <div class="alert" data-tone="error">{{ error }}</div>
+    {% endif %}
+    <form method="post" action="/login/verify" class="form-grid">
+      <input type="hidden" name="username" value="{{ username }}" />
+      <div class="input-group">
+        <label for="verification_code">Enter verification code</label>
+        <input id="verification_code" name="verification_code" type="text" required />
+      </div>
+      <button type="submit" class="button">Verify and continue</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

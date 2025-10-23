@@ -173,20 +173,6 @@ def home(
     )
 
 
-@router.get("/requests/partials/list")
-def request_list_partial(
-    request: Request,
-    db: SessionDep,
-    user: User = Depends(require_authenticated_user),
-):
-    items = request_services.list_requests(db)
-    payload = _serialize_requests(items)
-    return templates.TemplateResponse(
-        "requests/partials/list.html",
-        {"request": request, "requests": payload, "user": user},
-    )
-
-
 @router.post("/requests")
 def create_request(
     request: Request,
@@ -202,11 +188,6 @@ def create_request(
         description=description,
         contact_email=contact_email,
     )
-    items = _serialize_requests(request_services.list_requests(db))
-    context = {"request": request, "requests": items, "user": user}
-
-    if request.headers.get("HX-Request") == "true":
-        return templates.TemplateResponse("requests/partials/list.html", context)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
 
 
@@ -218,10 +199,4 @@ def complete_request(
     user: User = Depends(require_authenticated_user),
 ):
     request_services.mark_completed(db, request_id=request_id, user=user)
-    items = _serialize_requests(request_services.list_requests(db))
-    if request.headers.get("HX-Request") == "true":
-        return templates.TemplateResponse(
-            "requests/partials/list.html",
-            {"request": request, "requests": items, "user": user},
-        )
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
