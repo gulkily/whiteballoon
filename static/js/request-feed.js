@@ -2,6 +2,37 @@
   const API_BASE = '/api/requests';
   const STORAGE_PREFIX = 'wb:request-draft:';
 
+  function getDraftKey(card) {
+    const userId = card?.dataset.userId || card?.dataset.userUsername || 'pending';
+    return `${STORAGE_PREFIX}${userId}`;
+  }
+
+  function loadDraft(card) {
+    try {
+      const raw = localStorage.getItem(getDraftKey(card));
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      console.warn('Unable to load draft', error);
+      return null;
+    }
+  }
+
+  function saveDraft(card, draft) {
+    try {
+      localStorage.setItem(getDraftKey(card), JSON.stringify(draft));
+    } catch (error) {
+      console.warn('Unable to save draft', error);
+    }
+  }
+
+  function clearDraft(card) {
+    try {
+      localStorage.removeItem(getDraftKey(card));
+    } catch (error) {
+      console.warn('Unable to clear draft', error);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const card = document.querySelector('[data-request-card]');
     const list = document.querySelector('[data-request-list]');

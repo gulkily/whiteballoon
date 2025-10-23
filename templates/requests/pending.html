@@ -21,8 +21,14 @@
     <p class="muted">Any drafts you create stay private until your account is fully approved.</p>
   </div>
 
-  <div class="card stack" data-request-card data-readonly="true" data-user-id="{{ user.id }}" data-user-username="{{ user.username }}">
-    <div class="stack" data-request-collapsed hidden>
+  <div
+    class="card stack is-collapsed"
+    data-request-card
+    data-readonly="true"
+    data-user-id="{{ user.id }}"
+    data-user-username="{{ user.username }}"
+  >
+    <div class="stack" data-request-collapsed>
       <header class="stack stack--row stack--center">
         <h2 class="grow">Draft a request</h2>
         <button type="button" class="button" data-request-action="show-form">Open draft</button>

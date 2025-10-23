@@ -9,8 +9,16 @@
 {% endblock %}
 
 {% block content %}
+{% set readonly = readonly if readonly is defined else False %}
 <section class="section">
-  <div class="card stack is-collapsed" id="request-form-card" data-request-card data-readonly="{{ readonly | default(False) | string | lower }}" data-user-id="{{ user.id }}" data-user-username="{{ user.username }}">
+  <div
+    class="card stack is-collapsed"
+    id="request-form-card"
+    data-request-card
+    data-readonly="{{ 'true' if readonly else 'false' }}"
+    data-user-id="{{ user.id }}"
+    data-user-username="{{ user.username }}"
+  >
     <div class="stack" data-request-collapsed>
       <header class="stack stack--row stack--center">
         <h1 class="grow">Help requests</h1>
@@ -36,24 +44,24 @@
     </form>
 
     <noscript>
-    <style>[data-request-collapsed]{display:none;}</style>
-    <form method="post" action="/requests" class="form-grid">
-      <div class="input-group">
-        <label for="noscript-description">How can we help?</label>
-        <textarea id="noscript-description" name="description" placeholder="Share the need" required></textarea>
-      </div>
-      <div class="input-group">
-        <label for="noscript-contact">Contact email <span class="muted">(optional)</span></label>
-        <input id="noscript-contact" name="contact_email" type="email" />
-      </div>
-      <div class="actions">
-        <button type="submit" class="button">Post request</button>
-      </div>
-    </form>
-  </noscript>
+      <style>[data-request-collapsed]{display:none;}</style>
+      <form method="post" action="/requests" class="form-grid">
+        <div class="input-group">
+          <label for="noscript-description">How can we help?</label>
+          <textarea id="noscript-description" name="description" placeholder="Share the need" required></textarea>
+        </div>
+        <div class="input-group">
+          <label for="noscript-contact">Contact email <span class="muted">(optional)</span></label>
+          <input id="noscript-contact" name="contact_email" type="email" />
+        </div>
+        <div class="actions">
+          <button type="submit" class="button">Post request</button>
+        </div>
+      </form>
+    </noscript>
   </div>
 
-  <div id="request-list" data-request-list data-readonly="{{ readonly | default(False) | string | lower }}">
+  <div id="request-list" data-request-list data-readonly="{{ 'true' if readonly else 'false' }}">
     {% include "requests/partials/list.html" %}
   </div>
 </section>
