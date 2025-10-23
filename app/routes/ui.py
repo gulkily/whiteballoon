@@ -46,11 +46,12 @@ def login_submit(
     response: Response,
     *,
     username: Annotated[str, Form(...)],
-):
+) -> Response:
     normalized = auth_service.normalize_username(username)
     user = db.exec(select(User).where(User.username == normalized)).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        context = {"request": request, "error": "Username not found.", "username": username}
+        return templates.TemplateResponse("auth/login.html", context, status_code=status.HTTP_200_OK)
 
     auth_request, session_record = auth_service.create_auth_request(
         db,
@@ -65,9 +66,9 @@ def login_submit(
         "request": request,
         "verification_code": auth_request.verification_code,
         "username": user.username,
+        "error": None,
     }
     return templates.TemplateResponse("auth/login_pending.html", context)
-
 
 @router.post("/login/verify")
 def verify_login(
@@ -77,12 +78,21 @@ def verify_login(
     *,
     username: Annotated[str, Form(...)],
     verification_code: Annotated[str, Form(...)],
-):
-    auth_request = auth_service.find_pending_auth_request(
-        db,
-        username=username,
-        verification_code=verification_code,
-    )
+) -> Response:
+    try:
+        auth_request = auth_service.find_pending_auth_request(
+            db,
+            username=username,
+            verification_code=verification_code,
+        )
+    except HTTPException as exc:
+        context = {
+            "request": request,
+            "username": username,
+            "verification_code": verification_code,
+            "error": exc.detail,
+        }
+        return templates.TemplateResponse("auth/login_pending.html", context, status_code=exc.status_code)
 
     auth_service.approve_auth_request(db, auth_request=auth_request, approver=None)
 
@@ -90,17 +100,16 @@ def verify_login(
         select(UserSession).where(UserSession.auth_request_id == auth_request.id)
     ).first()
     if not session_record:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Session missing")
+        context = {
+            "request": request,
+            "username": username,
+            "verification_code": auth_request.verification_code,
+            "error": "Session missing. Request access again.",
+        }
+        return templates.TemplateResponse("auth/login_pending.html", context, status_code=status.HTTP_400_BAD_REQUEST)
 
     apply_session_cookie(response, session_record)
-
-    if request.headers.get("HX-Request") == "true":
-        response.headers["HX-Redirect"] = "/"
-        response.status_code = status.HTTP_204_NO_CONTENT
-        return response
-
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
 
 @router.get("/register")
 def register_form(request: Request) -> Response:
