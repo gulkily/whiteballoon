@@ -43,6 +43,7 @@ def login_form(
 def login_submit(
     request: Request,
     db: SessionDep,
+    response: Response,
     *,
     username: Annotated[str, Form(...)],
 ) -> Response:
