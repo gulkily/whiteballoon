@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Approval · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  <form action="/logout" method="post" class="inline">
+    <button type="submit" class="button button--ghost">Sign out</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h1>Waiting for approval</h1>
+    <p class="muted">Your access request is pending. You can browse existing requests while an administrator approves you.</p>
+    {% if verification_code %}
+      <div class="alert">Verification code: <strong>{{ verification_code }}</strong></div>
+    {% else %}
+      <div class="muted">No active verification code was found. Request access again if needed.</div>
+    {% endif %}
+    <p class="muted">Any drafts you create stay private until your account is fully approved.</p>
+  </div>
+
+  <div class="card stack">
+    <h2>Community requests</h2>
+    {% include "requests/partials/list.html" %}
+  </div>
+</section>
+{% endblock %}

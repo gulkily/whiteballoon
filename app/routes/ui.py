@@ -13,7 +13,7 @@ from app.dependencies import (
     get_current_session,
     require_authenticated_user,
 )
-from app.models import User, UserSession
+from app.models import AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse
 from app.services import auth_service
@@ -168,7 +168,7 @@ def home(
     db: SessionDep,
     session_record: Optional[UserSession] = Depends(get_current_session),
 ) -> Response:
-    if not session_record or not session_record.is_fully_authenticated:
+    if not session_record:
         return templates.TemplateResponse("auth/logged_out.html", {"request": request})
 
     user = db.exec(select(User).where(User.id == session_record.user_id)).first()
@@ -177,10 +177,28 @@ def home(
         response.delete_cookie(auth_service.SESSION_COOKIE_NAME, path="/")
         return response
 
+    if not session_record.is_fully_authenticated:
+        auth_request = None
+        if session_record.auth_request_id:
+            auth_request = db.exec(
+                select(AuthenticationRequest).where(AuthenticationRequest.id == session_record.auth_request_id)
+            ).first()
+
+        items = _serialize_requests(request_services.list_requests(db))
+        context = {
+            "request": request,
+            "user": user,
+            "requests": items,
+            "verification_code": auth_request.verification_code if auth_request else None,
+            "auth_request": auth_request,
+            "readonly": True,
+        }
+        return templates.TemplateResponse("requests/pending.html", context)
+
     items = _serialize_requests(request_services.list_requests(db))
     return templates.TemplateResponse(
         "requests/index.html",
-        {"request": request, "user": user, "requests": items},
+        {"request": request, "user": user, "requests": items, "readonly": False},
     )
 
 
