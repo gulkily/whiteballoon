@@ -30,8 +30,9 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 ## Authentication workflow
 1. A user registers with an invite token (unless they are the first user).
 2. The user submits their username on the login page, creating an authentication request and half-authenticated session.
-3. The user (or an administrator) completes verification by submitting the generated code, upgrading the session to fully authenticated.
-4. Sessions are stored in the database and tracked through the `wb_session_id` cookie.
+3. While waiting, the user lands on a pending dashboard: they can browse existing requests, save private drafts, and view their verification code.
+4. The user (or an administrator) completes verification by submitting the generated code, upgrading the session to fully authenticated.
+5. Sessions are stored in the database and tracked through the `wb_session_id` cookie.
 
 The CLI exposes helpers for administration:
 ```bash
