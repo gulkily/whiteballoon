@@ -43,7 +43,6 @@ def login_form(
 def login_submit(
     request: Request,
     db: SessionDep,
-    response: Response,
     *,
     username: Annotated[str, Form(...)],
 ) -> Response:
@@ -68,13 +67,14 @@ def login_submit(
         "username": user.username,
         "error": None,
     }
-    return templates.TemplateResponse("auth/login_pending.html", context)
+    template_response = templates.TemplateResponse("auth/login_pending.html", context)
+    apply_session_cookie(template_response, session_record)
+    return template_response
 
 @router.post("/login/verify")
 def verify_login(
     request: Request,
     db: SessionDep,
-    response: Response,
     *,
     username: Annotated[str, Form(...)],
     verification_code: Annotated[str, Form(...)],
@@ -108,8 +108,9 @@ def verify_login(
         }
         return templates.TemplateResponse("auth/login_pending.html", context, status_code=status.HTTP_400_BAD_REQUEST)
 
-    apply_session_cookie(response, session_record)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    redirect_response = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+    apply_session_cookie(redirect_response, session_record)
+    return redirect_response
 
 @router.get("/register")
 def register_form(request: Request) -> Response:
