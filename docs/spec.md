@@ -23,6 +23,11 @@ WhiteBalloon is a modular FastAPI + SQLModel application providing invite-based 
 - Initial pages render fully with required data (SSR). JavaScript enhances interactions (form toggle, fetch updates).
 - Without JS, forms submit normally (full reload). `<noscript>` provides alternative forms where needed.
 
+### Session States & UI
+- **Logged out**: shows welcome page with sign-in/invite CTAs.
+- **Half-authenticated (awaiting approval)**: user can browse the feed in read-only mode, prepare request drafts client-side, and sees their verification code with an explicit message that changes remain private until approval. Submissions are blocked from persisting on the server.
+- **Fully authenticated**: full request dashboard with create/complete actions stored server-side.
+
 ## API Endpoints
 - `POST /auth/register` – create user, optional initial request.
 - `POST /auth/login` – request access; responds with verification page.
