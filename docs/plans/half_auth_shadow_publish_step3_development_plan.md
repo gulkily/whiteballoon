@@ -2,7 +2,7 @@
 
 1. **Schema & Model Prep**
    - Dependencies: Solution assessment + feature description approved.
-   - Changes: Design staging storage (e.g., `pending_requests`/generic staging table) without applying migrations yet; update models/spec to reflect staged entities and promotion fields.
+   - Changes: Confirm `HelpRequest.status` usage for staging (e.g., enforce `pending` semantics) without schema changes; outline promotion fields (timestamps, approver) in spec.
    - Testing: Model/unit sketch (no runtime changes). Manual review with spec to ensure fields cover status, timestamps, user linkage.
    - Risks: Schema churn; mitigate with minimal fields and forward-compatible design.
 
