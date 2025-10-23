@@ -10,7 +10,7 @@
 
 {% block content %}
 <section class="section">
-  <div class="card stack is-collapsed" id="request-form-card" data-request-card>
+  <div class="card stack is-collapsed" id="request-form-card" data-request-card data-readonly="{{ readonly | default(False) | string | lower }}" data-user-id="{{ user.id }}" data-user-username="{{ user.username }}">
     <div class="stack" data-request-collapsed>
       <header class="stack stack--row stack--center">
         <h1 class="grow">Help requests</h1>
@@ -53,7 +53,7 @@
   </noscript>
   </div>
 
-  <div id="request-list" data-request-list>
+  <div id="request-list" data-request-list data-readonly="{{ readonly | default(False) | string | lower }}">
     {% include "requests/partials/list.html" %}
   </div>
 </section>

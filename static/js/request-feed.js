@@ -1,16 +1,18 @@
 (() => {
   const API_BASE = '/api/requests';
+  const STORAGE_PREFIX = 'wb:request-draft:';
 
-  function init() {
+  document.addEventListener('DOMContentLoaded', () => {
     const card = document.querySelector('[data-request-card]');
     const list = document.querySelector('[data-request-list]');
-    if (!card || !list) {
-      return;
-    }
 
-    setupForm(card, list);
-    setupList(list);
-  }
+    if (card) {
+      setupForm(card, list);
+    }
+    if (list) {
+      setupList(list);
+    }
+  });
 
   function setupForm(card, list) {
     const collapsed = card.querySelector('[data-request-collapsed]');
@@ -19,20 +21,34 @@
       return;
     }
 
+    const readonly = card.dataset.readonly === 'true';
+    const descriptionField = form.querySelector('textarea[name="description"]');
+    const contactField = form.querySelector('input[name="contact_email"]');
     const showButton = collapsed?.querySelector('[data-request-action="show-form"]');
     const cancelButton = form.querySelector('[data-request-action="cancel-form"]');
-    const descriptionField = form.querySelector('textarea[name="description"]');
 
-    if (collapsed) {
-      collapsed.hidden = false;
+    const storedDraft = loadDraft(card);
+    if (storedDraft) {
+      populateForm(descriptionField, contactField, storedDraft);
+      if (readonly) {
+        showStatus(card, 'Draft restored. You can edit it while you wait for approval.', 'info');
+        hideForm(card);
+      } else {
+        showForm(card);
+        showStatus(card, 'Draft restored. You can submit it now.', 'info');
+      }
+    } else {
+      hideForm(card);
     }
-
-    hideForm(card);
 
     showButton?.addEventListener('click', (event) => {
       event.preventDefault();
       hideStatus(card);
       showForm(card);
+      const draft = loadDraft(card);
+      if (draft) {
+        populateForm(descriptionField, contactField, draft);
+      }
       descriptionField?.focus();
     });
 
@@ -46,13 +62,19 @@
       event.preventDefault();
       hideStatus(card);
 
-      const formData = new FormData(form);
-      const description = (formData.get('description') || '').toString().trim();
-      const contactEmailRaw = formData.get('contact_email');
-      const contact_email = contactEmailRaw ? contactEmailRaw.toString().trim() || null : null;
+      const description = (descriptionField?.value || '').trim();
+      const contactEmailValue = (contactField?.value || '').trim();
+      const contact_email = contactEmailValue ? contactEmailValue : null;
 
       if (!description) {
         showStatus(card, 'Description is required.', 'error');
+        return;
+      }
+
+      if (readonly) {
+        saveDraft(card, { description, contact_email });
+        showStatus(card, 'Draft saved locally. You can publish after approval.', 'success');
+        hideForm(card);
         return;
       }
 
@@ -75,6 +97,7 @@
         }
 
         await refreshList(list);
+        clearDraft(card);
         form.reset();
         hideForm(card);
         showStatus(card, 'Request posted.', 'success');
@@ -130,6 +153,9 @@
   }
 
   async function refreshList(list) {
+    if (!list) {
+      return;
+    }
     const response = await fetch(API_BASE, { headers: { Accept: 'application/json' } });
     if (!response.ok) {
       throw new Error('Failed to refresh request list.');
@@ -145,25 +171,30 @@
       return;
     }
 
-    const items = requests.map(renderRequestItem).join('');
+    const readonly = list.dataset.readonly === 'true';
+    const items = requests.map((item) => renderRequestItem(item, readonly)).join('');
     list.innerHTML = `<div class="requests-grid">${items}</div>`;
   }
 
-  function renderRequestItem(item) {
+  function renderRequestItem(item, readonly) {
     const createdAt = formatDate(item.created_at);
     const completedAt = item.completed_at ? formatDate(item.completed_at) : null;
     const badgeClass = item.status === 'completed' ? 'badge badge--completed' : 'badge';
 
-    const completeSection =
-      item.status === 'completed'
-        ? `<span class="muted">Completed ${completedAt ?? 'recently'}</span>`
-        : `<form method="post" action="/requests/${item.id}/complete" data-request-complete data-request-id="${item.id}" class="inline">\n            <button type="submit" class="button">Mark completed</button>\n          </form>`;
+    let completeSection;
+    if (!readonly && item.status !== 'completed') {
+      completeSection = `<form method="post" action="/requests/${item.id}/complete" data-request-complete data-request-id="${item.id}" class="inline">\n        <button type="submit" class="button">Mark completed</button>\n      </form>`;
+    } else if (item.status === 'completed') {
+      completeSection = `<span class="muted">Completed ${completedAt ?? 'recently'}</span>`;
+    } else {
+      completeSection = '';
+    }
 
     const contactSection = item.contact_email
       ? `<span class="muted">Contact: ${escapeHtml(item.contact_email)}</span>`
       : '';
 
-    return `<article class=\"request-item\">\n  <header class=\"request-meta\">\n    <span class=\"${badgeClass}\">${capitalize(item.status)}</span>\n    <time datetime=\"${escapeHtml(item.created_at)}\" class=\"muted\">${createdAt}</time>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class=\"actions\">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
+    return `<article class="request-item">\n  <header class="request-meta">\n    <span class="${badgeClass}">${capitalize(item.status)}</span>\n    <time datetime="${escapeHtml(item.created_at)}" class="muted">${createdAt}</time>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
   }
 
   function showForm(card) {
@@ -215,6 +246,15 @@
     }
   }
 
+  function populateForm(descriptionField, contactField, draft) {
+    if (descriptionField) {
+      descriptionField.value = draft?.description ?? '';
+    }
+    if (contactField) {
+      contactField.value = draft?.contact_email ?? '';
+    }
+  }
+
   function formatDate(value) {
     try {
       const date = new Date(value);
@@ -246,7 +286,4 @@
     }
     return value.charAt(0).toUpperCase() + value.slice(1);
   }
-
-  document.addEventListener('DOMContentLoaded', init);
-
 })();
