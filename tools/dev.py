@@ -7,7 +7,8 @@ import uvicorn
 from sqlmodel import Session, select
 
 from app.db import get_engine, init_db
-from app.models import AuthRequestStatus, AuthenticationRequest, User
+from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
+from app.modules.requests import services as request_services
 from app.services import auth_service
 
 
@@ -90,16 +91,67 @@ def session_list(show_all: bool, limit: int) -> None:  # pragma: no cover
 
 @session_group.command(name="approve")
 @click.argument("request_id")
-def session_approve(request_id: str) -> None:  # pragma: no cover
-    """Approve a pending authentication request (placeholder)."""
-    click.echo(f"Request {request_id} approval not implemented yet.")
+@click.option("--approver", default=None, help="Username recorded as approver")
+def session_approve(request_id: str, approver: Optional[str]) -> None:  # pragma: no cover
+    """Approve a pending authentication request."""
+
+    engine = get_engine()
+    with Session(engine) as session:
+        auth_request = session.get(AuthenticationRequest, request_id)
+        if not auth_request:
+            click.echo(f"Request {request_id} not found.")
+            raise click.Abort()
+
+        if auth_request.status != AuthRequestStatus.pending:
+            click.echo(f"Request {request_id} is already {auth_request.status.value}.")
+            return
+
+        approver_user = None
+        if approver:
+            normalized = auth_service.normalize_username(approver)
+            approver_user = session.exec(select(User).where(User.username == normalized)).first()
+            if not approver_user:
+                click.echo(f"Approver '{approver}' not found.")
+                raise click.Abort()
+
+        pending_count = len(request_services.list_pending_requests_for_user(session, user_id=auth_request.user_id))
+        auth_service.approve_auth_request(session, auth_request=auth_request, approver=approver_user)
+
+        user = session.exec(select(User).where(User.id == auth_request.user_id)).first()
+        username = user.username if user else str(auth_request.user_id)
+        click.secho(
+            f"Approved request {request_id} for user {username}. Promoted {pending_count} pending request(s).",
+            fg="green",
+        )
 
 
 @session_group.command(name="deny")
 @click.argument("request_id")
 def session_deny(request_id: str) -> None:  # pragma: no cover
-    """Deny a pending authentication request (placeholder)."""
-    click.echo(f"Request {request_id} denial not implemented yet.")
+    """Deny a pending authentication request."""
+
+    engine = get_engine()
+    with Session(engine) as session:
+        auth_request = session.get(AuthenticationRequest, request_id)
+        if not auth_request:
+            click.echo(f"Request {request_id} not found.")
+            raise click.Abort()
+
+        if auth_request.status != AuthRequestStatus.pending:
+            click.echo(f"Request {request_id} is already {auth_request.status.value}.")
+            return
+
+        auth_request.status = AuthRequestStatus.denied
+        session.add(auth_request)
+
+        sessions = session.exec(
+            select(UserSession).where(UserSession.auth_request_id == auth_request.id)
+        ).all()
+        for record in sessions:
+            session.delete(record)
+
+        session.commit()
+        click.secho(f"Denied request {request_id}.", fg="yellow")
 
 
 @cli.command(name="create-invite")
