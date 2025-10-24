@@ -45,7 +45,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application providing invite-based 
 - `static/css/app.css` – design system; includes `.is-collapsed`/`.is-expanded` behavior.
 
 ## CLI & Tooling
-- `./wb` wrapper invokes Click CLI (`tools/dev.py`) with commands `runserver`, `init-db`, `create-admin`, `create-invite`.
+- `./wb` wrapper invokes Click CLI (`tools/dev.py`) with commands `runserver`, `init-db`, `create-admin`, `create-invite`, and session management subcommands (`session list`, `session approve`, `session deny`).
 - `docs/plans/` contains planning artifacts per feature process.
 
 ## Documentation Maintenance

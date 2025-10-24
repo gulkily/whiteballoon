@@ -14,6 +14,9 @@ pip install -r requirements.txt
 ./wb runserver                # Start development server (wraps uvicorn)
 ./wb create-admin USER        # Promote an existing user to administrator
 ./wb create-invite [options]  # Generate invite tokens (admin required)
+./wb session list             # View authentication requests (pending by default)
+./wb session approve ID       # Approve request and promote pending content
+./wb session deny ID          # Deny request and invalidate sessions
 
 # Environment Configuration
 cp .env.example .env                # Copy defaults and adjust as needed

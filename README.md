@@ -38,6 +38,9 @@ The CLI exposes helpers for administration:
 ```bash
 ./wb create-admin <username>
 ./wb create-invite --username <admin> --max-uses 3 --expires-in-days 7
+./wb session list                              # Inspect pending authentication requests
+./wb session approve <request_id>             # Approve a request from the CLI
+./wb session deny <request_id>                # Deny a pending request
 ```
 
 ## Request feed basics
