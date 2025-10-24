@@ -51,6 +51,31 @@ def create_admin(username: str) -> None:
         click.secho(f"User '{normalized}' promoted to admin.", fg="green")
 
 
+@cli.group(name="session", help="Inspect and manage authentication sessions.")
+def session_group() -> None:  # pragma: no cover
+    """CLI group for session operations."""
+
+
+@session_group.command(name="list")
+def session_list() -> None:  # pragma: no cover
+    """List pending authentication requests (placeholder)."""
+    click.echo("Session listing not implemented yet.")
+
+
+@session_group.command(name="approve")
+@click.argument("request_id")
+def session_approve(request_id: str) -> None:  # pragma: no cover
+    """Approve a pending authentication request (placeholder)."""
+    click.echo(f"Request {request_id} approval not implemented yet.")
+
+
+@session_group.command(name="deny")
+@click.argument("request_id")
+def session_deny(request_id: str) -> None:  # pragma: no cover
+    """Deny a pending authentication request (placeholder)."""
+    click.echo(f"Request {request_id} denial not implemented yet.")
+
+
 @cli.command(name="create-invite")
 @click.option("--username", default=None, help="Admin username to attribute the invite to")
 @click.option("--max-uses", default=1, show_default=True, type=int, help="Maximum number of times the invite can be used")
