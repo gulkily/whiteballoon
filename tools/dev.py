@@ -7,7 +7,7 @@ import uvicorn
 from sqlmodel import Session, select
 
 from app.db import get_engine, init_db
-from app.models import User
+from app.models import AuthRequestStatus, AuthenticationRequest, User
 from app.services import auth_service
 
 
@@ -57,9 +57,35 @@ def session_group() -> None:  # pragma: no cover
 
 
 @session_group.command(name="list")
-def session_list() -> None:  # pragma: no cover
-    """List pending authentication requests (placeholder)."""
-    click.echo("Session listing not implemented yet.")
+@click.option("--all", "show_all", is_flag=True, help="Include processed requests")
+@click.option("--limit", default=20, show_default=True, type=int, help="Maximum rows to display (0 = no limit)")
+def session_list(show_all: bool, limit: int) -> None:  # pragma: no cover
+    """List authentication requests."""
+
+    engine = get_engine()
+    with Session(engine) as session:
+        stmt = (
+            select(AuthenticationRequest, User.username)
+            .join(User, AuthenticationRequest.user_id == User.id)
+            .order_by(AuthenticationRequest.created_at.desc())
+        )
+        if not show_all:
+            stmt = stmt.where(AuthenticationRequest.status == AuthRequestStatus.pending)
+        if limit > 0:
+            stmt = stmt.limit(limit)
+
+        rows = session.exec(stmt).all()
+        if not rows:
+            click.echo("No authentication requests found.")
+            return
+
+        header = f"{'ID':<36}  {'Username':<20}  {'Status':<10}  {'Created':<19}  {'Expires':<19}  Code"
+        click.echo(header)
+        click.echo("-" * len(header))
+        for request, username in rows:
+            created = request.created_at.strftime("%Y-%m-%d %H:%M") if request.created_at else "-"
+            expires = request.expires_at.strftime("%Y-%m-%d %H:%M") if request.expires_at else "-"
+            click.echo(f"{request.id:<36}  {username:<20}  {request.status.value:<10}  {created:<19}  {expires:<19}  {request.verification_code}")
 
 
 @session_group.command(name="approve")
