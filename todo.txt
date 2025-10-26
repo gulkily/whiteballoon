@@ -1,0 +1,9 @@
+make a friendlier response for "no invite code"
+
+make a way to generate invite code on the ui
+
+Share your first request (optional)
+^-- should be required
+
+it should tell me who i'm logged in as
+
