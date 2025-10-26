@@ -34,11 +34,11 @@ Four-step process for feature development with optional solution assessment.
 ---
 
 ### Step 3: Development Plan
-**Content**: Atomic stages (<2 hours each), dependencies, testing strategy, risk assessment
+**Content**: Atomic stages (<2 hours each), dependencies, testing approach (even if deferred), risk assessment
 
 **Format**: Numbered stages in `docs/plans/` (≤1 page)
 **Filename**: `{feature_name}_development_plan.md`
-- Each stage: goal, dependencies, changes, testing, risks (bullet points)
+- Each stage: goal, dependencies, changes, testing (note if postponed), risks (bullet points)
 - Database changes (conceptual, no SQL)
 - Function signatures (no implementation)
 
@@ -47,13 +47,13 @@ Four-step process for feature development with optional solution assessment.
 ---
 
 ### Step 4: Implementation
-**Process**: Create feature branch, implement stages in order, test each stage, commit with descriptive messages
+**Process**: Create feature branch, implement stages in order, and plan tests even if they are delivered after initial implementation
 
 **Critical Requirements**:
 - **MUST create feature branch first** (e.g., `feature/request-feed-enhancements`)
 - Complete stages atomically (<2 hours each)
-- Commit after completing each stage with passing tests
-- Test before proceeding to next stage
+- Document intended tests (actual coverage may arrive in a follow-up pass)
+- Ensure manual smoke verification before proceeding to the next stage when automated tests are deferred
 - Finish by writing implementation summary document
 
 **Completion Criteria**:
