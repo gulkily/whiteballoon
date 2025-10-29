@@ -1,5 +1,11 @@
 # WhiteBalloon
 
+**WhiteBalloon** is a socially-authenticated mutual aid network built on an **open, transparent social graph** where every connection and interaction is publicly inspectable but personally private. Identities are represented by **disposable private keys** that are socially cross-authenticated — your inviter cryptographically vouches for you, forming a chain of verified trust rather than a database of static profiles. The result is a decentralized web of relationships where authenticity is earned, not claimed.
+
+At its core, WhiteBalloon is a **trust-driven coordination engine**: an invite-only network where every participant begins by expressing a real need and where visibility, recommendations, and introductions are shaped by degrees of separation. The **AI layer** continuously reads the open graph to suggest helpers, draft introductions, and surface mutual aid opportunities across clusters of trust. The infrastructure — built on FastAPI, SQLModel, and open cryptographic primitives — is deliberately minimal, designed to make social cooperation computationally legible without centralizing control. By merging open data, social verification, and AI mediation, WhiteBalloon reimagines the social network as an *infrastructure of care and reciprocity*, not performance.
+
+# Technical Info
+
 WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-only authentication and a lightweight help-request feed. The project serves as a foundation for layering additional atomic modules without adopting heavy frontend frameworks.
 
 ## Features
