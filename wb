@@ -74,6 +74,13 @@ setup_cmd() {
     "$base_py" -m venv "$VENV_DIR"
   fi
   local vpy="$VENV_DIR/bin/python"
+  # Ensure pip exists inside the venv (some distros create venv without pip)
+  if ! "$vpy" -m pip --version >/dev/null 2>&1; then
+    log "Bootstrapping pip in virtual environment"
+    if ! "$vpy" -m ensurepip --upgrade >/dev/null 2>&1; then
+      fail "Virtualenv missing pip and ensurepip is unavailable. On Debian/Ubuntu, install 'python3-venv' and re-run: sudo apt-get update && sudo apt-get install -y python3-venv"
+    fi
+  fi
   log "Installing project dependencies"
   "$vpy" -m pip install --upgrade pip >/dev/null
   "$vpy" -m pip install -e "$SCRIPT_DIR" >/dev/null
