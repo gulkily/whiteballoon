@@ -2,12 +2,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_DIR="$SCRIPT_DIR/.venv"
-DEV_TOOL="$SCRIPT_DIR/tools/dev.py"
-PROJECT_NAME="WhiteBalloon"
-VERSION="0.1.0"
-
- 
 
 log() {
   printf '\033[0;34m[INFO]\033[0m %s\n' "$1"
@@ -23,10 +17,6 @@ fail() {
 }
 
 python_exec() {
-  if [ -x "$VENV_DIR/bin/python" ]; then
-    echo "$VENV_DIR/bin/python"
-    return
-  fi
   if command -v python3 >/dev/null 2>&1; then
     echo "$(command -v python3)"
     return
@@ -35,126 +25,13 @@ python_exec() {
     echo "$(command -v python)"
     return
   fi
-  fail "Python 3 is required. Please install it and re-run."
+  fail "Python 3.10+ is required. Please install it and re-run."
 }
 
-ensure_cli_ready() {
-  local py
-  py="$(python_exec)"
-  "$py" - <<'PY' 2>/dev/null
-try:
-    import fastapi  # noqa: F401
-    import click  # noqa: F401
-except Exception:
-    raise SystemExit(1)
-PY
-  if [ "$?" -ne 0 ]; then
-    warn "Dependencies missing. Run './wb setup' first."
-    return 1
-  fi
-  return 0
-}
-
-run_dev() {
-  ensure_cli_ready || return 2
-  local py
-  py="$(python_exec)"
-  "$py" "$DEV_TOOL" "$@"
-}
-
-create_env_file() {
-  if [ -f "$SCRIPT_DIR/.env" ] || [ ! -f "$SCRIPT_DIR/.env.example" ]; then
-    return
-  fi
-  cp "$SCRIPT_DIR/.env.example" "$SCRIPT_DIR/.env"
-  log "Created .env from .env.example"
-}
-
-setup_cmd() {
-  local base_py
-  base_py="$(python_exec)"
-  if [ ! -x "$VENV_DIR/bin/python" ]; then
-    log "Creating virtual environment at .venv"
-    "$base_py" -m venv "$VENV_DIR"
-  fi
-  local vpy="$VENV_DIR/bin/python"
-  # Ensure pip exists inside the venv (some distros create venv without pip)
-  if ! "$vpy" -m pip --version >/dev/null 2>&1; then
-    log "Bootstrapping pip in virtual environment"
-    if ! "$vpy" -m ensurepip --upgrade >/dev/null 2>&1; then
-      fail "Virtualenv missing pip and ensurepip is unavailable. On Debian/Ubuntu, install 'python3-venv' and re-run: sudo apt-get update && sudo apt-get install -y python3-venv"
-    fi
-  fi
-  log "Installing project dependencies"
-  "$vpy" -m pip install --upgrade pip >/dev/null
-  "$vpy" -m pip install -e "$SCRIPT_DIR" >/dev/null
-  create_env_file
-  log "Initializing database"
-  if ! "$vpy" "$DEV_TOOL" init-db >/dev/null; then
-    fail "Database initialization failed"
-  fi
-  log "Setup complete"
-}
-
-print_help() {
-  cat <<'USAGE'
-WhiteBalloon CLI Wrapper
-Usage: ./wb <command> [options]
-
-Core commands:
-  setup                 Create virtualenv, install dependencies, and initialize the database
-  runserver [--opts]    Start the development server
-  init-db               Initialize the SQLite database
-  create-admin USER     Promote a user to admin
-  create-invite [opts]  Generate invite tokens
-  version               Display CLI version info
-  help                  Show this help message
-
-Any other arguments are forwarded to the underlying Typer CLI in tools/dev.py.
-USAGE
-}
-
-# Prefer unified Python launcher if present (after functions are defined)
+# Delegate to the unified Python launcher
 if [ -f "$SCRIPT_DIR/wb.py" ]; then
   py="$(python_exec)"
   exec "$py" "$SCRIPT_DIR/wb.py" "$@"
 fi
 
-COMMAND="${1-}"
-if [ -z "$COMMAND" ]; then
-  print_help
-  exit 0
-fi
-shift
-
-case "$COMMAND" in
-  help|-h|--help)
-    print_help
-    ;;
-  version|-v|--version)
-    printf '%s CLI %s\n' "$PROJECT_NAME" "$VERSION"
-    ;;
-  setup)
-    setup_cmd
-    ;;
-  runserver|init-db|create-admin|create-invite)
-    if ! run_dev "$COMMAND" "$@"; then
-      warn "Dependencies missing or command failed. Run './wb setup' first if not done."
-      echo
-      print_help
-      exit 1
-    fi
-    ;;
-  *)
-    if ! run_dev "$COMMAND" "$@"; then rc=$?; \
-      if [ "$rc" -eq 2 ]; then
-        warn "Dependencies missing. Run './wb setup' first."
-      else
-        warn "Command '$COMMAND' not recognized or failed."
-      fi
-      echo
-      print_help
-      exit 1
-    fi
-    ;;
-esac
+fail "wb.py not found. Ensure you're running from the project root."

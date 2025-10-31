@@ -17,17 +17,25 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - JSON API under `/api/requests` for programmatic access to the request feed
 
 ## Quick start
-1. **Bootstrap the environment**
+
+Requires Python 3.10+.
+
+1. **Setup the environment** (creates venv, installs deps, initializes database)
    ```bash
    ./wb setup
    ```
-2. **Initialize the database**
-   ```bash
-   ./wb init-db
+   On Windows:
+   ```cmd
+   wb.bat setup
    ```
-3. **Run the development server**
+
+2. **Run the development server**
    ```bash
    ./wb runserver
+   ```
+   On Windows:
+   ```cmd
+   wb.bat runserver
    ```
    Visit `http://127.0.0.1:8000` to access the interface.
 
@@ -69,7 +77,9 @@ app/
   services/             # Domain services (authentication helpers)
 static/css/app.css      # Vanilla CSS design system
 templates/              # Jinja templates and enhancement-friendly partials
-tools/dev.py            # Typer CLI (invoked via ./wb)
+tools/dev.py            # Click CLI (invoked via wb/wb.bat)
+wb.py                   # Cross-platform Python launcher
+wb / wb.bat             # Thin wrappers for Linux/macOS and Windows
 ```
 
 ## Adding new modules
