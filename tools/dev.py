@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from typing import Optional
+from pathlib import Path
 
 import click
 import uvicorn
 from sqlmodel import Session, select
+from sqlalchemy.engine.url import make_url
 
 from app.db import get_engine, init_db
+from app.config import get_settings
 from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
 from app.services import auth_service
@@ -29,10 +32,27 @@ def runserver(host: str, port: int, reload: bool) -> None:
 
 @cli.command(name="init-db")
 def init_db_command() -> None:
-    """Initialize the local database."""
+    """Initialize the local database.
+
+    Creates missing tables if the database already exists; data is not dropped.
+    """
+
+    # Determine whether the DB already exists (for SQLite) to tailor the message
+    settings = get_settings()
+    url = make_url(settings.database_url)
+    pre_existing: Optional[bool] = None
+    if url.drivername.startswith("sqlite"):
+        db_path = Path(url.database or "data/app.db")
+        pre_existing = db_path.exists()
 
     init_db()
-    click.secho("Database ready.", fg="green")
+
+    if pre_existing is True:
+        click.secho("Database ready (existing); created any missing tables.", fg="yellow")
+    elif pre_existing is False:
+        click.secho("Database created and ready.", fg="green")
+    else:
+        click.secho("Database ready.", fg="green")
 
 
 @cli.command(name="create-admin")

@@ -87,6 +87,10 @@ setup_cmd() {
   "$vpy" -m pip install --upgrade pip >/dev/null
   "$vpy" -m pip install -e "$SCRIPT_DIR" >/dev/null
   create_env_file
+  log "Initializing database"
+  if ! "$vpy" "$DEV_TOOL" init-db >/dev/null; then
+    fail "Database initialization failed"
+  fi
   log "Setup complete"
 }
 
@@ -96,7 +100,7 @@ WhiteBalloon CLI Wrapper
 Usage: ./wb <command> [options]
 
 Core commands:
-  setup                 Create virtualenv and install dependencies
+  setup                 Create virtualenv, install dependencies, and initialize the database
   runserver [--opts]    Start the development server
   init-db               Initialize the SQLite database
   create-admin USER     Promote a user to admin
