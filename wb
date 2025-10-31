@@ -7,6 +7,8 @@ DEV_TOOL="$SCRIPT_DIR/tools/dev.py"
 PROJECT_NAME="WhiteBalloon"
 VERSION="0.1.0"
 
+ 
+
 log() {
   printf '\033[0;34m[INFO]\033[0m %s\n' "$1"
 }
@@ -111,6 +113,12 @@ Core commands:
 Any other arguments are forwarded to the underlying Typer CLI in tools/dev.py.
 USAGE
 }
+
+# Prefer unified Python launcher if present (after functions are defined)
+if [ -f "$SCRIPT_DIR/wb.py" ]; then
+  py="$(python_exec)"
+  exec "$py" "$SCRIPT_DIR/wb.py" "$@"
+fi
 
 COMMAND="${1-}"
 if [ -z "$COMMAND" ]; then
