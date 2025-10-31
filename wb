@@ -42,17 +42,19 @@ ensure_cli_ready() {
   "$py" - <<'PY' 2>/dev/null
 try:
     import fastapi  # noqa: F401
-    import typer  # noqa: F401
+    import click  # noqa: F401
 except Exception:
     raise SystemExit(1)
 PY
   if [ "$?" -ne 0 ]; then
-    fail "Dependencies missing. Run './balloon setup' first."
+    warn "Dependencies missing. Run './wb setup' first."
+    return 1
   fi
+  return 0
 }
 
 run_dev() {
-  ensure_cli_ready
+  ensure_cli_ready || return 2
   local py
   py="$(python_exec)"
   "$py" "$DEV_TOOL" "$@"
@@ -91,7 +93,7 @@ setup_cmd() {
 print_help() {
   cat <<'USAGE'
 WhiteBalloon CLI Wrapper
-Usage: ./balloon <command> [options]
+Usage: ./wb <command> [options]
 
 Core commands:
   setup                 Create virtualenv and install dependencies
@@ -124,9 +126,23 @@ case "$COMMAND" in
     setup_cmd
     ;;
   runserver|init-db|create-admin|create-invite)
-    run_dev "$COMMAND" "$@"
+    if ! run_dev "$COMMAND" "$@"; then
+      warn "Dependencies missing or command failed. Run './wb setup' first if not done."
+      echo
+      print_help
+      exit 1
+    fi
     ;;
   *)
-    run_dev "$COMMAND" "$@"
+    if ! run_dev "$COMMAND" "$@"; then rc=$?; \
+      if [ "$rc" -eq 2 ]; then
+        warn "Dependencies missing. Run './wb setup' first."
+      else
+        warn "Command '$COMMAND' not recognized or failed."
+      fi
+      echo
+      print_help
+      exit 1
+    fi
     ;;
 esac
