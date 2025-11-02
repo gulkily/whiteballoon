@@ -105,11 +105,13 @@ def verify_login(payload: VerifyPayload, db: SessionDep, response: Response) -> 
     return {"status": auth_request.status.value}
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response, db: SessionDep, session_record: Optional[UserSession] = Depends(get_current_session)) -> None:
+@router.post("/logout")
+def logout(db: SessionDep, session_record: Optional[UserSession] = Depends(get_current_session)) -> Response:
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
     if session_record:
         auth_service.revoke_session(db, session_id=session_record.id)
     response.delete_cookie(auth_service.SESSION_COOKIE_NAME, path="/")
+    return response
 
 
 @router.post("/invites", status_code=status.HTTP_201_CREATED)
