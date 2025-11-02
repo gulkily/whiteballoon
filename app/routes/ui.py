@@ -130,12 +130,18 @@ def register_submit(
     contact_email: Annotated[Optional[str], Form()] = None,
     initial_request: Annotated[Optional[str], Form()] = None,
 ):
-    user = auth_service.create_user_with_invite(
-        db,
-        username=username,
-        contact_email=contact_email,
-        invite_token=invite_token,
-    )
+    try:
+        user = auth_service.create_user_with_invite(
+            db,
+            username=username,
+            contact_email=contact_email,
+            invite_token=invite_token,
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_400_BAD_REQUEST and str(exc.detail) == "Invite token required":
+            context = {"request": request, "username": username}
+            return templates.TemplateResponse("auth/invite_required.html", context, status_code=exc.status_code)
+        raise
 
     created_request = False
     if initial_request and initial_request.strip():
