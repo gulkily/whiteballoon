@@ -4,7 +4,7 @@ Share your first request (optional)
 ilya fixed:
 - ./wb runserver should work on macos ventura out of the box
 
-## lana's features to tell ilya: (11/2)
+lana's features to tell ilya: (11/2)
 - button to "mark complete" only shows up if you submitted it
 - if you are admin, you can see the button and mark it complete 
 
