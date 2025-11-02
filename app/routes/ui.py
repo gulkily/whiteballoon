@@ -227,6 +227,7 @@ def home(
             "auth_request": auth_request,
             "readonly": True,
             "session_role": session_role,
+            "session_username": user.username,
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
@@ -239,6 +240,7 @@ def home(
             "requests": public_requests,
             "readonly": False,
             "session_role": session_role,
+            "session_username": user.username,
         },
     )
 
@@ -272,3 +274,18 @@ def complete_request(
 ):
     request_services.mark_completed(db, request_id=request_id, user=user)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/profile")
+def profile(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    session_role = describe_session_role(session_user.user, session_user.session)
+    context = {
+        "request": request,
+        "user": session_user.user,
+        "session_role": session_role,
+        "session_username": session_user.user.username,
+    }
+    return templates.TemplateResponse("profile/index.html", context)

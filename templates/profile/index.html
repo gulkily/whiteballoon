@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Profile · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% if session_role or session_username %}
+    <div class="nav-session">
+      {% if session_role %}
+        <span class="badge" data-session-role>{{ session_role.label }}</span>
+      {% endif %}
+      {% if session_username %}
+        <span class="nav-session__user">@{{ session_username }}</span>
+      {% endif %}
+      <a href="/profile" class="nav-profile is-active" aria-label="View profile">
+        {{ (session_username | default('?')) | first | upper }}
+      </a>
+    </div>
+  {% endif %}
+  <form action="/logout" method="post" class="inline">
+    <button type="submit" class="button button--ghost">Sign out</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <h1>Your profile</h1>
+    {% if session_username %}
+      <p class="muted">Signed in as <strong>@{{ session_username }}</strong>.</p>
+    {% endif %}
+    {% if session_role %}
+      <p class="muted">Current access level: <strong>{{ session_role.label }}</strong></p>
+    {% endif %}
+    <p>More profile settings are coming soon. For now, your account details live here once they are available.</p>
+    <a class="button button--ghost" href="/">Back to requests</a>
+  </div>
+</section>
+{% endblock %}

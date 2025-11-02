@@ -3,8 +3,18 @@
 {% block title %}Requests · WhiteBalloon{% endblock %}
 
 {% block nav %}
-  {% if session_role %}
-    <span class="badge" data-session-role>{{ session_role.label }}</span>
+  {% if session_role or session_username %}
+    <div class="nav-session">
+      {% if session_role %}
+        <span class="badge" data-session-role>{{ session_role.label }}</span>
+      {% endif %}
+      {% if session_username %}
+        <span class="nav-session__user">@{{ session_username }}</span>
+      {% endif %}
+      <a href="/profile" class="nav-profile" aria-label="View profile">
+        {{ (session_username | default('?')) | first | upper }}
+      </a>
+    </div>
   {% endif %}
   <form action="/logout" method="post" class="inline">
     <button type="submit" class="button button--ghost">Sign out</button>
