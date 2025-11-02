@@ -15,3 +15,8 @@ lana's features to tell ilya: (11/2)
 
 - you can now generate invite code on the ui
 - friendlier response for "no invite code"
+
+Open items:
+- invite codes should be shorter
+- 'mark as completed' not allowed for other users, but button still shown
+- display who made the request
