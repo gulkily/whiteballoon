@@ -59,6 +59,8 @@
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
+          credentials: 'same-origin',
+          cache: 'no-store',
           body: JSON.stringify({ description, contact_email }),
         });
 
@@ -67,9 +69,8 @@
         }
 
         await refreshVisibleLists();
-        form.reset();
-        hideForm(card);
-        showStatus(card, 'Request posted.', 'success');
+        window.location.reload();
+        return;
       } catch (error) {
         console.error(error);
         showStatus(card, 'Unable to post the request. Please try again.', 'error');
@@ -107,6 +108,8 @@
           headers: {
             Accept: 'application/json',
           },
+          credentials: 'same-origin',
+          cache: 'no-store',
         });
 
         if (!response.ok) {
@@ -126,14 +129,21 @@
     const lists = document.querySelectorAll('[data-request-list][data-readonly="false"]');
     for (const list of lists) {
       try {
-        const response = await fetch(API_BASE, { headers: { Accept: 'application/json' } });
+        const response = await fetch(API_BASE, {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
         if (!response.ok) {
           throw new Error('Failed to refresh request list.');
         }
-        const requests = await response.json();
-        renderRequests(list, Array.isArray(requests) ? requests : []);
+        const requests = await safeParseJson(response);
+        if (Array.isArray(requests)) {
+          renderRequests(list, requests);
+        }
       } catch (error) {
         console.error(error);
+        showGlobalMessage('Unable to refresh requests. Please reload.');
       }
     }
   }
@@ -214,6 +224,15 @@
     const card = document.querySelector('[data-request-card][data-readonly="false"]');
     if (card) {
       showStatus(card, message, 'error');
+    }
+  }
+
+  async function safeParseJson(response) {
+    try {
+      return await response.clone().json();
+    } catch (error) {
+      console.error('Failed to parse response JSON', error);
+      return null;
     }
   }
 
