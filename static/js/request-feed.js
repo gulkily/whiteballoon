@@ -152,12 +152,13 @@
     const createdAt = formatDate(item.created_at);
     const completedAt = item.completed_at ? formatDate(item.completed_at) : null;
     const badgeClass = item.status === 'completed' ? 'badge badge--completed' : 'badge';
+    const canComplete = Boolean(item.can_complete);
 
     let completeSection = '';
-    if (item.status !== 'completed') {
-      completeSection = `<form method="post" action="/requests/${item.id}/complete" data-request-complete data-request-id="${item.id}" class="inline">\n        <button type="submit" class="button">Mark completed</button>\n      </form>`;
-    } else {
+    if (item.status === 'completed') {
       completeSection = `<span class="muted">Completed ${completedAt ?? 'recently'}</span>`;
+    } else if (canComplete) {
+      completeSection = `<form method="post" action="/requests/${item.id}/complete" data-request-complete data-request-id="${item.id}" class="inline">\n        <button type="submit" class="button">Mark completed</button>\n      </form>`;
     }
 
     const contactSection = item.contact_email

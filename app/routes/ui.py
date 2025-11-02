@@ -17,7 +17,7 @@ from app.dependencies import (
 )
 from app.models import AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
-from app.modules.requests.routes import RequestResponse
+from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import auth_service
 
 router = APIRouter(tags=["ui"])
@@ -25,8 +25,12 @@ router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="templates")
 
 
-def _serialize_requests(items):
-    return [RequestResponse.from_model(item).model_dump() for item in items]
+def _serialize_requests(items, viewer: Optional[User] = None):
+    serialized = []
+    for item in items:
+        can_complete = calculate_can_complete(item, viewer) if viewer else False
+        serialized.append(RequestResponse.from_model(item, can_complete=can_complete).model_dump())
+    return serialized
 
 
 
@@ -192,11 +196,11 @@ def home(
                 select(AuthenticationRequest).where(AuthenticationRequest.id == session_record.auth_request_id)
             ).first()
 
-        public_requests = _serialize_requests(request_services.list_requests(db))
-        pending_requests = [
-            RequestResponse.from_model(item).model_dump()
-            for item in request_services.list_pending_requests_for_user(db, user_id=user.id)
-        ]
+        public_requests = _serialize_requests(request_services.list_requests(db), viewer=user)
+        pending_requests = _serialize_requests(
+            request_services.list_pending_requests_for_user(db, user_id=user.id),
+            viewer=user,
+        )
 
         context = {
             "request": request,
@@ -209,7 +213,7 @@ def home(
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
-    public_requests = _serialize_requests(request_services.list_requests(db))
+    public_requests = _serialize_requests(request_services.list_requests(db), viewer=user)
     return templates.TemplateResponse(
         "requests/index.html",
         {"request": request, "user": user, "requests": public_requests, "readonly": False},

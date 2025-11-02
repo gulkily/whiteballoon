@@ -1,4 +1,5 @@
 {% set readonly = readonly if readonly is defined else False %}
+{% set can_complete = item.can_complete | default(false) %}
 <article class="request-item">
   <header class="request-meta">
     <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">
@@ -10,7 +11,7 @@
     <p>{{ item.description or 'No additional details.' }}</p>
   </div>
   <footer class="actions">
-    {% if not readonly and item.status != 'completed' %}
+    {% if not readonly and item.status != 'completed' and can_complete %}
       <form method='post' action='/requests/{{ item.id }}/complete' data-request-complete data-request-id='{{ item.id }}' class='inline'>
         <button type='submit' class='button'>Mark completed</button>
       </form>
