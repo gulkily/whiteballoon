@@ -8,3 +8,10 @@ Share your first request (optional)
 it should tell me who i'm logged in as
 
 ./wb runserver should work on macos ventura out of the box
+
+invite codes should be shorter
+
+'mark as completed' not allowed for other users, but button still shown
+
+display who made the request
+
