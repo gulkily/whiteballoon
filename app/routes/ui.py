@@ -33,6 +33,20 @@ def _serialize_requests(items, viewer: Optional[User] = None):
     return serialized
 
 
+def describe_session_role(user: User, session: Optional[UserSession]) -> Optional[dict[str, str]]:
+    if not session:
+        return None
+
+    if not session.is_fully_authenticated:
+        label = "Admin (pending verification)" if user.is_admin else "Pending verification"
+        return {"label": label, "tone": "warning"}
+
+    if user.is_admin:
+        return {"label": "Administrator", "tone": "accent"}
+
+    return {"label": "Member", "tone": "muted"}
+
+
 
 
 @router.get("/login")
@@ -189,6 +203,8 @@ def home(
         response.delete_cookie(auth_service.SESSION_COOKIE_NAME, path="/")
         return response
 
+    session_role = describe_session_role(user, session_record)
+
     if not session_record.is_fully_authenticated:
         auth_request = None
         if session_record.auth_request_id:
@@ -210,13 +226,20 @@ def home(
             "verification_code": auth_request.verification_code if auth_request else None,
             "auth_request": auth_request,
             "readonly": True,
+            "session_role": session_role,
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
     public_requests = _serialize_requests(request_services.list_requests(db), viewer=user)
     return templates.TemplateResponse(
         "requests/index.html",
-        {"request": request, "user": user, "requests": public_requests, "readonly": False},
+        {
+            "request": request,
+            "user": user,
+            "requests": public_requests,
+            "readonly": False,
+            "session_role": session_role,
+        },
     )
 
 

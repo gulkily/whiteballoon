@@ -3,6 +3,9 @@
 {% block title %}Pending Approval · WhiteBalloon{% endblock %}
 
 {% block nav %}
+  {% if session_role %}
+    <span class="badge" data-session-role>{{ session_role.label }}</span>
+  {% endif %}
   <form action="/logout" method="post" class="inline">
     <button type="submit" class="button button--ghost">Sign out</button>
   </form>
