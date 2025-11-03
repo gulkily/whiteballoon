@@ -4,3 +4,10 @@
 
 ### Testing
 - Manual: Pending — need to hit `/api/requests` and confirm username values appear for recent and older requests.
+
+## Stage 2 – Render creator in request cards
+- Updated `templates/requests/partials/item.html` to surface the creator name in the leading header cluster with a friendly fallback label.
+- Applied structural markup changes only, leaving visual polish for the client-side styling pass to keep parity with upcoming updates.
+
+### Testing
+- Manual: Pending — load both the full dashboard and half-auth pending view to confirm names render without breaking alignment.

@@ -1,10 +1,17 @@
 {% set readonly = readonly if readonly is defined else False %}
 {% set can_complete = item.can_complete | default(false) %}
+{% set creator_name = item.created_by_username | default('') %}
+{% if not creator_name %}
+  {% set creator_name = 'Community member' %}
+{% endif %}
 <article class="request-item">
   <header class="request-meta">
-    <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">
-      {{ item.status|title }}
-    </span>
+    <div class="request-meta__lead">
+      <span class="request-creator" title="{{ creator_name }}">{{ creator_name }}</span>
+      <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">
+        {{ item.status|title }}
+      </span>
+    </div>
     <time datetime="{{ item.created_at }}" class="muted">{{ item.created_at | replace('T', ' ') | replace('Z', '') }}</time>
   </header>
   <div>
