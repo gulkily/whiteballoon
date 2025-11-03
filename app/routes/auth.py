@@ -36,8 +36,8 @@ class InvitePayload(BaseModel):
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register_user(payload: RegisterPayload, db: SessionDep) -> dict:
-    user = auth_service.create_user_with_invite(
+def register_user(payload: RegisterPayload, db: SessionDep, response: Response) -> dict:
+    registration = auth_service.create_user_with_invite(
         db,
         username=payload.username,
         contact_email=payload.contact_email,
@@ -47,12 +47,19 @@ def register_user(payload: RegisterPayload, db: SessionDep) -> dict:
     if payload.initial_request and payload.initial_request.strip():
         request_services.create_request(
             db,
-            user=user,
+            user=registration.user,
             description=payload.initial_request,
             contact_email=payload.contact_email,
         )
 
-    return {"username": user.username, "is_admin": user.is_admin}
+    if registration.session:
+        apply_session_cookie(response, registration.session)
+
+    return {
+        "username": registration.user.username,
+        "is_admin": registration.user.is_admin,
+        "auto_approved": registration.auto_approved,
+    }
 
 
 @router.post("/login", status_code=status.HTTP_202_ACCEPTED)

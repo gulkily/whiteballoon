@@ -156,7 +156,7 @@ def register_submit(
     initial_request: Annotated[Optional[str], Form()] = None,
 ):
     try:
-        user = auth_service.create_user_with_invite(
+        registration = auth_service.create_user_with_invite(
             db,
             username=username,
             contact_email=contact_email,
@@ -172,13 +172,22 @@ def register_submit(
     if initial_request and initial_request.strip():
         request_services.create_request(
             db,
-            user=user,
+            user=registration.user,
             description=initial_request,
             contact_email=contact_email,
         )
         created_request = True
 
-    context = {"request": request, "username": user.username, "created_request": created_request}
+    if registration.session:
+        redirect = RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+        apply_session_cookie(redirect, registration.session)
+        return redirect
+
+    context = {
+        "request": request,
+        "username": registration.user.username,
+        "created_request": created_request,
+    }
     return templates.TemplateResponse("auth/register_success.html", context)
 
 
