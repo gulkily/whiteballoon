@@ -24,6 +24,7 @@
 
 ## Stage 4: QA, tests, and handoff
 - Reviewed navigation and profile templates for anonymous access to confirm redirects rely on existing auth guards.
+- Tweaked privilege copy so inactive statuses explain what additional access would provide.
 - Documented outstanding automated test needs for multi-role rendering scenarios.
 
 **Tests**

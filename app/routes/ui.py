@@ -237,19 +237,27 @@ def profile(
             "key": "member",
             "label": "Standard member",
             "active": True,
-            "description": "Can browse community requests and submit new ones based on current session status.",
+            "description": "Can browse community requests and submit new ones once their session is fully verified.",
         },
         {
             "key": "admin",
             "label": "Administrator",
             "active": user.is_admin,
-            "description": "Can approve access, manage invites, and moderate requests.",
+            "description": (
+                "Can approve access, manage invites, and moderate requests."
+                if user.is_admin
+                else "Reserved for administrators who can approve access, manage invites, and moderate requests."
+            ),
         },
         {
             "key": "half_auth",
             "label": "Half-authenticated session",
             "active": is_half_authenticated,
-            "description": "Verify your login to unlock full access to posting and moderation tools.",
+            "description": (
+                "Verify your login to unlock full access to posting and moderation tools."
+                if is_half_authenticated
+                else "This session is fully verified; no additional login steps are required."
+            ),
         },
     ]
 
