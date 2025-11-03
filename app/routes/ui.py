@@ -142,7 +142,12 @@ def verify_login(
 
 @router.get("/register")
 def register_form(request: Request) -> Response:
-    return templates.TemplateResponse("auth/register.html", {"request": request})
+    prefilled_token = request.query_params.get("invite_token")
+    context = {
+        "request": request,
+        "prefilled_invite_token": prefilled_token or "",
+    }
+    return templates.TemplateResponse("auth/register.html", context)
 
 
 @router.post("/register")

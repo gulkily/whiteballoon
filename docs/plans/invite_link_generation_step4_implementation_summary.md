@@ -6,6 +6,7 @@
 ## Stage 2: API/CLI integration
 - `/auth/invites` now returns a `link` property so callers receive a ready-to-share URL.
 - CLI `./wb create-invite` prints the full invite link alongside the token for immediate sharing.
+- `/register` pre-fills the invite token field when the query parameter is present, ensuring incoming links populate the form automatically.
 
 ## Stage 3: Documentation updates
 - Introduced `SITE_URL` setting in README and developer cheatsheet, explaining how invite link generation determines the host.

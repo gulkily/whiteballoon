@@ -18,7 +18,12 @@
       </div>
       <div class="input-group">
         <label for="invite_token">Invite token</label>
-        <input id="invite_token" name="invite_token" type="text" />
+        <input
+          id="invite_token"
+          name="invite_token"
+          type="text"
+          value="{{ prefilled_invite_token | default('') }}"
+        />
       </div>
       <div class="input-group">
         <label for="initial_request">Share your first request <span class="muted">(optional)</span></label>
