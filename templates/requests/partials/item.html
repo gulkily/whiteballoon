@@ -1,13 +1,16 @@
 {% set readonly = readonly if readonly is defined else False %}
 {% set can_complete = item.can_complete | default(false) %}
-{% set creator_name = item.created_by_username | default('') %}
-{% if not creator_name %}
-  {% set creator_name = 'Community member' %}
-{% endif %}
+{% set creator_username = item.created_by_username | default('') %}
+{% set has_creator_link = creator_username != '' %}
+{% set creator_name = creator_username if has_creator_link else 'Community member' %}
 <article class="request-item">
   <header class="request-meta">
     <div class="request-meta__lead">
-      <span class="request-creator" title="{{ creator_name }}">{{ creator_name }}</span>
+      {% if has_creator_link %}
+        <a class="request-creator" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ creator_name }}</a>
+      {% else %}
+        <span class="request-creator" title="{{ creator_name }}">{{ creator_name }}</span>
+      {% endif %}
       <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">
         {{ item.status|title }}
       </span>
