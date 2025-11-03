@@ -51,9 +51,11 @@ Four-step process for feature development with optional solution assessment.
 
 **Critical Requirements**:
 - **MUST create feature branch first** (e.g., `feature/request-feed-enhancements`)
+- Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work.
 - Complete stages atomically (<2 hours each)
 - Document intended tests (actual coverage may arrive in a follow-up pass)
 - Ensure manual smoke verification before proceeding to the next stage when automated tests are deferred
+- Update the Step 4 implementation summary document after every stage and commit those updates as you go.
 - Finish by writing implementation summary document
 
 **Completion Criteria**:
