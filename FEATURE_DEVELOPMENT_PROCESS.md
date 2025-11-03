@@ -77,7 +77,7 @@ Each step MUST be a separate file in `docs/plans/`:
 **AI Coding Assistant**:
 - Suggest Step 1 for complex or multi-solution features
 - Stay in the current step, don't jump ahead without approval
-- Wait for explicit approval between steps (acknowledged by the user) before starting the next step; if approval is missing or ambiguous, ask for confirmation.
+- After delivering each step, explicitly request confirmation using the wording “Approved Step N” and pause until the user replies with that exact phrase; if confirmation is missing or ambiguous, ask again before proceeding.
 - ALWAYS create separate files for each step
 - ALWAYS create a feature branch before Step 4 implementation
 - Flag scope creep and return to the appropriate planning step when needed
