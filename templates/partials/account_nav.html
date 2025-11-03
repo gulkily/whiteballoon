@@ -1,0 +1,25 @@
+{% set session = session if session is defined else None %}
+{% set session_role = session_role if session_role is defined else None %}
+{% set show_admin = user.is_admin %}
+{% set show_half_auth = session and (not session.is_fully_authenticated) %}
+<div class="account-nav">
+  {% if session_role %}
+    <span class="account-status__tag account-status__tag--role" data-session-role>{{ session_role.label }}</span>
+  {% endif %}
+  <a class="account-nav__user" href="/profile">
+    <span class="account-nav__name">@{{ user.username }}</span>
+    {% if show_admin or show_half_auth %}
+      <span class="account-status" aria-label="Account status">
+        {% if show_admin %}
+          <span class="account-status__tag account-status__tag--admin" title="Administrator access">Admin</span>
+        {% endif %}
+        {% if show_half_auth %}
+          <span class="account-status__tag account-status__tag--half" title="Complete verification to unlock full access">Half-auth</span>
+        {% endif %}
+      </span>
+    {% endif %}
+  </a>
+  <form action="/logout" method="post" class="inline">
+    <button type="submit" class="button button--ghost">Sign out</button>
+  </form>
+</div>

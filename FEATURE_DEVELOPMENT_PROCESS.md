@@ -56,7 +56,7 @@ Four-step process for feature development with optional solution assessment.
 - Document intended tests (actual coverage may arrive in a follow-up pass)
 - Ensure manual smoke verification before proceeding to the next stage when automated tests are deferred
 - Update the Step 4 implementation summary document after every stage and commit those updates as you go.
-- Finish by writing implementation summary document
+- Conclude Step 4 by finalizing the implementation summary document.
 
 **Completion Criteria**:
 - All stages implemented and tested

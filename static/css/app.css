@@ -92,6 +92,68 @@ body.page {
   box-shadow: var(--shadow-sm);
 }
 
+.account-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.account-nav__user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  font-weight: 600;
+}
+
+.account-nav__name {
+  font-size: 0.95rem;
+}
+
+.account-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.account-status__tag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.account-status__tag--role {
+  background: rgba(100, 116, 139, 0.18);
+  color: var(--color-muted);
+}
+
+.account-status__tag--admin {
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-accent);
+}
+
+.account-status__tag--half {
+  background: rgba(217, 119, 6, 0.14);
+  color: #b45309;
+}
+
+.account-status__tag--ok {
+  background: rgba(21, 128, 61, 0.14);
+  color: var(--color-success);
+}
+
+.account-status__tag--muted {
+  background: rgba(100, 116, 139, 0.16);
+  color: var(--color-muted);
+}
+
 .stack {
   display: flex;
   flex-direction: column;
@@ -237,6 +299,70 @@ form.inline {
   background: rgba(37, 99, 235, 0.12);
   color: var(--color-accent);
   font-weight: 500;
+}
+
+.profile-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.definition-list {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.definition-list__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.definition-list__row dt {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.definition-list__row dd {
+  margin: 0;
+}
+
+.privilege-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.privilege-item {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.privilege-item__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.privilege-item__label {
+  font-weight: 600;
+}
+
+.privilege-item__description {
+  margin: 0;
+}
+
+.small-text {
+  font-size: 0.8rem;
 }
 
 .form-grid {

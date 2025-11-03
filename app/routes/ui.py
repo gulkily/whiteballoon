@@ -226,6 +226,7 @@ def home(
             "verification_code": auth_request.verification_code if auth_request else None,
             "auth_request": auth_request,
             "readonly": True,
+            "session": session_record,
             "session_role": session_role,
             "session_username": user.username,
         }
@@ -239,10 +240,68 @@ def home(
             "user": user,
             "requests": public_requests,
             "readonly": False,
+            "session": session_record,
             "session_role": session_role,
             "session_username": user.username,
         },
     )
+
+
+@router.get("/profile")
+def profile(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    user = session_user.user
+    session_record = session_user.session
+    is_half_authenticated = not session_record.is_fully_authenticated
+    session_role = describe_session_role(user, session_record)
+
+    privilege_descriptors = [
+        {
+            "key": "member",
+            "label": "Standard member",
+            "active": True,
+            "description": "Can browse community requests and submit new ones once their session is fully verified.",
+        },
+        {
+            "key": "admin",
+            "label": "Administrator",
+            "active": user.is_admin,
+            "description": (
+                "Can approve access, manage invites, and moderate requests."
+                if user.is_admin
+                else "Reserved for administrators who can approve access, manage invites, and moderate requests."
+            ),
+        },
+        {
+            "key": "half_auth",
+            "label": "Half-authenticated session",
+            "active": is_half_authenticated,
+            "description": (
+                "Verify your login to unlock full access to posting and moderation tools."
+                if is_half_authenticated
+                else "This session is fully verified; no additional login steps are required."
+            ),
+        },
+    ]
+
+    context = {
+        "request": request,
+        "user": user,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": user.username,
+        "identity": {
+            "username": user.username,
+            "contact_email": user.contact_email,
+            "created_at": user.created_at,
+        },
+        "privileges": privilege_descriptors,
+        "is_admin": user.is_admin,
+        "is_half_authenticated": is_half_authenticated,
+    }
+    return templates.TemplateResponse("profile/index.html", context)
 
 
 @router.post("/requests")
@@ -274,18 +333,3 @@ def complete_request(
 ):
     request_services.mark_completed(db, request_id=request_id, user=user)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-
-@router.get("/profile")
-def profile(
-    request: Request,
-    session_user: SessionUser = Depends(require_session_user),
-) -> Response:
-    session_role = describe_session_role(session_user.user, session_user.session)
-    context = {
-        "request": request,
-        "user": session_user.user,
-        "session_role": session_role,
-        "session_username": session_user.user.username,
-    }
-    return templates.TemplateResponse("profile/index.html", context)
