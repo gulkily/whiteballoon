@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Send Welcome · WhiteBalloon{% endblock %}
+
+{% block content %}
+<section class="section invite-page">
+  <header class="stack">
+    <h1>Send Welcome</h1>
+    <p class="muted">Share this link or QR code to welcome someone new. Optional details help personalize the invitation.</p>
+  </header>
+
+  <div class="invite-grid">
+    <article class="card stack">
+      <h2>Share link</h2>
+      <div class="copy-row">
+        <input type="text" value="{{ invite_link }}" readonly data-copy-target />
+        <button type="button" class="button button--ghost" data-copy-link>Copy link</button>
+      </div>
+      <p class="muted">Invite token: <code>{{ invite_token }}</code></p>
+      <img src="{{ qr_data_url }}" alt="Invite QR code" class="qr-preview" />
+      <div class="stack stack--row invite-actions">
+        <a class="button button--ghost" href="/invite/new">Generate another</a>
+        <a class="button button--ghost" href="/">Back to home</a>
+      </div>
+    </article>
+
+    <article class="card stack invite-details">
+      <h2>Optional invitee details</h2>
+      <label class="stack" for="invite-username">
+        <span>Suggested username</span>
+        <input id="invite-username" type="text" placeholder="e.g. neighbor-ally" data-suggest-username />
+      </label>
+      <label class="stack" for="invite-bio">
+        <span>Suggested bio / note</span>
+        <textarea id="invite-bio" rows="3" placeholder="Add a short note of encouragement" data-suggest-bio></textarea>
+      </label>
+      <div class="share-preview">
+        <h3>Share message</h3>
+        <textarea readonly rows="4" data-share-preview></textarea>
+      </div>
+    </article>
+  </div>
+</section>
+
+<script>
+  const linkInput = document.querySelector('[data-copy-target]');
+  const copyBtn = document.querySelector('[data-copy-link]');
+  const usernameInput = document.querySelector('[data-suggest-username]');
+  const bioInput = document.querySelector('[data-suggest-bio]');
+  const preview = document.querySelector('[data-share-preview]');
+  const inviter = {{ inviter_username | tojson }};
+
+  function updatePreview() {
+    const username = usernameInput.value.trim();
+    const bio = bioInput.value.trim();
+    let message = `Hi! ${inviter} has welcomed you into WhiteBalloon.`;
+    if (username) {
+      message += ` Suggested username: ${username}.`;
+    }
+    if (bio) {
+      message += ` Note: ${bio}`;
+    }
+    message += `\n\nJoin here: ${linkInput.value}`;
+    preview.value = message;
+  }
+
+  usernameInput.addEventListener('input', updatePreview);
+  bioInput.addEventListener('input', updatePreview);
+  updatePreview();
+
+  copyBtn.addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(linkInput.value);
+      copyBtn.textContent = 'Copied!';
+      copyBtn.disabled = true;
+      setTimeout(() => {
+        copyBtn.textContent = 'Copy link';
+        copyBtn.disabled = false;
+      }, 2000);
+    } catch (err) {
+      alert('Unable to copy link automatically. Please copy it manually.');
+    }
+  });
+</script>
+{% endblock %}

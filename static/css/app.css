@@ -472,6 +472,45 @@ form.inline {
   flex: 1;
 }
 
+.invite-page {
+  gap: 1.5rem;
+}
+
+.invite-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .invite-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.copy-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.copy-row input {
+  flex: 1;
+}
+
+.qr-preview {
+  width: 160px;
+  height: 160px;
+  align-self: center;
+}
+
+.invite-actions {
+  justify-content: space-between;
+}
+
+.invite-details .share-preview {
+  display: grid;
+  gap: 0.5rem;
+}
+
 [data-request-status] {
   min-height: 1.2rem;
   font-size: 0.85rem;

@@ -10,7 +10,7 @@ from app.dependencies import SessionDep, apply_session_cookie, get_current_sessi
 from app.models import AuthenticationRequest, AuthApproval, User, UserSession
 from app.modules.requests import services as request_services
 from app.services import auth_service
-from app.url_utils import build_invite_link
+from app.url_utils import build_invite_link, generate_qr_code_data_url
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -139,11 +139,13 @@ def create_invite(
         max_uses=max(max_uses, 1),
         expires_in_days=expires,
     )
+    link = build_invite_link(invite.token, request)
     return {
         "token": invite.token,
         "max_uses": invite.max_uses,
         "expires_at": invite.expires_at,
-        "link": build_invite_link(invite.token, request),
+        "link": link,
+        "qr_code": generate_qr_code_data_url(link),
     }
 
 

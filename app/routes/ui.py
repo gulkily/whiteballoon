@@ -19,6 +19,7 @@ from app.models import AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import auth_service
+from app.url_utils import build_invite_link, generate_qr_code_data_url
 
 router = APIRouter(tags=["ui"])
 
@@ -267,6 +268,24 @@ def home(
             "session_username": user.username,
         },
     )
+
+
+@router.get("/invite/new")
+def invite_new(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    invite = auth_service.create_invite_token(db, created_by=session_user.user)
+    link = build_invite_link(invite.token, request)
+    context = {
+        "request": request,
+        "invite_token": invite.token,
+        "invite_link": link,
+        "qr_data_url": generate_qr_code_data_url(link),
+        "inviter_username": session_user.user.username,
+    }
+    return templates.TemplateResponse("invite/new.html", context)
 
 
 @router.get("/profile")

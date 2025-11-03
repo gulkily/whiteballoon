@@ -47,6 +47,11 @@ Requires Python 3.10+.
 
 > **Invite links**: By default invite links use the incoming request origin. Set `SITE_URL` in `.env` to provide a fallback host for CLI usage or non-HTTP contexts.
 
+## Send Welcome page
+- While signed in, use the “Send Welcome” button (header menu) to generate an invite instantly.
+- The page shows the invite link, token, QR code, and optional fields for suggested username/bio to share with the invitee.
+- Shared links pre-fill the token when invitees visit `/register`.
+
 ## Authentication workflow
 1. A user registers with an invite token (unless they are the first user).
 2. If the invite was issued by an approved admin (auto-approve default), the user is fully authenticated instantly and receives a logged-in session.

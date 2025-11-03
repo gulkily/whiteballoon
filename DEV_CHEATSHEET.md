@@ -69,3 +69,4 @@ When creating a new module:
 
 ## Invite links
 - `./wb create-invite` prints a shareable `/register` link using `SITE_URL` as a fallback base. Set `SITE_URL` in `.env` for non-local environments to ensure links point to the correct host.
+- The in-app “Send Welcome” page (`/invite/new`) generates invites with link + QR and optional invitee details; ensure appropriate permissions before exposing it.
