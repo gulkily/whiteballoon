@@ -1,18 +1,17 @@
 Share your first request (optional)
 ^-- should be required
 
-ilya fixed:
+fixed:
 - ./wb runserver should work on macos ventura out of the box
-
-lana's features to tell ilya: (11/2)
 - button to "mark complete" only shows up if you submitted it
 - if you are admin, you can see the button and mark it complete 
 
+both:
 - you can now see if you are a "member" or "admin" (role)
-
 - you can now see current username, also half-authenticated users can see is username is pending approval
 - added profile entry point in top navigation
 
+lana: (errors)
 - you can now generate invite code on the ui
 - friendlier response for "no invite code"
 
