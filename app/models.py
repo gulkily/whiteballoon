@@ -50,7 +50,7 @@ class HelpRequest(SQLModel, table=True):
 
 
 def _generate_invite_token() -> str:
-    return secrets.token_urlsafe(6)
+    return secrets.token_hex(6)
 
 
 class InviteToken(SQLModel, table=True):
