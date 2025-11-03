@@ -21,3 +21,11 @@
 
 **Tests**
 - Manual: Template rendering spot-checks for standard user, admin, and half-auth contexts using seeded data in development DB.
+
+## Stage 4: QA, tests, and handoff
+- Reviewed navigation and profile templates for anonymous access to confirm redirects rely on existing auth guards.
+- Documented outstanding automated test needs for multi-role rendering scenarios.
+
+**Tests**
+- `pytest` (repository currently reports "no tests ran"; left as informational check).
+- Follow-up recommended: browser verification as admin vs. half-auth to confirm badge visibility.
