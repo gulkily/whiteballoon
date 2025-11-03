@@ -3,16 +3,79 @@
 {% block title %}Profile · WhiteBalloon{% endblock %}
 
 {% block nav %}
-  <form action="/logout" method="post" class="inline">
-    <button type="submit" class="button button--ghost">Sign out</button>
-  </form>
+  {% include "partials/account_nav.html" %}
 {% endblock %}
 
 {% block content %}
+{% set session = session if session is defined else None %}
 <section class="section stack">
   <header class="stack">
     <h1>Your profile</h1>
-    <p class="muted">Account and privilege details will appear here.</p>
+    <p class="muted">Review your account details and current access levels.</p>
+    <div class="account-status" aria-label="Account badges">
+      {% if is_admin %}
+        <span class="account-status__tag account-status__tag--admin">Administrator</span>
+      {% endif %}
+      {% if is_half_authenticated %}
+        <span class="account-status__tag account-status__tag--half">Verification pending</span>
+      {% else %}
+        <span class="account-status__tag account-status__tag--ok">Fully authenticated</span>
+      {% endif %}
+    </div>
   </header>
+
+  <div class="profile-grid">
+    <article class="card stack">
+      <h2>Account details</h2>
+      <dl class="definition-list">
+        <div class="definition-list__row">
+          <dt>Username</dt>
+          <dd>{{ identity.username }}</dd>
+        </div>
+        <div class="definition-list__row">
+          <dt>Contact email</dt>
+          <dd>
+            {% if identity.contact_email %}
+              {{ identity.contact_email }}
+            {% else %}
+              <span class="muted">Not provided</span>
+            {% endif %}
+          </dd>
+        </div>
+        <div class="definition-list__row">
+          <dt>Joined</dt>
+          <dd>{{ identity.created_at.strftime('%b %d, %Y') }}</dd>
+        </div>
+      </dl>
+      <p class="muted small-text">Need to change these details? Contact an administrator or reply to your original invite email.</p>
+    </article>
+
+    <article class="card stack">
+      <h2>Privileges</h2>
+      <ul class="privilege-list">
+        {% for item in privileges %}
+          <li class="privilege-item">
+            <div class="privilege-item__header">
+              <span class="privilege-item__label">{{ item.label }}</span>
+              <span class="account-status__tag {{ 'account-status__tag--ok' if item.active else 'account-status__tag--muted' }}">
+                {{ 'Active' if item.active else 'Not granted' }}
+              </span>
+            </div>
+            <p class="muted privilege-item__description">{{ item.description }}</p>
+          </li>
+        {% endfor %}
+      </ul>
+    </article>
+  </div>
+
+  <div class="card stack">
+    <h2>Next steps</h2>
+    {% if is_half_authenticated %}
+      <p class="muted">Finish verifying your login to unlock full request publishing and moderation access.</p>
+    {% else %}
+      <p class="muted">You're fully verified. You can manage requests and respond to your community from the dashboard.</p>
+    {% endif %}
+    <a class="button button--ghost" href="/">Back to dashboard</a>
+  </div>
 </section>
 {% endblock %}

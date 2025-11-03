@@ -3,9 +3,7 @@
 {% block title %}Pending Approval · WhiteBalloon{% endblock %}
 
 {% block nav %}
-  <form action="/logout" method="post" class="inline">
-    <button type="submit" class="button button--ghost">Sign out</button>
-  </form>
+  {% include "partials/account_nav.html" %}
 {% endblock %}
 
 {% block content %}

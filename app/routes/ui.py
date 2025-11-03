@@ -206,13 +206,20 @@ def home(
             "verification_code": auth_request.verification_code if auth_request else None,
             "auth_request": auth_request,
             "readonly": True,
+            "session": session_record,
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
     public_requests = _serialize_requests(request_services.list_requests(db))
     return templates.TemplateResponse(
         "requests/index.html",
-        {"request": request, "user": user, "requests": public_requests, "readonly": False},
+        {
+            "request": request,
+            "user": user,
+            "requests": public_requests,
+            "readonly": False,
+            "session": session_record,
+        },
     )
 
 

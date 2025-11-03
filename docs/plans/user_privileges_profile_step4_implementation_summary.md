@@ -13,3 +13,11 @@
 
 **Tests**
 - Pending: Will exercise role combinations once the UI output is implemented in Stage 3.
+
+## Stage 3: Templates, header link, and status indicator
+- Added a reusable account navigation partial that links the header username to the profile page and shows compact admin/half-auth badges.
+- Refined profile, dashboard, and pending templates to consume the richer context and render identity + privilege details with responsive styling.
+- Introduced lightweight CSS for the header badges and profile layout to keep the status indicator unobtrusive.
+
+**Tests**
+- Manual: Template rendering spot-checks for standard user, admin, and half-auth contexts using seeded data in development DB.
