@@ -34,11 +34,12 @@ Four-step process for feature development with optional solution assessment.
 ---
 
 ### Step 3: Development Plan
-**Content**: Atomic stages (<2 hours each), dependencies, testing approach (even if deferred), risk assessment
+**Content**: Atomic stages (~≤1 hour or ~≤50 lines of change each), dependencies, testing approach (even if deferred), risk assessment
 
 **Format**: Numbered stages in `docs/plans/` (≤1 page)
 **Filename**: `{feature_name}_development_plan.md`
 - Each stage: goal, dependencies, changes, testing (note if postponed), risks (bullet points)
+- Break work into as many small stages as needed; flag any stage that still feels too large so it can be split before implementation.
 - Database changes (conceptual, no SQL)
 - Function signatures (no implementation)
 
@@ -80,6 +81,7 @@ Each step MUST be a separate file in `docs/plans/`:
 - ALWAYS create separate files for each step
 - ALWAYS create a feature branch before Step 4 implementation
 - Flag scope creep and return to the appropriate planning step when needed
+- If the projected work exceeds roughly a day of effort or would require more than about eight Step 3 stages, recommend breaking the effort into multiple features before proceeding.
 - **AVOID database schema changes when possible** – prefer using existing models and fields
 
 **User**:
