@@ -9,9 +9,8 @@ fixed:
 
 today:
 - you can now generate invite code on the ui
+- display who made the request (ilya explain)
 
 Open items:
 - invite codes should be shorter
-- 'mark as completed' not allowed for other users, but button still shown
-- display who made the request
 - Share your first request (optional)
