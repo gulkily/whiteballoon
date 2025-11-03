@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import uuid4
 
 from fastapi import HTTPException, status
+import logging
 from sqlmodel import Session, select
 
 from app.config import get_settings
@@ -20,6 +22,14 @@ from app.modules.requests import services as request_services
 from app.services import user_attribute_service
 
 SESSION_COOKIE_NAME = "wb_session_id"
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class RegistrationResult:
+    user: User
+    session: Optional[UserSession]
+    auto_approved: bool
 
 
 def normalize_username(username: str) -> str:
@@ -37,7 +47,7 @@ def create_user_with_invite(
     username: str,
     contact_email: Optional[str],
     invite_token: Optional[str],
-) -> User:
+) -> RegistrationResult:
     normalized = normalize_username(username)
 
     existing_user = session.exec(select(User).where(User.username == normalized)).first()
@@ -73,6 +83,9 @@ def create_user_with_invite(
     session.add(new_user)
     session.flush()
 
+    auto_approved = False
+    session_record: Optional[UserSession] = None
+
     if token_record:
         token_record.use_count += 1
         inviter_id = token_record.created_by_user_id
@@ -92,15 +105,52 @@ def create_user_with_invite(
             actor_user_id=inviter_id,
         )
 
+        if token_record.auto_approve:
+            auto_approved = True
+    else:
+        # First user (no invite) becomes admin and should be fully authenticated immediately.
+        auto_approved = True
+
+    if auto_approved:
+        now = datetime.utcnow()
+        settings = get_settings()
+        session_record = UserSession(
+            user_id=new_user.id,
+            is_fully_authenticated=True,
+            expires_at=now + timedelta(minutes=settings.session_expiry_minutes),
+        )
+        session.add(session_record)
+
     session.commit()
     session.refresh(new_user)
-    return new_user
+    if session_record:
+        session.refresh(session_record)
+
+    if auto_approved:
+        logger.info(
+            "Auto-approved registration",
+            extra={
+                "user_id": new_user.id,
+                "username": new_user.username,
+                "invite_token": token_record.token if token_record else None,
+            },
+        )
+
+    return RegistrationResult(user=new_user, session=session_record, auto_approved=auto_approved)
 
 
-def create_invite_token(session: Session, *, created_by: Optional[User], max_uses: int = 1, expires_in_days: Optional[int] = None) -> InviteToken:
+def create_invite_token(
+    session: Session,
+    *,
+    created_by: Optional[User],
+    max_uses: int = 1,
+    expires_in_days: Optional[int] = None,
+    auto_approve: bool = True,
+) -> InviteToken:
     invite = InviteToken(
         created_by_user_id=created_by.id if created_by else None,
         max_uses=max_uses,
+        auto_approve=auto_approve,
     )
     if expires_in_days:
         invite.expires_at = datetime.utcnow() + timedelta(days=expires_in_days)

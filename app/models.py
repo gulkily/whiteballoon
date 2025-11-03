@@ -58,6 +58,7 @@ class InviteToken(SQLModel, table=True):
     max_uses: int = Field(default=1, nullable=False)
     use_count: int = Field(default=0, nullable=False)
     disabled: bool = Field(default=False, nullable=False)
+    auto_approve: bool = Field(default=True, nullable=False)
 
 
 

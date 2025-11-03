@@ -10,6 +10,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 
 ## Features
 - Invite-based registration with automatic admin bootstrap for the first user
+- Auto-approval for invite-based registrations (configurable per invite), allowing trusted users to land in a fully authenticated session immediately
 - Multi-device login approvals powered by verification codes
 - Session management via secure cookies backed by the database
 - Help-request feed with progressive enhancement for creating and completing requests
@@ -45,7 +46,8 @@ Requires Python 3.10+.
 
 ## Authentication workflow
 1. A user registers with an invite token (unless they are the first user).
-2. The user submits their username on the login page, creating an authentication request and half-authenticated session.
+2. If the invite was issued by an approved admin (auto-approve default), the user is fully authenticated instantly and receives a logged-in session.
+   Otherwise, the user submits their username on the login page, creating an authentication request and half-authenticated session.
 3. While waiting, the user lands on a pending dashboard: they can browse existing requests, save private drafts, and view their verification code.
 4. The user (or an administrator) completes verification by submitting the generated code, upgrading the session to fully authenticated.
 5. Sessions are stored in the database and tracked through the `wb_session_id` cookie.

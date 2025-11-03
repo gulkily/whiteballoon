@@ -251,7 +251,18 @@ def session_deny(request_id: str) -> None:  # pragma: no cover
 @click.option("--username", default=None, help="Admin username to attribute the invite to")
 @click.option("--max-uses", default=1, show_default=True, type=int, help="Maximum number of times the invite can be used")
 @click.option("--expires-in-days", default=None, type=int, help="Number of days before the invite expires")
-def create_invite(username: Optional[str], max_uses: int, expires_in_days: Optional[int]) -> None:
+@click.option(
+    "--auto-approve/--no-auto-approve",
+    default=True,
+    show_default=True,
+    help="Automatically create a fully authenticated session for registrations using this token.",
+)
+def create_invite(
+    username: Optional[str],
+    max_uses: int,
+    expires_in_days: Optional[int],
+    auto_approve: bool,
+) -> None:
     """Create a new invite token."""
 
     engine = get_engine()
@@ -272,10 +283,12 @@ def create_invite(username: Optional[str], max_uses: int, expires_in_days: Optio
             created_by=creator,
             max_uses=max_uses,
             expires_in_days=expires_in_days,
+            auto_approve=auto_approve,
         )
         click.secho(f"Invite token: {invite.token}", fg="green")
         if invite.expires_at:
             click.echo(f"Expires at: {invite.expires_at.isoformat()}Z")
+        click.echo(f"Auto-approve registrations: {'yes' if invite.auto_approve else 'no'}")
         click.echo("Claim by visiting /register in the web UI and entering the token, or POST to /auth/register with invite_token.")
 
 
