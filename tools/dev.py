@@ -5,8 +5,9 @@ from pathlib import Path
 
 import click
 import uvicorn
-from sqlmodel import Session, select
+from sqlalchemy import inspect
 from sqlalchemy.engine.url import make_url
+from sqlmodel import Session, SQLModel, select
 
 from app.db import get_engine, init_db
 from app.config import get_settings
@@ -37,18 +38,58 @@ def init_db_command() -> None:
     Creates missing tables if the database already exists; data is not dropped.
     """
 
-    # Determine whether the DB already exists (for SQLite) to tailor the message
     settings = get_settings()
     url = make_url(settings.database_url)
+
+    click.secho("Preparing database initialization", fg="cyan")
+    click.echo(f"  URL: {url}")
+
+    # Determine whether the DB already exists (for SQLite) to tailor the message
     pre_existing: Optional[bool] = None
     if url.drivername.startswith("sqlite"):
         db_path = Path(url.database or "data/app.db")
         pre_existing = db_path.exists()
+        click.echo(f"  SQLite file: {db_path}")
 
-    init_db()
+    try:
+        engine = get_engine()
+    except Exception as exc:  # pragma: no cover - protective logging
+        click.secho("Failed to create database engine.", fg="red", err=True)
+        raise click.ClickException(str(exc))
+
+    inspector = inspect(engine)
+    metadata_tables = set(SQLModel.metadata.tables.keys())
+    existing_tables = set(inspector.get_table_names())
+
+    click.echo(f"  Discovered {len(existing_tables)} existing table(s).")
+
+    try:
+        init_db()
+    except Exception as exc:  # pragma: no cover - protective logging
+        click.secho("Error while creating tables.", fg="red", err=True)
+        raise click.ClickException(str(exc))
+
+    refreshed_tables = set(inspect(engine).get_table_names())
+    created_tables = sorted(metadata_tables - existing_tables)
+    missing_tables = sorted(metadata_tables - refreshed_tables)
+    unchanged_tables = sorted(metadata_tables & existing_tables)
+
+    if created_tables:
+        click.secho(f"  Created {len(created_tables)} table(s): {', '.join(created_tables)}", fg="green")
+    else:
+        click.secho("  No new tables were created (all up to date).", fg="yellow")
+
+    if missing_tables:
+        click.secho(
+            f"  Warning: {len(missing_tables)} table(s) still missing: {', '.join(missing_tables)}",
+            fg="red",
+            err=True,
+        )
+
+    click.echo(f"  {len(unchanged_tables)} table(s) already present before initialization.")
 
     if pre_existing is True:
-        click.secho("Database ready (existing); created any missing tables.", fg="yellow")
+        click.secho("Database ready (previously existing).", fg="green")
     elif pre_existing is False:
         click.secho("Database created and ready.", fg="green")
     else:
