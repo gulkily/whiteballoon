@@ -1,6 +1,3 @@
-Share your first request (optional)
-^-- should be required
-
 fixed:
 - ./wb runserver should work on macos ventura out of the box
 - button to "mark complete" only shows up if you submitted it
@@ -8,12 +5,13 @@ fixed:
 - you can now see if you are a "member" or "admin" (role)
 - you can now see current username, also half-authenticated users can see is username is pending approval
 - added profile entry point in top navigation
+- friendlier response for "no invite code"
 
 today:
 - you can now generate invite code on the ui
-- friendlier response for "no invite code"
 
 Open items:
 - invite codes should be shorter
 - 'mark as completed' not allowed for other users, but button still shown
 - display who made the request
+- Share your first request (optional)
