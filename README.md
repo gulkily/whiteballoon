@@ -41,6 +41,8 @@ Requires Python 3.10+.
 
 > **Note**: The first registered user (no invite token required) becomes an administrator automatically.
 
+> **Database integrity**: Re-run `./wb init-db` whenever you suspect schema drift. The command now checks tables/columns against SQLModel definitions, auto-creates missing pieces, and reports mismatches that require manual attention.
+
 ## Authentication workflow
 1. A user registers with an invite token (unless they are the first user).
 2. The user submits their username on the login page, creating an authentication request and half-authenticated session.

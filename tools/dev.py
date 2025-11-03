@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
 from app.services import auth_service
+from app.schema_utils import ensure_schema_integrity
 
 
 @click.group(help="Developer utilities for the WhiteBalloon project.")
@@ -71,7 +72,6 @@ def init_db_command() -> None:
 
     refreshed_tables = set(inspect(engine).get_table_names())
     created_tables = sorted(metadata_tables - existing_tables)
-    missing_tables = sorted(metadata_tables - refreshed_tables)
     unchanged_tables = sorted(metadata_tables & existing_tables)
 
     if created_tables:
@@ -79,21 +79,53 @@ def init_db_command() -> None:
     else:
         click.secho("  No new tables were created (all up to date).", fg="yellow")
 
-    if missing_tables:
-        click.secho(
-            f"  Warning: {len(missing_tables)} table(s) still missing: {', '.join(missing_tables)}",
-            fg="red",
-            err=True,
-        )
-
     click.echo(f"  {len(unchanged_tables)} table(s) already present before initialization.")
 
+    report = ensure_schema_integrity(engine)
+    summary = report.summary_counts()
+    click.echo("Schema integrity summary:")
+    click.echo(
+        f"  Tables created during check: {summary['tables_created']} | Columns added: {summary['columns_added']}"
+    )
+    if summary["mismatches"]:
+        click.secho(f"  Column type mismatches detected: {summary['mismatches']}", fg="yellow")
+    if summary["warnings"]:
+        click.secho(f"  Warnings: {summary['warnings']}", fg="yellow")
+
+    for table in report.tables:
+        details: list[str] = []
+        if table.created_table:
+            details.append("created table")
+        if table.added_columns:
+            details.append(
+                "added columns: " + ", ".join(table.added_columns)
+            )
+        if table.mismatched_columns:
+            mismatch_text = ", ".join(
+                f"{name} (expected {expected}, found {actual})"
+                for name, expected, actual in table.mismatched_columns
+            )
+            details.append("type mismatches: " + mismatch_text)
+        if table.warnings:
+            details.extend(table.warnings)
+
+        if details:
+            click.echo(f"  [{table.name}] " + " | ".join(details))
+
+    for error in report.errors:
+        click.secho(f"  Error: {error}", fg="red", err=True)
+
+    if report.has_errors:
+        raise click.ClickException(
+            "Schema integrity check found issues requiring manual attention."
+        )
+
     if pre_existing is True:
-        click.secho("Database ready (previously existing).", fg="green")
+        click.secho("Database ready (previously existing) and schema verified.", fg="green")
     elif pre_existing is False:
-        click.secho("Database created and ready.", fg="green")
+        click.secho("Database created, verified, and ready.", fg="green")
     else:
-        click.secho("Database ready.", fg="green")
+        click.secho("Database ready and schema verified.", fg="green")
 
 
 @cli.command(name="create-admin")

@@ -63,3 +63,6 @@ When creating a new module:
 - Keep dependencies minimal; prefer standard library or existing packages
 - Run `pytest --maxfail=1` during development for quick feedback
 - Document any new CLI commands or module hooks as they are added
+
+## Database integrity
+- `./wb init-db` now verifies existing tables/columns against SQLModel metadata, recreates missing pieces where safe, and warns about mismatches. Run it whenever you pull structural changes or suspect schema drift.
