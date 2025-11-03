@@ -18,3 +18,11 @@
 
 ### Testing
 - Manual: Pending — submit a request and confirm the live refresh shows the creator label with consistent styling; spot-check on small screens for wrapping.
+
+## Stage 4 – Verification sweep
+- Attempted automated tests (`pytest`), but the runner is unavailable in this environment, so no suites executed.
+- Deferred full manual walkthrough to an environment with the web app running; focus areas include half-auth dashboards and live refresh after new submissions.
+
+### Testing
+- Automated: `pytest` (not run — command missing).
+- Manual: Pending — requires running the app to validate dashboard rendering and live updates.
