@@ -10,3 +10,10 @@
 
 ### Testing
 - Manual: Pending — reload dashboard and verify the creator label is keyboard focusable and navigates correctly; confirm pending view handles missing usernames gracefully.
+
+## Stage 3 – Sync client renderer and styling
+- Mirrored the anchor markup inside `static/js/request-feed.js` so live updates match server-rendered cards, including encoded URLs and accessible titles.
+- Adjusted styles in `static/css/app.css` to give linked creator names hover/focus treatments without disrupting the layout.
+
+### Testing
+- Manual: Pending — create a request to force client refresh and ensure the link renders identically; tab through to confirm focus styling.

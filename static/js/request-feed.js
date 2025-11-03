@@ -163,7 +163,13 @@
     const completedAt = item.completed_at ? formatDate(item.completed_at) : null;
     const badgeClass = item.status === 'completed' ? 'badge badge--completed' : 'badge';
     const canComplete = Boolean(item.can_complete);
-    const creatorName = escapeHtml(item.created_by_username || 'Community member');
+    const creatorSlug = item.created_by_username || '';
+    const creatorName = escapeHtml(creatorSlug || 'Community member');
+    const creatorHref = creatorSlug ? `/people/${encodeURIComponent(creatorSlug)}` : '';
+    const creatorTitle = creatorSlug ? `View ${creatorSlug}'s profile` : creatorSlug || 'Community member';
+    const creatorLabel = creatorSlug
+      ? `<a class="request-creator" href="${escapeHtml(creatorHref)}" title="${escapeHtml(creatorTitle)}">${creatorName}</a>`
+      : `<span class="request-creator" title="${creatorName}">${creatorName}</span>`;
 
     let completeSection = '';
     if (item.status === 'completed') {
@@ -176,7 +182,7 @@
       ? `<span class="muted">Contact: ${escapeHtml(item.contact_email)}</span>`
       : '';
 
-    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__lead">\n      <span class="request-creator" title="${creatorName}">${creatorName}</span>\n      <span class="${badgeClass}">${capitalize(item.status)}</span>\n    </div>\n    <time datetime="${escapeHtml(item.created_at)}" class="muted">${createdAt}</time>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
+    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__lead">\n      ${creatorLabel}\n      <span class="${badgeClass}">${capitalize(item.status)}</span>\n    </div>\n    <time datetime="${escapeHtml(item.created_at)}" class="muted">${createdAt}</time>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
   }
 
   function showForm(card) {
