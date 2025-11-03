@@ -327,6 +327,8 @@ def profile_view(
     viewer = session_user.user
     is_self = viewer.id == person.id
     can_view_contact = viewer.is_admin or is_self
+    viewer_session = session_user.session
+    viewer_session_role = describe_session_role(viewer, viewer_session)
 
     identity = {
         "username": person.username,
@@ -342,6 +344,10 @@ def profile_view(
         "is_self": is_self,
         "can_view_contact": can_view_contact,
         "contact_restricted": bool(person.contact_email and not can_view_contact),
+        "user": viewer,
+        "session": viewer_session,
+        "session_role": viewer_session_role,
+        "session_username": viewer.username,
     }
     return templates.TemplateResponse("profile/show.html", context)
 
