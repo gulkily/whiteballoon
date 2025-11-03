@@ -221,10 +221,43 @@ def profile(
     request: Request,
     session_user: SessionUser = Depends(require_session_user),
 ) -> Response:
+    user = session_user.user
+    session_record = session_user.session
+    is_half_authenticated = not session_record.is_fully_authenticated
+
+    privilege_descriptors = [
+        {
+            "key": "member",
+            "label": "Standard member",
+            "active": True,
+            "description": "Can browse community requests and submit new ones based on current session status.",
+        },
+        {
+            "key": "admin",
+            "label": "Administrator",
+            "active": user.is_admin,
+            "description": "Can approve access, manage invites, and moderate requests.",
+        },
+        {
+            "key": "half_auth",
+            "label": "Half-authenticated session",
+            "active": is_half_authenticated,
+            "description": "Verify your login to unlock full access to posting and moderation tools.",
+        },
+    ]
+
     context = {
         "request": request,
-        "user": session_user.user,
-        "session": session_user.session,
+        "user": user,
+        "session": session_record,
+        "identity": {
+            "username": user.username,
+            "contact_email": user.contact_email,
+            "created_at": user.created_at,
+        },
+        "privileges": privilege_descriptors,
+        "is_admin": user.is_admin,
+        "is_half_authenticated": is_half_authenticated,
     }
     return templates.TemplateResponse("profile/profile.html", context)
 
