@@ -17,6 +17,7 @@ from app.models import (
     UserSession,
 )
 from app.modules.requests import services as request_services
+from app.services import user_attribute_service
 
 SESSION_COOKIE_NAME = "wb_session_id"
 
@@ -74,6 +75,22 @@ def create_user_with_invite(
 
     if token_record:
         token_record.use_count += 1
+        inviter_id = token_record.created_by_user_id
+        if inviter_id:
+            user_attribute_service.set_attribute(
+                session,
+                user_id=new_user.id,
+                key=user_attribute_service.INVITED_BY_USER_ID_KEY,
+                value=str(inviter_id),
+                actor_user_id=inviter_id,
+            )
+        user_attribute_service.set_attribute(
+            session,
+            user_id=new_user.id,
+            key=user_attribute_service.INVITE_TOKEN_USED_KEY,
+            value=token_record.token,
+            actor_user_id=inviter_id,
+        )
 
     session.commit()
     session.refresh(new_user)

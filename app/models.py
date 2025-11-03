@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Optional
 from uuid import uuid4
 
-from sqlalchemy import Column, Enum as SAEnum, String
+from sqlalchemy import Column, Enum as SAEnum, String, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -61,6 +61,21 @@ class InviteToken(SQLModel, table=True):
 
 
 
+class UserAttribute(SQLModel, table=True):
+    __tablename__ = "user_attributes"
+    __table_args__ = (UniqueConstraint("user_id", "key", name="ux_user_attributes_user_key"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", nullable=False, index=True)
+    key: str = Field(sa_column=Column(String, nullable=False))
+    value: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    updated_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+
+
+
 class AuthRequestStatus(str, Enum):
     pending = "pending"
     approved = "approved"
@@ -89,4 +104,3 @@ class AuthApproval(SQLModel, table=True):
     auth_request_id: str = Field(foreign_key="auth_requests.id", nullable=False)
     approver_user_id: int = Field(foreign_key="users.id", nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
-
