@@ -6,10 +6,8 @@ fixed:
 - you can now see current username, also half-authenticated users can see is username is pending approval
 - added profile entry point in top navigation
 - friendlier response for "no invite code"
-
-today:
 - you can now generate invite code on the ui
-- display who made the request (ilya explain)
+- display who made the request
 
 Open items:
 - invite codes should be shorter
