@@ -305,8 +305,21 @@ textarea::placeholder {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   font-size: 0.85rem;
   color: var(--color-muted);
+}
+
+.request-meta__lead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.request-creator {
+  font-weight: 600;
+  color: var(--color-text);
 }
 
 .badge {

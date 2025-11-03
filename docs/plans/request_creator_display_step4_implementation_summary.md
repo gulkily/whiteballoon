@@ -11,3 +11,10 @@
 
 ### Testing
 - Manual: Pending — load both the full dashboard and half-auth pending view to confirm names render without breaking alignment.
+
+## Stage 3 – Align client rendering and styles
+- Brought the dynamic request renderer in `static/js/request-feed.js` in sync with the server template, including the creator label and updated header structure.
+- Tweaked request card styles to support the new layout, adding lead container spacing and a distinct visual treatment for the creator name.
+
+### Testing
+- Manual: Pending — submit a request and confirm the live refresh shows the creator label with consistent styling; spot-check on small screens for wrapping.

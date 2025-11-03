@@ -163,6 +163,7 @@
     const completedAt = item.completed_at ? formatDate(item.completed_at) : null;
     const badgeClass = item.status === 'completed' ? 'badge badge--completed' : 'badge';
     const canComplete = Boolean(item.can_complete);
+    const creatorName = escapeHtml(item.created_by_username || 'Community member');
 
     let completeSection = '';
     if (item.status === 'completed') {
@@ -175,7 +176,7 @@
       ? `<span class="muted">Contact: ${escapeHtml(item.contact_email)}</span>`
       : '';
 
-    return `<article class="request-item">\n  <header class="request-meta">\n    <span class="${badgeClass}">${capitalize(item.status)}</span>\n    <time datetime="${escapeHtml(item.created_at)}" class="muted">${createdAt}</time>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
+    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__lead">\n      <span class="request-creator" title="${creatorName}">${creatorName}</span>\n      <span class="${badgeClass}">${capitalize(item.status)}</span>\n    </div>\n    <time datetime="${escapeHtml(item.created_at)}" class="muted">${createdAt}</time>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
   }
 
   function showForm(card) {
