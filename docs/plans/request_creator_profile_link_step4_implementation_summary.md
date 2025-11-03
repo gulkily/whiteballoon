@@ -17,3 +17,11 @@
 
 ### Testing
 - Manual: Pending — create a request to force client refresh and ensure the link renders identically; tab through to confirm focus styling.
+
+## Stage 4 – Verification sweep
+- Attempted to run automated tests (`pytest`), but the command is not available in this environment.
+- Manual validation deferred to an environment with the app running: need to check admin/member/half-auth navigation, link focus, and 404 handling for missing users.
+
+### Testing
+- Automated: `pytest` (not run — command missing).
+- Manual: Pending — requires interactive session to exercise profile navigation flows.
