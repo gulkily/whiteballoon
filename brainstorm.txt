@@ -1,0 +1,33 @@
+invite required
+
+when you invite someone, you write their bio
+
+when registering a new user, they must include a help request as part of the registration form
+
+"is anyone down to do this?"
+--> going/down/agree/etc
+--> input date and time
+
+what types of help?
+--> join me for something? 
+--> project-based stuff
+--> looking for a referral e.g. photographer, mechanic, services, etc.
+--> simple help like hang a picture, do the dishes?
+--> emotional help
+--> fundraising
+--> couch to crash on?
+--> travel together?
+--> petsitting, babysitting, etc.
+--> give me a ride to the airport
+--> help me get a job
+
+second and third degree connections are better than randoms for e.g. rides etc.
+
+different sections for sensitive things:
+--> help me get a job
+--> double dates
+
+art projects:
+
+prioritize and filter by degree (when listing)
+--> allow specifying degree when submitting a post: first, 1&2, all
