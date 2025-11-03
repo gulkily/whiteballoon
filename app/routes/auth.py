@@ -132,12 +132,16 @@ def create_invite(
     max_uses = int(payload.get("max_uses", 1))
     expires_in_days = payload.get("expires_in_days")
     expires = int(expires_in_days) if expires_in_days is not None else None
+    suggested_username = payload.get("suggested_username")
+    suggested_bio = payload.get("suggested_bio")
 
     invite = auth_service.create_invite_token(
         db,
         created_by=admin,
         max_uses=max(max_uses, 1),
         expires_in_days=expires,
+        suggested_username=suggested_username,
+        suggested_bio=suggested_bio,
     )
     link = build_invite_link(invite.token, request)
     return {
@@ -146,6 +150,8 @@ def create_invite(
         "expires_at": invite.expires_at,
         "link": link,
         "qr_code": generate_qr_code_data_url(link),
+        "suggested_username": invite.suggested_username,
+        "suggested_bio": invite.suggested_bio,
     }
 
 

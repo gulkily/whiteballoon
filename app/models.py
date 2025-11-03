@@ -64,6 +64,8 @@ class InviteToken(SQLModel, table=True):
     use_count: int = Field(default=0, nullable=False)
     disabled: bool = Field(default=False, nullable=False)
     auto_approve: bool = Field(default=True, nullable=False)
+    suggested_username: Optional[str] = Field(default=None, max_length=64)
+    suggested_bio: Optional[str] = Field(default=None, max_length=512)
 
 
 

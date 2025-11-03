@@ -273,16 +273,10 @@ def home(
 @router.get("/invite/new")
 def invite_new(
     request: Request,
-    db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
 ) -> Response:
-    invite = auth_service.create_invite_token(db, created_by=session_user.user)
-    link = build_invite_link(invite.token, request)
     context = {
         "request": request,
-        "invite_token": invite.token,
-        "invite_link": link,
-        "qr_data_url": generate_qr_code_data_url(link),
         "inviter_username": session_user.user.username,
     }
     return templates.TemplateResponse("invite/new.html", context)

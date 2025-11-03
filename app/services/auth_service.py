@@ -146,11 +146,15 @@ def create_invite_token(
     max_uses: int = 1,
     expires_in_days: Optional[int] = None,
     auto_approve: bool = True,
+    suggested_username: Optional[str] = None,
+    suggested_bio: Optional[str] = None,
 ) -> InviteToken:
     invite = InviteToken(
         created_by_user_id=created_by.id if created_by else None,
         max_uses=max_uses,
         auto_approve=auto_approve,
+        suggested_username=(suggested_username.strip() if suggested_username else None),
+        suggested_bio=(suggested_bio.strip() if suggested_bio else None),
     )
     if expires_in_days:
         invite.expires_at = datetime.utcnow() + timedelta(days=expires_in_days)

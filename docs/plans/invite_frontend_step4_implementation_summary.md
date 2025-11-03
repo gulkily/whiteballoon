@@ -6,6 +6,7 @@
 ## Stage 2: Invite page implementation
 - Created `/invite/new` route rendering `templates/invite/new.html`. The page auto-generates an invite token, displays the shareable link, QR code, and optional suggested username/bio fields.
 - Utilized shared helpers to build invite links and QR codes.
+- Invite metadata (suggested username/bio) is now persisted on `InviteToken` so it can accompany the welcome message.
 
 ## Stage 3: Styling & UX polish
 - Added responsive layout, copy button with feedback, regeneration link, and share message preview that updates as optional fields change.
