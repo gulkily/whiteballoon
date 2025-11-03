@@ -7,10 +7,15 @@
   <div class="card stack">
     <h1>Create account</h1>
     <p class="muted">Use a valid invite token unless you are the first person configuring the system.</p>
+    {% if suggested_bio %}
+      <div class="alert invite-note">
+        {{ suggested_bio }}
+      </div>
+    {% endif %}
     <form method="post" class="form-grid">
       <div class="input-group">
         <label for="username">Username</label>
-        <input id="username" name="username" type="text" required />
+        <input id="username" name="username" type="text" value="{{ suggested_username | default('') }}" required />
       </div>
       <div class="input-group">
         <label for="contact_email">Contact email <span class="muted">(optional)</span></label>

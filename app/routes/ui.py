@@ -15,7 +15,7 @@ from app.dependencies import (
     require_authenticated_user,
     require_session_user,
 )
-from app.models import AuthenticationRequest, User, UserSession
+from app.models import AuthenticationRequest, InviteToken, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import auth_service
@@ -142,11 +142,22 @@ def verify_login(
     return redirect_response
 
 @router.get("/register")
-def register_form(request: Request) -> Response:
+def register_form(request: Request, db: SessionDep) -> Response:
     prefilled_token = request.query_params.get("invite_token")
+    suggested_username = ""
+    suggested_bio = ""
+
+    if prefilled_token:
+        invite_record = db.get(InviteToken, prefilled_token)
+        if invite_record:
+            suggested_username = invite_record.suggested_username or ""
+            suggested_bio = invite_record.suggested_bio or ""
+
     context = {
         "request": request,
         "prefilled_invite_token": prefilled_token or "",
+        "suggested_username": suggested_username,
+        "suggested_bio": suggested_bio,
     }
     return templates.TemplateResponse("auth/register.html", context)
 
