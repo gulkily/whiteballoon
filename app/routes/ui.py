@@ -216,6 +216,19 @@ def home(
     )
 
 
+@router.get("/profile")
+def profile(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    context = {
+        "request": request,
+        "user": session_user.user,
+        "session": session_user.session,
+    }
+    return templates.TemplateResponse("profile/profile.html", context)
+
+
 @router.post("/requests")
 def create_request(
     request: Request,

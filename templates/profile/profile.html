@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Profile · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  <form action="/logout" method="post" class="inline">
+    <button type="submit" class="button button--ghost">Sign out</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+<section class="section stack">
+  <header class="stack">
+    <h1>Your profile</h1>
+    <p class="muted">Account and privilege details will appear here.</p>
+  </header>
+</section>
+{% endblock %}
