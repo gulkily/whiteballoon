@@ -49,6 +49,25 @@ def _expected_type(column, engine: Engine) -> str:
     return column.type.compile(dialect=engine.dialect).lower()
 
 
+def _default_clause(column) -> Optional[str]:
+    if column.server_default is not None:
+        return f" DEFAULT {column.server_default.arg}"
+    default = column.default
+    if default is None:
+        return None
+    try:
+        value = default.arg
+    except AttributeError:
+        return None
+
+    if isinstance(value, bool):
+        value = 1 if value else 0
+    elif isinstance(value, str):
+        value = f"'{value}'"
+
+    return f" DEFAULT {value}"
+
+
 def ensure_schema_integrity(engine: Engine) -> IntegrityReport:
     inspector = inspect(engine)
     metadata_tables = {table.name: table for table in SQLModel.metadata.sorted_tables}
@@ -80,6 +99,9 @@ def ensure_schema_integrity(engine: Engine) -> IntegrityReport:
             for column in table.columns:
                 if column.name not in actual_columns:
                     create_sql = CreateColumn(column).compile(dialect=engine.dialect)
+                    default_clause = _default_clause(column)
+                    if default_clause and "DEFAULT" not in str(create_sql).upper():
+                        create_sql = f"{create_sql}{default_clause}"
                     table_sql = preparer.quote(table_name)
                     try:
                         connection.execute(
