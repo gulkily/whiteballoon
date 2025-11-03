@@ -125,9 +125,9 @@ def logout(db: SessionDep, session_record: Optional[UserSession] = Depends(get_c
 @router.post("/invites", status_code=status.HTTP_201_CREATED)
 def create_invite(
     payload: dict,
+    request: Request,
     db: SessionDep,
     admin: User = Depends(require_admin),
-    request: Request,
 ) -> dict:
     max_uses = int(payload.get("max_uses", 1))
     expires_in_days = payload.get("expires_in_days")
