@@ -23,19 +23,27 @@ class RequestResponse(BaseModel):
     status: str
     contact_email: str | None
     created_by_user_id: int | None
+    created_by_username: str | None = None
     created_at: str
     updated_at: str
     completed_at: str | None
     can_complete: bool = False
 
     @classmethod
-    def from_model(cls, request: HelpRequest, *, can_complete: bool = False) -> "RequestResponse":
+    def from_model(
+        cls,
+        request: HelpRequest,
+        *,
+        created_by_username: str | None = None,
+        can_complete: bool = False,
+    ) -> "RequestResponse":
         return cls(
             id=request.id,
             description=request.description,
             status=request.status,
             contact_email=request.contact_email,
             created_by_user_id=request.created_by_user_id,
+            created_by_username=created_by_username,
             created_at=request.created_at.isoformat() + "Z",
             updated_at=request.updated_at.isoformat() + "Z",
             completed_at=request.completed_at.isoformat() + "Z" if request.completed_at else None,
@@ -54,8 +62,13 @@ def calculate_can_complete(help_request: HelpRequest, user: User) -> bool:
 @router.get("/", response_model=List[RequestResponse])
 def list_requests(db: SessionDep, session_user: SessionUser = Depends(require_session_user)) -> List[RequestResponse]:
     requests = services.list_requests(db)
+    creator_usernames = services.load_creator_usernames(db, requests)
     return [
-        RequestResponse.from_model(item, can_complete=calculate_can_complete(item, session_user.user))
+        RequestResponse.from_model(
+            item,
+            created_by_username=creator_usernames.get(item.created_by_user_id),
+            can_complete=calculate_can_complete(item, session_user.user),
+        )
         for item in requests
     ]
 
@@ -63,8 +76,13 @@ def list_requests(db: SessionDep, session_user: SessionUser = Depends(require_se
 @router.get("/pending", response_model=List[RequestResponse])
 def list_pending_requests(db: SessionDep, session_user: SessionUser = Depends(require_session_user)) -> List[RequestResponse]:
     pending_requests = services.list_pending_requests_for_user(db, user_id=session_user.user.id)
+    creator_usernames = services.load_creator_usernames(db, pending_requests)
     return [
-        RequestResponse.from_model(item, can_complete=calculate_can_complete(item, session_user.user))
+        RequestResponse.from_model(
+            item,
+            created_by_username=creator_usernames.get(item.created_by_user_id),
+            can_complete=calculate_can_complete(item, session_user.user),
+        )
         for item in pending_requests
     ]
 
@@ -83,7 +101,11 @@ def create_request(
         contact_email=payload.contact_email,
         status_value=status_value,
     )
-    return RequestResponse.from_model(help_request, can_complete=calculate_can_complete(help_request, session_user.user))
+    return RequestResponse.from_model(
+        help_request,
+        created_by_username=session_user.user.username,
+        can_complete=calculate_can_complete(help_request, session_user.user),
+    )
 
 
 @router.post("/{request_id}/complete", response_model=RequestResponse)
@@ -94,4 +116,9 @@ def complete_request(
 ) -> RequestResponse:
     help_request = services.mark_completed(db, request_id=request_id, user=user)
     # Completed requests should not expose the completion action.
-    return RequestResponse.from_model(help_request, can_complete=False)
+    creator_usernames = services.load_creator_usernames(db, [help_request])
+    return RequestResponse.from_model(
+        help_request,
+        created_by_username=creator_usernames.get(help_request.created_by_user_id),
+        can_complete=False,
+    )

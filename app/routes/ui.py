@@ -5,7 +5,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlmodel import select
+from sqlmodel import Session, select
 
 from app.dependencies import (
     SessionDep,
@@ -25,11 +25,18 @@ router = APIRouter(tags=["ui"])
 templates = Jinja2Templates(directory="templates")
 
 
-def _serialize_requests(items, viewer: Optional[User] = None):
+def _serialize_requests(db: Session, items, viewer: Optional[User] = None):
+    creator_usernames = request_services.load_creator_usernames(db, items)
     serialized = []
     for item in items:
         can_complete = calculate_can_complete(item, viewer) if viewer else False
-        serialized.append(RequestResponse.from_model(item, can_complete=can_complete).model_dump())
+        serialized.append(
+            RequestResponse.from_model(
+                item,
+                created_by_username=creator_usernames.get(item.created_by_user_id),
+                can_complete=can_complete,
+            ).model_dump()
+        )
     return serialized
 
 
@@ -212,8 +219,9 @@ def home(
                 select(AuthenticationRequest).where(AuthenticationRequest.id == session_record.auth_request_id)
             ).first()
 
-        public_requests = _serialize_requests(request_services.list_requests(db), viewer=user)
+        public_requests = _serialize_requests(db, request_services.list_requests(db), viewer=user)
         pending_requests = _serialize_requests(
+            db,
             request_services.list_pending_requests_for_user(db, user_id=user.id),
             viewer=user,
         )
@@ -232,7 +240,7 @@ def home(
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
-    public_requests = _serialize_requests(request_services.list_requests(db), viewer=user)
+    public_requests = _serialize_requests(db, request_services.list_requests(db), viewer=user)
     return templates.TemplateResponse(
         "requests/index.html",
         {

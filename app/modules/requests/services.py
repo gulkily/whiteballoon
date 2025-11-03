@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List
+from typing import List, Sequence
 
 from fastapi import HTTPException, status
 from sqlmodel import Session, select
@@ -86,3 +86,13 @@ def promote_pending_requests(session: Session, *, user_id: int) -> None:
         session.add(request)
 
     session.commit()
+
+
+def load_creator_usernames(session: Session, requests: Sequence[HelpRequest]) -> dict[int, str]:
+    creator_ids = {request.created_by_user_id for request in requests if request.created_by_user_id}
+    if not creator_ids:
+        return {}
+
+    statement = select(User.id, User.username).where(User.id.in_(creator_ids))
+    rows = session.exec(statement).all()
+    return {user_id: username for user_id, username in rows}
