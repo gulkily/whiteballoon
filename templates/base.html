@@ -4,6 +4,37 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script>document.documentElement.classList.add('js');</script>
+    <script>
+      (function () {
+        try {
+          var storageKey = 'wb-theme';
+          var stored = localStorage.getItem(storageKey);
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved;
+
+          if (stored === 'dark' || stored === 'light') {
+            resolved = stored;
+          } else {
+            resolved = prefersDark ? 'dark' : 'light';
+            if (stored === null) {
+              localStorage.setItem(storageKey, 'auto');
+            }
+          }
+
+          document.documentElement.setAttribute('data-theme', resolved);
+          document.documentElement.setAttribute('data-theme-preference', stored || 'auto');
+        } catch (err) {
+          var matchesDark = false;
+          if (window.matchMedia) {
+            try {
+              matchesDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            } catch (ignored) {}
+          }
+          document.documentElement.setAttribute('data-theme', matchesDark ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme-preference', 'auto');
+        }
+      })();
+    </script>
     <title>{% block title %}WhiteBalloon{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/app.css" />
   </head>
@@ -14,11 +45,15 @@
         <nav class="nav-links">
           {% block nav %}{% endblock %}
         </nav>
+        <div class="theme-toggle-wrapper">
+          {% include "partials/theme_toggle.html" %}
+        </div>
       </div>
     </header>
     <main class="container">
       {% block content %}{% endblock %}
     </main>
-      <script src="/static/js/request-feed.js" defer></script>
+    <script src="/static/js/theme-toggle.js" defer></script>
+    <script src="/static/js/request-feed.js" defer></script>
   </body>
 </html>
