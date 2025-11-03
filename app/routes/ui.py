@@ -321,6 +321,46 @@ def profile(
     return templates.TemplateResponse("profile/index.html", context)
 
 
+@router.get("/people/{username}")
+def profile_view(
+    username: str,
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    normalized = auth_service.normalize_username(username)
+    person = db.exec(select(User).where(User.username == normalized)).first()
+    if not person:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    viewer = session_user.user
+    is_self = viewer.id == person.id
+    can_view_contact = viewer.is_admin or is_self
+    viewer_session = session_user.session
+    viewer_session_role = describe_session_role(viewer, viewer_session)
+
+    identity = {
+        "username": person.username,
+        "contact_email": person.contact_email if can_view_contact else None,
+        "created_at": person.created_at,
+    }
+
+    context = {
+        "request": request,
+        "viewer": viewer,
+        "person": person,
+        "identity": identity,
+        "is_self": is_self,
+        "can_view_contact": can_view_contact,
+        "contact_restricted": bool(person.contact_email and not can_view_contact),
+        "user": viewer,
+        "session": viewer_session,
+        "session_role": viewer_session_role,
+        "session_username": viewer.username,
+    }
+    return templates.TemplateResponse("profile/show.html", context)
+
+
 @router.post("/requests")
 def create_request(
     request: Request,

@@ -322,6 +322,17 @@ textarea::placeholder {
   color: var(--color-text);
 }
 
+a.request-creator {
+  text-decoration: none;
+  color: inherit;
+}
+
+a.request-creator:hover,
+a.request-creator:focus-visible {
+  text-decoration: underline;
+  color: var(--color-accent);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}{{ person.username }} · Profile · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack">
+  <header class="stack">
+    <h1>{{ person.username }}</h1>
+    {% if is_self %}
+      <p class="muted">This is your profile as seen by other members.</p>
+    {% else %}
+      <p class="muted">Community profile visible to members with sign-in access.</p>
+    {% endif %}
+  </header>
+
+  <article class="card stack">
+    <h2>Account details</h2>
+    <dl class="definition-list">
+      <div class="definition-list__row">
+        <dt>Username</dt>
+        <dd>{{ identity.username }}</dd>
+      </div>
+      <div class="definition-list__row">
+        <dt>Contact email</dt>
+        <dd>
+          {% if identity.contact_email %}
+            {{ identity.contact_email }}
+          {% elif contact_restricted %}
+            <span class="muted">Visible to administrators only</span>
+          {% else %}
+            <span class="muted">Not provided</span>
+          {% endif %}
+        </dd>
+      </div>
+      <div class="definition-list__row">
+        <dt>Member since</dt>
+        <dd>{{ identity.created_at.strftime('%b %d, %Y') }}</dd>
+      </div>
+    </dl>
+  </article>
+
+  <div>
+    <a class="button button--ghost" href="/">Back to requests</a>
+  </div>
+</section>
+{% endblock %}
