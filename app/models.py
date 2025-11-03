@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Optional
 from uuid import uuid4
+import secrets
 
 from sqlalchemy import Column, Enum as SAEnum, String, UniqueConstraint
 from sqlmodel import Field, SQLModel
@@ -48,10 +49,14 @@ class HelpRequest(SQLModel, table=True):
 
 
 
+def _generate_invite_token() -> str:
+    return secrets.token_urlsafe(6)
+
+
 class InviteToken(SQLModel, table=True):
     __tablename__ = "invite_tokens"
 
-    token: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
+    token: str = Field(default_factory=_generate_invite_token, primary_key=True)
     created_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     expires_at: Optional[datetime] = Field(default=None)
