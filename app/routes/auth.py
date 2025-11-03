@@ -10,6 +10,7 @@ from app.dependencies import SessionDep, apply_session_cookie, get_current_sessi
 from app.models import AuthenticationRequest, AuthApproval, User, UserSession
 from app.modules.requests import services as request_services
 from app.services import auth_service
+from app.url_utils import build_invite_link
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -126,6 +127,7 @@ def create_invite(
     payload: dict,
     db: SessionDep,
     admin: User = Depends(require_admin),
+    request: Request,
 ) -> dict:
     max_uses = int(payload.get("max_uses", 1))
     expires_in_days = payload.get("expires_in_days")
@@ -137,7 +139,12 @@ def create_invite(
         max_uses=max(max_uses, 1),
         expires_in_days=expires,
     )
-    return {"token": invite.token, "max_uses": invite.max_uses, "expires_at": invite.expires_at}
+    return {
+        "token": invite.token,
+        "max_uses": invite.max_uses,
+        "expires_at": invite.expires_at,
+        "link": build_invite_link(invite.token, request),
+    }
 
 
 @router.get("/requests/{auth_request_id}")

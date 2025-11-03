@@ -16,6 +16,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Help-request feed with progressive enhancement for creating and completing requests
 - Vanilla CSS design system with reusable layout primitives and components
 - JSON API under `/api/requests` for programmatic access to the request feed
+- Invite generation returns share-ready links using the current request origin (fallback to `SITE_URL`)
 
 ## Quick start
 
@@ -43,6 +44,8 @@ Requires Python 3.10+.
 > **Note**: The first registered user (no invite token required) becomes an administrator automatically.
 
 > **Database integrity**: Re-run `./wb init-db` whenever you suspect schema drift. The command now checks tables/columns against SQLModel definitions, auto-creates missing pieces, and reports mismatches that require manual attention.
+
+> **Invite links**: By default invite links use the incoming request origin. Set `SITE_URL` in `.env` to provide a fallback host for CLI usage or non-HTTP contexts.
 
 ## Authentication workflow
 1. A user registers with an invite token (unless they are the first user).

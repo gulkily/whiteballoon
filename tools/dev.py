@@ -13,8 +13,9 @@ from app.db import get_engine, init_db
 from app.config import get_settings
 from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
-from app.services import auth_service
 from app.schema_utils import ensure_schema_integrity
+from app.services import auth_service
+from app.url_utils import build_invite_link
 
 
 @click.group(help="Developer utilities for the WhiteBalloon project.")
@@ -286,6 +287,7 @@ def create_invite(
             auto_approve=auto_approve,
         )
         click.secho(f"Invite token: {invite.token}", fg="green")
+        click.echo(f"Invite link: {build_invite_link(invite.token)}")
         if invite.expires_at:
             click.echo(f"Expires at: {invite.expires_at.isoformat()}Z")
         click.echo(f"Auto-approve registrations: {'yes' if invite.auto_approve else 'no'}")

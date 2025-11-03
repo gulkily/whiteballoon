@@ -66,3 +66,6 @@ When creating a new module:
 
 ## Database integrity
 - `./wb init-db` now verifies existing tables/columns against SQLModel metadata, recreates missing pieces where safe, and warns about mismatches. Run it whenever you pull structural changes or suspect schema drift.
+
+## Invite links
+- `./wb create-invite` prints a shareable `/register` link using `SITE_URL` as a fallback base. Set `SITE_URL` in `.env` for non-local environments to ensure links point to the correct host.

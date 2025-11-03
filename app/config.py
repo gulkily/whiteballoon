@@ -18,6 +18,7 @@ class Settings:
     session_expiry_minutes: int = int(os.getenv("SESSION_EXPIRY_MINUTES", "20160"))
     cookie_secure: bool = _get_bool(os.getenv("COOKIE_SECURE"), False)
     enable_contact_email: bool = _get_bool(os.getenv("ENABLE_CONTACT_EMAIL"), True)
+    site_url: str = os.getenv("SITE_URL", "http://127.0.0.1:8000")
 
 
 @lru_cache(maxsize=1)
