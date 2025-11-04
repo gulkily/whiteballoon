@@ -22,6 +22,7 @@ from app.dependencies import (
     SessionUser,
     apply_session_cookie,
     get_current_session,
+    require_admin,
     require_session_user,
 )
 from app.models import AuthenticationRequest, AuthApproval, User, UserSession
