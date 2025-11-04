@@ -148,6 +148,16 @@ Transportation Volunteers
 - Shuttle rotation rosters
 - Carpool matching
 
+Friendship & Social Circles
+
+- Coffee meetup invitations
+- Morning running clubs
+- Park picnic planning
+- Board game night signups
+- Community stroll buddies
+- Skill-share hangouts
+- Book swap gatherings
+
 Neighbors with Extra Space
 
 - Short-term guest room offers
@@ -167,6 +177,16 @@ Tech Founders & Hackers
 - Data storytelling collaborations
 - Encryption education circles
 - Responsible AI testing sprints
+
+Hacker House Co-Residents
+
+- Chore rotation scheduling
+- Shared grocery ordering
+- Community hardware lab maintenance
+- Quiet hour coordination
+- Fast internet troubleshooting swaps
+- House repair build days
+- Shared ride planning
 
 Tech Stewards
 
