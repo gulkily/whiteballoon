@@ -18,3 +18,11 @@
 
 ### Testing
 - Manual: Pending — follow a generated invite link to confirm the welcome card appears with supplied data and that registration still works without personalization.
+
+## Stage 4 – Verification snapshot
+- Attempted to run automated tests (`pytest`), but the command is unavailable in this environment.
+- Manual walkthrough deferred: need to generate an invite, validate the new required field flow, and complete registration using the invite link.
+
+### Testing
+- Automated: `pytest` (not run — command missing).
+- Manual: Pending — requires live app session to exercise invite + registration journey.
