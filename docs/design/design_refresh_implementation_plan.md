@@ -10,20 +10,19 @@
 - Add floating bubble elements via reusable CSS classes.
 - Provide optional JS toggle to pause motion (if time permits).
 
-## Step 3: Navigation & Hero Enhancements
-- Convert nav to glassmorphism style; reposition “Send Welcome” CTA into hero.
-- Add community stat badges/rotating snippets in hero section.
-- Integrate trending category pills below hero copy.
+## Step 3: Navigation & Hero Styling
+- Apply glassmorphism styling to nav (transparent, blurred background).
+- Refine hero typography, add soft glow, and ensure heading/subheading reflect mutual-aid tone.
+- Introduce optional subtle iconography (hands, hearts) without altering layout.
 
 ## Step 4: Request Card & Badge Styling
-- Lighten card backgrounds; add avatar/bubble icon next to usernames.
-- Update status badges with gradient rings, microcopy (e.g., “awaiting responders”).
-- Adjust completed/open ghost states for contrast.
+- Lighten card backgrounds and borders to align with new palette.
+- Refresh status badges with gradient rings, gentle shimmer, and accessible contrast.
+- (Optional) Add decorative bubble icon via CSS pseudo-element (no layout change).
 
 ## Step 5: Button & Interaction Polish
-- Enhance button gradients/shimmer (done) and ensure consistent icon usage.
-- Add small icons to CTAs (e.g., sparkle for “Share request”).
-- Review hover/focus states for accessibility.
+- Enhance button gradients/shimmer (completed) and confirm consistent styling across components.
+- Review hover/focus states for accessibility and coherence.
 
 ## Step 6: Accessibility & Motion Review
 - Verify color contrast using manual/automated tools.
