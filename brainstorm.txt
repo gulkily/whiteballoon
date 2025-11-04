@@ -1,27 +1,11 @@
-- sending thank you!!!!
+inviting someone (design)
+first visit (design)
 
-first visit so special (retention)
-- knows and understands you
-- immediately offers help (2-3 things)
-- profile picture of them
-- make username for them
-
-first screen -> thank you (pretty) 
-second screen -> how can i help
-
-invite 
-- create thank you message w/ design
-- fill out profile
-- add ways to help them
-
-viral ideas:
-- sending this to ex/past lovers
-- sending this to parents (gratitude/help)
-- sending to old friends
-- sending to current friends
-- senidng to informal business friends
-
-repeated visits (10+ visits)
+- make it easy to see map of who invited who
+- filter completed + open requests
+- filter 1st, 2nd, 3rd degree
+- mobile notifications required on
+- repeated visits (10+ visits)
 
 preselected responses!!!
 - select from list
@@ -40,14 +24,12 @@ second degree connections can start coming in (you can opt in)
 third degree connections hold off 
 
 
-
--------------------------------------------------
-
-invite required
-
-when you invite someone, you write their bio
-
-when registering a new user, they must include a help request as part of the registration form
+viral ideas:
+- sending this to ex/past lovers
+- sending this to parents (gratitude/help)
+- sending to old friends
+- sending to current friends
+- senidng to informal business friends
 
 "is anyone down to do this?"
 --> going/down/agree/etc
@@ -65,57 +47,3 @@ what types of help?
 --> petsitting, babysitting, etc.
 --> give me a ride to the airport
 --> help me get a job
-
-second and third degree connections are better than randoms for e.g. rides etc.
-
-different sections for sensitive things:
---> help me get a job
---> double dates
-
-art projects:
-
-prioritize and filter by degree (when listing)
---> allow specifying degree when submitting a post: first, 1&2, all
-
---------
-Brainstorm
-way the feed looks?
-format how u can post?
-geography + location based network as well
-
-Social network
-
-Invitations only
-
-Allow users to ask for help
-event (informal/friends)
-calendly
-personal
-academic
-professional
-
-AI classifying
-prioritization
-“social credit” score
-
-No limit on how many people you can invite
-for growth reasons
-
-Limit as to how many a day?
-anti spam??
-
-Sign up process as frictionless as possible
-similar to ThyWill
-
-Notifications
-mobile or email?
-“nudge” your friends
-
-First and second degree only by default
-
-Intro/bio is pre-filled by the person doing the inviting
-
-Calendly feature 
-
-
-
