@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 from uuid import uuid4
 
 from fastapi import HTTPException, status
@@ -14,6 +14,7 @@ from app.models import (
     AuthApproval,
     AuthRequestStatus,
     AuthenticationRequest,
+    InvitePersonalization,
     InviteToken,
     User,
     UserSession,
@@ -30,6 +31,21 @@ class RegistrationResult:
     user: User
     session: Optional[UserSession]
     auto_approved: bool
+
+
+@dataclass
+class InvitePersonalizationPayload:
+    photo_url: str
+    gratitude_note: str
+    support_message: str
+    help_examples: List[str]
+    fun_details: str
+
+
+@dataclass
+class InviteCreationResult:
+    invite: InviteToken
+    personalization: Optional[InvitePersonalization]
 
 
 def normalize_username(username: str) -> str:
@@ -148,7 +164,8 @@ def create_invite_token(
     auto_approve: bool = True,
     suggested_username: Optional[str] = None,
     suggested_bio: Optional[str] = None,
-) -> InviteToken:
+    personalization: Optional[InvitePersonalizationPayload] = None,
+) -> InviteCreationResult:
     invite = InviteToken(
         created_by_user_id=created_by.id if created_by else None,
         max_uses=max_uses,
@@ -159,9 +176,24 @@ def create_invite_token(
     if expires_in_days:
         invite.expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
     session.add(invite)
+
+    personalization_record: Optional[InvitePersonalization] = None
+    if personalization:
+        personalization_record = InvitePersonalization(
+            token=invite.token,
+            photo_url=personalization.photo_url.strip(),
+            gratitude_note=personalization.gratitude_note.strip(),
+            support_message=personalization.support_message.strip(),
+            help_examples="\n".join(item.strip() for item in personalization.help_examples if item.strip()),
+            fun_details=personalization.fun_details.strip(),
+        )
+        session.add(personalization_record)
+
     session.commit()
     session.refresh(invite)
-    return invite
+    if personalization_record:
+        session.refresh(personalization_record)
+    return InviteCreationResult(invite=invite, personalization=personalization_record)
 
 
 def create_auth_request(
@@ -200,8 +232,28 @@ def create_auth_request(
     session.add(session_record)
     session.commit()
     session.refresh(auth_request)
-    session.refresh(session_record)
+        session.refresh(session_record)
     return auth_request, session_record
+
+
+def get_invite_personalization(session: Session, token: str) -> Optional[InvitePersonalization]:
+    return session.get(InvitePersonalization, token)
+
+
+def serialize_invite_personalization(record: Optional[InvitePersonalization]) -> Optional[dict[str, object]]:
+    if not record:
+        return None
+    help_examples = []
+    if record.help_examples:
+        help_examples = [item for item in record.help_examples.splitlines() if item]
+
+    return {
+        "photo_url": record.photo_url,
+        "gratitude_note": record.gratitude_note,
+        "support_message": record.support_message,
+        "help_examples": help_examples,
+        "fun_details": record.fun_details,
+    }
 
 
 def approve_auth_request(
