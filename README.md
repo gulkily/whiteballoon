@@ -17,6 +17,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Vanilla CSS design system with reusable layout primitives and components
 - JSON API under `/api/requests` for programmatic access to the request feed
 - Invite generation returns share-ready links using the current request origin (fallback to `SITE_URL`)
+- Animated, bubbly theme with gradient background/responsive cards inspired by mutual-aid celebrations (respects `prefers-reduced-motion`)
 
 ## Quick start
 

@@ -11,6 +11,7 @@
 
 ## Stage 4: Accessibility safeguards
 - Applied transitions with reduced-motion fallbacks; ensured dark theme variants for gradients and bubbles.
+- Refreshed request cards and status badges with gradient glow and hover states that keep contrast high while celebrating community activity.
 
 ## Stage 5: QA
 - `pytest` (suite currently reports "no tests ran").
