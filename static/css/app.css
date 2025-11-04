@@ -572,8 +572,8 @@ textarea::placeholder {
 .request-meta time {
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
 }
 
 .request-meta__lead {

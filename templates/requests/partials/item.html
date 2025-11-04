@@ -16,7 +16,7 @@
         {{ item.status|title }}
       </span>
     </div>
-    <time datetime="{{ item.created_at }}" class="muted">{{ item.created_at | replace('T', ' ') | replace('Z', '') }}</time>
+    <time datetime="{{ item.created_at }}" title="{{ item.created_at }}" class="muted">{{ item.created_at | friendly_time }}</time>
   </header>
   <div>
     <p>{{ item.description or 'No additional details.' }}</p>
@@ -27,7 +27,7 @@
         <button type='submit' class='button'>Mark completed</button>
       </form>
     {% elif item.status == 'completed' %}
-      <span class="muted">Completed {{ item.completed_at | default('recently') | replace('T', ' ') | replace('Z', '') }}</span>
+      <span class="muted"{% if item.completed_at %} title="{{ item.completed_at }}"{% endif %}>Completed {{ item.completed_at | friendly_time or 'recently' }}</span>
     {% endif %}
     {% if item.contact_email %}
       <span class='muted'>Contact: {{ item.contact_email }}</span>
