@@ -11,3 +11,10 @@
 
 ### Testing
 - Manual: Pending — run through the new form, ensure validation messages appear, and confirm preview updates after invite creation/regeneration.
+
+## Stage 3 – Enhance registration welcome
+- Updated `/register` handler to fetch invite personalization data and pass it to the template alongside existing suggested inputs.
+- Expanded `templates/auth/register.html` to render the personalized welcome card (photo, gratitude, support, help list, fun details) while falling back to the legacy note when metadata is absent.
+
+### Testing
+- Manual: Pending — follow a generated invite link to confirm the welcome card appears with supplied data and that registration still works without personalization.

@@ -7,7 +7,46 @@
   <div class="card stack">
     <h1>Create account</h1>
     <p class="muted">Use a valid invite token unless you are the first person configuring the system.</p>
-    {% if suggested_bio %}
+    {% if invite_personalization %}
+      <article class="card stack invite-welcome">
+        <h2>Personal welcome</h2>
+        <div class="invite-profile">
+          {% if invite_personalization.photo_url %}
+            <img src="{{ invite_personalization.photo_url }}" alt="Welcome photo" class="invite-profile__photo" />
+          {% endif %}
+          <div class="invite-profile__body">
+            {% if invite_personalization.gratitude_note %}
+              <div>
+                <p class="muted small-text">Why you're appreciated</p>
+                <p>{{ invite_personalization.gratitude_note }}</p>
+              </div>
+            {% endif %}
+            {% if invite_personalization.support_message %}
+              <div>
+                <p class="muted small-text">How they'll support you</p>
+                <p>{{ invite_personalization.support_message }}</p>
+              </div>
+            {% endif %}
+            {% if invite_personalization.help_examples %}
+              <div>
+                <p class="muted small-text">Ways they can help</p>
+                <ul class="invite-profile__help">
+                  {% for item in invite_personalization.help_examples %}
+                    <li>{{ item }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+            {% if invite_personalization.fun_details %}
+              <div>
+                <p class="muted small-text">Fun details you share</p>
+                <p>{{ invite_personalization.fun_details }}</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </article>
+    {% elif suggested_bio %}
       <div class="alert invite-note">
         {{ suggested_bio }}
       </div>
@@ -15,7 +54,7 @@
     <form method="post" class="form-grid">
       <div class="input-group">
         <label for="username">Username</label>
-        <input id="username" name="username" type="text" value="{{ suggested_username | default('') }}" required />
+        <input id="username" name="username" type="text" value="{{ invite_personalization.suggested_username | default(suggested_username | default('')) }}" required />
       </div>
       <div class="input-group">
         <label for="contact_email">Contact email <span class="muted">(optional)</span></label>

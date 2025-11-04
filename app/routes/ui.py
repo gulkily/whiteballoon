@@ -146,18 +146,25 @@ def register_form(request: Request, db: SessionDep) -> Response:
     prefilled_token = request.query_params.get("invite_token")
     suggested_username = ""
     suggested_bio = ""
+    invite_personalization = None
 
     if prefilled_token:
         invite_record = db.get(InviteToken, prefilled_token)
         if invite_record:
             suggested_username = invite_record.suggested_username or ""
             suggested_bio = invite_record.suggested_bio or ""
+            personalization_record = auth_service.get_invite_personalization(db, invite_record.token)
+            personalization_data = auth_service.serialize_invite_personalization(personalization_record)
+            if personalization_data:
+                personalization_data["suggested_username"] = suggested_username
+                invite_personalization = personalization_data
 
     context = {
         "request": request,
         "prefilled_invite_token": prefilled_token or "",
         "suggested_username": suggested_username,
         "suggested_bio": suggested_bio,
+        "invite_personalization": invite_personalization,
     }
     return templates.TemplateResponse("auth/register.html", context)
 
