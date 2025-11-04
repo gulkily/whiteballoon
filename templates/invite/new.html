@@ -6,26 +6,53 @@
 <section class="section invite-page" data-invite-page>
   <header class="stack">
     <h1>Send Welcome</h1>
-    <p class="muted">Share a welcome link or QR code, and optionally suggest a username or short introduction for your guest.</p>
+    <p class="muted">Make the invite personal so your friend lands with a smile and knows how you plan to support them.</p>
   </header>
 
-  <form class="card stack invite-form" data-invite-form>
+  <form class="card stack invite-form" data-invite-form novalidate>
     <h2>Invite details</h2>
     <div class="stack">
       <label class="stack" for="invite-username">
-        <span>Suggested username <span class="muted">(optional)</span></span>
-        <input id="invite-username" name="suggested_username" type="text" placeholder="e.g. neighbor-ally" />
+        <span>Suggested username <span class="muted">(required)</span></span>
+        <input id="invite-username" name="suggested_username" type="text" placeholder="e.g. neighbor-ally" required maxlength="64" />
       </label>
-      <label class="stack" for="invite-bio">
-        <span>Suggested bio / note <span class="muted">(optional)</span></span>
-        <textarea id="invite-bio" name="suggested_bio" rows="3" placeholder="Add a short note of encouragement"></textarea>
+      <label class="stack" for="invite-photo">
+        <span>Photo URL <span class="muted">(required)</span></span>
+        <input id="invite-photo" name="photo_url" type="url" placeholder="https://example.com/friend.jpg" required />
+        <span class="small-text muted">Use a direct link to an image so it can display during signup.</span>
       </label>
     </div>
+
+    <div class="stack">
+      <label class="stack" for="invite-gratitude">
+        <span>Gratitude note <span class="muted">(required)</span></span>
+        <textarea id="invite-gratitude" name="gratitude_note" rows="3" placeholder="Share why you appreciate them" required maxlength="600"></textarea>
+      </label>
+      <label class="stack" for="invite-support">
+        <span>Support promise <span class="muted">(required)</span></span>
+        <textarea id="invite-support" name="support_message" rows="3" placeholder="Let them know how you'll show up" required maxlength="600"></textarea>
+      </label>
+    </div>
+
+    <div class="stack">
+      <span>Ways you can help <span class="muted">(add at least two)</span></span>
+      <div class="stack help-inputs" data-help-list>
+        <input class="help-input" name="help_examples" type="text" placeholder="e.g. Weekly grocery runs" maxlength="240" required />
+        <input class="help-input" name="help_examples" type="text" placeholder="e.g. Rides to appointments" maxlength="240" required />
+        <input class="help-input" name="help_examples" type="text" placeholder="e.g. Childcare on Fridays" maxlength="240" />
+      </div>
+    </div>
+
+    <label class="stack" for="invite-fun">
+      <span>Fun details / inside jokes <span class="muted">(required)</span></span>
+      <textarea id="invite-fun" name="fun_details" rows="3" placeholder="Add shared hobbies, memories, or jokes" required maxlength="600"></textarea>
+    </label>
+
     <div class="stack stack--row invite-actions">
       <button type="submit" class="button">Create invite</button>
       <a class="button button--ghost" href="/">Back home</a>
     </div>
-    <div class="muted" data-status></div>
+    <div class="muted" data-status role="status"></div>
   </form>
 
   <div class="invite-grid" data-invite-result hidden>
@@ -43,8 +70,17 @@
     </article>
 
     <article class="card stack invite-details">
-      <h2>Share message</h2>
-      <textarea readonly rows="6" data-share-preview></textarea>
+      <h2>Personalized welcome</h2>
+      <div class="invite-profile" data-preview-container>
+        <img data-preview-photo alt="Invitee preview" class="invite-profile__photo" />
+        <div class="invite-profile__body">
+          <p class="invite-profile__gratitude" data-preview-gratitude></p>
+          <p class="invite-profile__support" data-preview-support></p>
+          <ul class="invite-profile__help" data-preview-help></ul>
+          <p class="invite-profile__fun" data-preview-fun></p>
+        </div>
+      </div>
+      <textarea readonly rows="8" data-share-preview></textarea>
     </article>
   </div>
 </section>
@@ -59,6 +95,11 @@
   const copyBtn = resultGrid.querySelector('[data-copy-link]');
   const regenerateBtn = resultGrid.querySelector('[data-regenerate]');
   const sharePreview = resultGrid.querySelector('[data-share-preview]');
+  const previewPhoto = resultGrid.querySelector('[data-preview-photo]');
+  const previewGratitude = resultGrid.querySelector('[data-preview-gratitude]');
+  const previewSupport = resultGrid.querySelector('[data-preview-support]');
+  const previewHelp = resultGrid.querySelector('[data-preview-help]');
+  const previewFun = resultGrid.querySelector('[data-preview-fun]');
   const inviter = {{ inviter_username | tojson }};
 
   async function createInvite(extraFields = {}) {
@@ -70,14 +111,16 @@
         body: JSON.stringify(extraFields),
       });
       if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`);
+        const errorPayload = await response.json().catch(() => ({}));
+        const detail = errorPayload.detail || `Request failed: ${response.status}`;
+        throw new Error(detail);
       }
       const data = await response.json();
       populateResults(data, extraFields);
       statusEl.textContent = '';
       resultGrid.hidden = false;
     } catch (err) {
-      statusEl.textContent = 'Unable to create invite. Please try again.';
+      statusEl.textContent = err.message || 'Unable to create invite. Please try again.';
       console.error(err);
     }
   }
@@ -86,33 +129,114 @@
     linkInput.value = data.link;
     tokenEl.textContent = data.token;
     qrEl.src = data.qr_code;
-    updateSharePreview(fields, data.link);
+    const personalization = data.personalization || fields;
+    updateSharePreview(personalization, data.link);
+    updatePersonalizationPreview(personalization);
   }
 
   function updateSharePreview(fields, link) {
     const username = (fields.suggested_username || '').trim();
-    const bio = (fields.suggested_bio || '').trim();
+    const gratitude = (fields.gratitude_note || '').trim();
+    const support = (fields.support_message || '').trim();
+    const fun = (fields.fun_details || '').trim();
+    const help = Array.isArray(fields.help_examples) ? fields.help_examples : [];
+
     let message = `Hi! ${inviter} has welcomed you into WhiteBalloon.`;
     if (username) {
       message += ` Suggested username: ${username}.`;
     }
-    if (bio) {
-      message += ` Note: ${bio}`;
+    if (gratitude) {
+      message += `\\n\\nWhy you're appreciated: ${gratitude}`;
     }
-    message += `\n\nJoin here: ${link}`;
-    sharePreview.value = message;
+    if (support) {
+      message += `\\n\\nHow they'll support you: ${support}`;
+    }
+    if (help.length) {
+      message += '\\n\\nWays they can help:';
+      help.forEach((item) => {
+        message += `\\n- ${item}`;
+      });
+    }
+    if (fun) {
+      message += `\\n\\nFun things you share: ${fun}`;
+    }
+    message += `\\n\\nJoin here: ${link}`;
+    sharePreview.value = message.trim();
+  }
+
+  function updatePersonalizationPreview(fields) {
+    const photo = (fields.photo_url || '').trim();
+    const gratitude = (fields.gratitude_note || '').trim();
+    const support = (fields.support_message || '').trim();
+    const fun = (fields.fun_details || '').trim();
+    const help = Array.isArray(fields.help_examples) ? fields.help_examples : [];
+
+    if (photo) {
+      previewPhoto.src = photo;
+      previewPhoto.hidden = false;
+    } else {
+      previewPhoto.hidden = true;
+    }
+
+    previewGratitude.textContent = gratitude || 'Share why you appreciate them.';
+    previewSupport.textContent = support || 'Describe how you plan to support them.';
+
+    previewHelp.innerHTML = '';
+    if (help.length) {
+      help.forEach((item) => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        previewHelp.appendChild(li);
+      });
+    } else {
+      const li = document.createElement('li');
+      li.textContent = 'Add at least two examples — grocery runs, rides, childcare, etc.';
+      previewHelp.appendChild(li);
+    }
+
+    previewFun.textContent = fun || 'Include hobbies, memories, or inside jokes.';
+  }
+
+  function buildPayload(formData) {
+    const helpExamples = formData.getAll('help_examples').map((value) => String(value || '').trim()).filter(Boolean);
+    if (helpExamples.length < 2) {
+      statusEl.textContent = 'Add at least two ways you can help before creating the invite.';
+      return null;
+    }
+
+    const payload = {
+      suggested_username: String(formData.get('suggested_username') || '').trim(),
+      photo_url: String(formData.get('photo_url') || '').trim(),
+      gratitude_note: String(formData.get('gratitude_note') || '').trim(),
+      support_message: String(formData.get('support_message') || '').trim(),
+      fun_details: String(formData.get('fun_details') || '').trim(),
+      help_examples: helpExamples.slice(0, 3),
+    };
+
+    if (!payload.suggested_username || !payload.photo_url || !payload.gratitude_note || !payload.support_message || !payload.fun_details) {
+      statusEl.textContent = 'Please complete every required field before creating the invite.';
+      return null;
+    }
+
+    return payload;
   }
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
     const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+    const payload = buildPayload(formData);
+    if (!payload) {
+      return;
+    }
     createInvite(payload);
   });
 
   regenerateBtn.addEventListener('click', () => {
     const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+    const payload = buildPayload(formData);
+    if (!payload) {
+      return;
+    }
     createInvite(payload);
   });
 

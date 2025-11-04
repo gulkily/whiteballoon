@@ -148,6 +148,10 @@ def create_invite(
     )
     invite = invite_result.invite
     link = build_invite_link(invite.token, request)
+    personalization_data = auth_service.serialize_invite_personalization(invite_result.personalization)
+    if personalization_data is not None:
+        personalization_data["suggested_username"] = invite.suggested_username or ""
+
     return {
         "token": invite.token,
         "max_uses": invite.max_uses,
@@ -156,7 +160,7 @@ def create_invite(
         "qr_code": generate_qr_code_data_url(link),
         "suggested_username": invite.suggested_username,
         "suggested_bio": invite.suggested_bio,
-        "personalization": auth_service.serialize_invite_personalization(invite_result.personalization),
+        "personalization": personalization_data,
     }
 
 
