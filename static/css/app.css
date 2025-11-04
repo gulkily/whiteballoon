@@ -313,24 +313,55 @@ body.page {
   justify-content: center;
   border: none;
   border-radius: var(--radius-sm);
-  background: var(--color-accent);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(192, 132, 252, 0.95));
   color: #fff;
-  padding: 0.6rem 1rem;
+  padding: 0.65rem 1.2rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
   box-shadow: var(--shadow-sm);
 }
 
 .button:hover,
 .button:focus {
-  background: var(--color-accent-strong);
+  background: linear-gradient(135deg, rgba(192, 132, 252, 0.95), rgba(124, 58, 237, 0.95));
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(124, 58, 237, 0.25);
 }
 
 .button--ghost {
-  background: transparent;
-  color: var(--color-muted);
-  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-accent);
+  border: 1px solid rgba(124, 58, 237, 0.35);
+}
+
+.button::before,
+.button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.button::before {
+  background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.35), transparent 55%);
+}
+
+.button::after {
+  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.28) 0, rgba(255, 255, 255, 0.28) 4px, transparent 4px, transparent 8px);
+  mix-blend-mode: screen;
+}
+
+.button:hover::before,
+.button:hover::after,
+.button:focus-visible::before,
+.button:focus-visible::after {
+  opacity: 1;
 }
 
 .input-group {
