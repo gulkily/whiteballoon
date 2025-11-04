@@ -1,16 +1,16 @@
 # Design Refresh — Step 2 Feature Description
 
 ## Problem
-The current interface feels static and muted. We want a lively, mutual-aid atmosphere inspired by Partiful (moving background, colorful bubbles, celebratory elements) without adding new dependencies or major architectural changes.
+The current interface feels static and muted. We want a lively aesthetic—moving background, colorful bubbles, celebratory elements—while clearly communicating the warmth, trust, and solidarity of our mutual-aid community (without adding new dependencies or major architectural changes).
 
 ## User Stories
-- As a visitor, I want a vibrant, animated backdrop that suggests community motion.
-- As a member, I want interface elements (cards, buttons) to feel playful and colorful while staying readable.
+- As a visitor, I want a vibrant, animated backdrop that suggests community motion and togetherness.
+- As a member, I want interface elements (cards, buttons) to feel playful, welcoming, and clearly tied to mutual support.
 - As an admin, I want the design refresh to be maintainable and minimal (no new frameworks), relying on CSS/JS tweaks.
 
 ## Core Requirements
 - Implement a lightweight animated background (e.g., CSS gradients or small JS loop) with minimal CPU impact.
-- Introduce floating/bubbly UI accents (e.g., layered divs, subtle animations) to sections like headers and cards.
+- Introduce floating/bubbly UI accents (e.g., layered divs, subtle animations) to sections like headers and mutual-aid request cards.
 - Ensure readability and accessibility (contrast, motion controls, respect reduced-motion settings).
 - Keep changes minimal: pure CSS/vanilla JS additions; no new dependencies.
 - Update the home/dashboard templates with celebratory bubbles/confetti touches.
