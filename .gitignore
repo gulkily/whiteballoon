@@ -22,3 +22,4 @@ htmlcov/
 /data/app.db
 
 *.egg-info/
+fonts-raw/

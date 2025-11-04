@@ -19,6 +19,15 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Invite generation returns share-ready links using the current request origin (fallback to `SITE_URL`)
 - Animated, bubbly theme with gradient background/responsive cards inspired by mutual-aid celebrations (respects `prefers-reduced-motion`)
 
+## Typography
+
+WhiteBalloon ships self-hosted variable fonts to keep typography distinctive without third-party requests:
+
+- **Sora** (headings, accents) — SIL Open Font License
+- **Inter** (body copy, UI) — SIL Open Font License
+
+Both WOFF2 files live under `static/fonts/` and load via `@font-face` in `static/css/app.css`. When updating fonts, download the latest releases from the upstream projects, convert to WOFF2 if needed, and replace the existing files with the same filenames so the CSS continues to resolve them. Keep the font-weight axis between 400–700 to match the existing usage.
+
 ## Quick start
 
 Requires Python 3.10+.
