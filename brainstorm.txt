@@ -76,3 +76,46 @@ art projects:
 
 prioritize and filter by degree (when listing)
 --> allow specifying degree when submitting a post: first, 1&2, all
+
+--------
+Brainstorm
+way the feed looks?
+format how u can post?
+geography + location based network as well
+
+Social network
+
+Invitations only
+
+Allow users to ask for help
+event (informal/friends)
+calendly
+personal
+academic
+professional
+
+AI classifying
+prioritization
+“social credit” score
+
+No limit on how many people you can invite
+for growth reasons
+
+Limit as to how many a day?
+anti spam??
+
+Sign up process as frictionless as possible
+similar to ThyWill
+
+Notifications
+mobile or email?
+“nudge” your friends
+
+First and second degree only by default
+
+Intro/bio is pre-filled by the person doing the inviting
+
+Calendly feature 
+
+
+
