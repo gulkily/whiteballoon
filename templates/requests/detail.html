@@ -15,7 +15,15 @@
     </div>
     <div class="share-panel">
       <label for="request-share-url" class="small-text muted">Share this link</label>
-      <input id="request-share-url" type="text" value="{{ request.url }}" readonly />
+      <input
+        id="request-share-url"
+        type="text"
+        value="{{ request.url }}"
+        readonly
+        data-share-url
+        aria-describedby="request-share-hint"
+      />
+      <span id="request-share-hint" class="visually-hidden">Click to copy the request link</span>
     </div>
     {% set item = request_item %}
     {% set show_detail_link = False %}
@@ -24,4 +32,47 @@
     </div>
   </div>
 </section>
+<script>
+  (function () {
+    var field = document.querySelector('[data-share-url]');
+    if (!field) {
+      return;
+    }
+
+    var selectField = function () {
+      field.focus();
+      field.select();
+      try {
+        field.setSelectionRange(0, field.value.length);
+      } catch (err) {
+        /* ignore: unsupported */
+      }
+    };
+
+    var copyField = function () {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(field.value).catch(function () {
+          try {
+            document.execCommand('copy');
+          } catch (err) {
+            /* ignore copy failures */
+          }
+        });
+      } else {
+        try {
+          document.execCommand('copy');
+        } catch (err) {
+          /* ignore copy failures */
+        }
+      }
+    };
+
+    field.addEventListener('click', function () {
+      selectField();
+      copyField();
+    });
+
+    field.addEventListener('focus', selectField);
+  })();
+</script>
 {% endblock %}
