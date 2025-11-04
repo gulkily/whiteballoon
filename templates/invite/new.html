@@ -17,9 +17,9 @@
         <input id="invite-username" name="suggested_username" type="text" placeholder="e.g. neighbor-ally" required maxlength="64" />
       </label>
       <label class="stack" for="invite-photo">
-        <span>Photo URL <span class="muted">(required)</span></span>
-        <input id="invite-photo" name="photo_url" type="url" placeholder="https://example.com/friend.jpg" required />
-        <span class="small-text muted">Use a direct link to an image so it can display during signup.</span>
+        <span>Upload a photo <span class="muted">(required)</span></span>
+        <input id="invite-photo" name="photo" type="file" accept="image/*" required />
+        <span class="small-text muted">Choose a picture that will appear on their welcome screen.</span>
       </label>
     </div>
 
@@ -55,171 +55,12 @@
     <div class="muted" data-status role="status"></div>
   </form>
 
-  <div class="invite-grid" data-invite-result hidden>
-    <article class="card stack">
-      <h2>Share link</h2>
-      <div class="copy-row">
-        <input type="text" readonly data-copy-target />
-        <button type="button" class="button button--ghost" data-copy-link>Copy link</button>
-      </div>
-      <p class="muted">Invite token: <code data-invite-token></code></p>
-      <img src="" alt="Invite QR code" class="qr-preview" data-qr />
-      <div class="stack stack--row invite-actions">
-        <button type="button" class="button button--ghost" data-regenerate>Generate another</button>
-      </div>
-    </article>
-
-    <article class="card stack invite-details">
-      <h2>Personalized welcome</h2>
-      <div class="invite-profile" data-preview-container>
-        <img data-preview-photo alt="Invitee preview" class="invite-profile__photo" />
-        <div class="invite-profile__body">
-          <p class="invite-profile__gratitude" data-preview-gratitude></p>
-          <p class="invite-profile__support" data-preview-support></p>
-          <ul class="invite-profile__help" data-preview-help></ul>
-          <p class="invite-profile__fun" data-preview-fun></p>
-        </div>
-      </div>
-      <textarea readonly rows="8" data-share-preview></textarea>
-    </article>
-  </div>
 </section>
 
 <script>
   const form = document.querySelector('[data-invite-form]');
   const statusEl = form.querySelector('[data-status]');
-  const resultGrid = document.querySelector('[data-invite-result]');
-  const linkInput = resultGrid.querySelector('[data-copy-target]');
-  const tokenEl = resultGrid.querySelector('[data-invite-token]');
-  const qrEl = resultGrid.querySelector('[data-qr]');
-  const copyBtn = resultGrid.querySelector('[data-copy-link]');
-  const regenerateBtn = resultGrid.querySelector('[data-regenerate]');
-  const sharePreview = resultGrid.querySelector('[data-share-preview]');
-  const previewPhoto = resultGrid.querySelector('[data-preview-photo]');
-  const previewGratitude = resultGrid.querySelector('[data-preview-gratitude]');
-  const previewSupport = resultGrid.querySelector('[data-preview-support]');
-  const previewHelp = resultGrid.querySelector('[data-preview-help]');
-  const previewFun = resultGrid.querySelector('[data-preview-fun]');
   const inviter = {{ inviter_username | tojson }};
-
-  async function createInvite(extraFields = {}) {
-    statusEl.textContent = 'Creating invite…';
-    try {
-      const response = await fetch('/auth/invites', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(extraFields),
-      });
-      if (!response.ok) {
-        const errorPayload = await response.json().catch(() => ({}));
-        const detail = errorPayload.detail || `Request failed: ${response.status}`;
-        throw new Error(detail);
-      }
-      const data = await response.json();
-      populateResults(data, extraFields);
-      statusEl.textContent = '';
-      resultGrid.hidden = false;
-    } catch (err) {
-      statusEl.textContent = err.message || 'Unable to create invite. Please try again.';
-      console.error(err);
-    }
-  }
-
-  function populateResults(data, fields) {
-    linkInput.value = data.link;
-    tokenEl.textContent = data.token;
-    qrEl.src = data.qr_code;
-    const personalization = data.personalization || fields;
-    updateSharePreview(personalization, data.link);
-    updatePersonalizationPreview(personalization);
-  }
-
-  function updateSharePreview(fields, link) {
-    const username = (fields.suggested_username || '').trim();
-    const gratitude = (fields.gratitude_note || '').trim();
-    const support = (fields.support_message || '').trim();
-    const fun = (fields.fun_details || '').trim();
-    const help = Array.isArray(fields.help_examples) ? fields.help_examples : [];
-
-    let message = `Hi! ${inviter} has welcomed you into WhiteBalloon.`;
-    if (username) {
-      message += ` Suggested username: ${username}.`;
-    }
-    if (gratitude) {
-      message += `\\n\\nWhy you're appreciated: ${gratitude}`;
-    }
-    if (support) {
-      message += `\\n\\nHow they'll support you: ${support}`;
-    }
-    if (help.length) {
-      message += '\\n\\nWays they can help:';
-      help.forEach((item) => {
-        message += `\\n- ${item}`;
-      });
-    }
-    if (fun) {
-      message += `\\n\\nFun things you share: ${fun}`;
-    }
-    message += `\\n\\nJoin here: ${link}`;
-    sharePreview.value = message.trim();
-  }
-
-  function updatePersonalizationPreview(fields) {
-    const photo = (fields.photo_url || '').trim();
-    const gratitude = (fields.gratitude_note || '').trim();
-    const support = (fields.support_message || '').trim();
-    const fun = (fields.fun_details || '').trim();
-    const help = Array.isArray(fields.help_examples) ? fields.help_examples : [];
-
-    if (photo) {
-      previewPhoto.src = photo;
-      previewPhoto.hidden = false;
-    } else {
-      previewPhoto.hidden = true;
-    }
-
-    previewGratitude.textContent = gratitude || 'Share why you appreciate them.';
-    previewSupport.textContent = support || 'Describe how you plan to support them.';
-
-    previewHelp.innerHTML = '';
-    if (help.length) {
-      help.forEach((item) => {
-        const li = document.createElement('li');
-        li.textContent = item;
-        previewHelp.appendChild(li);
-      });
-    } else {
-      const li = document.createElement('li');
-      li.textContent = 'Add at least two examples — grocery runs, rides, childcare, etc.';
-      previewHelp.appendChild(li);
-    }
-
-    previewFun.textContent = fun || 'Include hobbies, memories, or inside jokes.';
-  }
-
-  function buildPayload(formData) {
-    const helpExamples = formData.getAll('help_examples').map((value) => String(value || '').trim()).filter(Boolean);
-    if (helpExamples.length < 2) {
-      statusEl.textContent = 'Add at least two ways you can help before creating the invite.';
-      return null;
-    }
-
-    const payload = {
-      suggested_username: String(formData.get('suggested_username') || '').trim(),
-      photo_url: String(formData.get('photo_url') || '').trim(),
-      gratitude_note: String(formData.get('gratitude_note') || '').trim(),
-      support_message: String(formData.get('support_message') || '').trim(),
-      fun_details: String(formData.get('fun_details') || '').trim(),
-      help_examples: helpExamples.slice(0, 3),
-    };
-
-    if (!payload.suggested_username || !payload.photo_url || !payload.gratitude_note || !payload.support_message || !payload.fun_details) {
-      statusEl.textContent = 'Please complete every required field before creating the invite.';
-      return null;
-    }
-
-    return payload;
-  }
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -231,27 +72,176 @@
     createInvite(payload);
   });
 
-  regenerateBtn.addEventListener('click', () => {
-    const formData = new FormData(form);
-    const payload = buildPayload(formData);
-    if (!payload) {
-      return;
-    }
-    createInvite(payload);
-  });
-
-  copyBtn.addEventListener('click', async () => {
+  async function createInvite(payload) {
+    setInlineMessage('Creating invite…');
     try {
-      await navigator.clipboard.writeText(linkInput.value);
-      copyBtn.textContent = 'Copied!';
-      copyBtn.disabled = true;
-      setTimeout(() => {
-        copyBtn.textContent = 'Copy link';
-        copyBtn.disabled = false;
-      }, 2000);
+      const response = await fetch('/auth/invites', {
+        method: 'POST',
+        body: payload.formData,
+      });
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        const detail = errorPayload.detail || `Request failed: ${response.status}`;
+        throw new Error(detail);
+      }
+      const data = await response.json();
+      showInviteSuccess(data, payload.meta);
     } catch (err) {
-      alert('Unable to copy link automatically. Please copy it manually.');
+      setInlineMessage(err.message || 'Unable to create invite. Please try again.');
+      console.error(err);
     }
-  });
+  }
+
+  function showInviteSuccess(data, fallbackFields) {
+    const personalization = data.personalization || fallbackFields;
+    const link = data.link || '';
+    const message = buildShareMessage(personalization, link);
+
+    statusEl.classList.remove('muted');
+    statusEl.innerHTML = '';
+
+    const container = document.createElement('div');
+    container.className = 'stack';
+    statusEl.appendChild(container);
+
+    const heading = document.createElement('p');
+    heading.textContent = 'Invite ready!';
+    container.appendChild(heading);
+
+    if (link) {
+      const linkRow = document.createElement('p');
+      const linkLabel = document.createElement('span');
+      linkLabel.textContent = 'Share this link: ';
+      const anchor = document.createElement('a');
+      anchor.href = link;
+      anchor.textContent = link;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener';
+      linkRow.append(linkLabel, anchor);
+      container.appendChild(linkRow);
+    }
+
+    if (message) {
+      const messageLabel = document.createElement('p');
+      messageLabel.className = 'muted small-text';
+      messageLabel.textContent = 'Suggested message';
+      container.appendChild(messageLabel);
+
+      const shareTextarea = document.createElement('textarea');
+      shareTextarea.readOnly = true;
+      shareTextarea.rows = 8;
+      shareTextarea.value = message;
+      container.appendChild(shareTextarea);
+
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'button button--ghost';
+      copyButton.textContent = 'Copy message';
+      copyButton.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(message);
+          copyButton.textContent = 'Copied!';
+          copyButton.disabled = true;
+          setTimeout(() => {
+            copyButton.textContent = 'Copy message';
+            copyButton.disabled = false;
+          }, 2000);
+        } catch (copyError) {
+          console.error(copyError);
+          alert('Unable to copy automatically. Please copy the message manually.');
+        }
+      });
+      container.appendChild(copyButton);
+    }
+
+    form.reset();
+  }
+
+  function buildShareMessage(fields, link) {
+    const username = (fields.suggested_username || '').trim();
+    const gratitude = (fields.gratitude_note || '').trim();
+    const support = (fields.support_message || '').trim();
+    const fun = (fields.fun_details || '').trim();
+    const help = Array.isArray(fields.help_examples) ? fields.help_examples : [];
+
+    let message = `Hi! ${inviter} has welcomed you into WhiteBalloon.`;
+    if (username) {
+      message += ` Suggested username: ${username}.`;
+    }
+    if (gratitude) {
+      message += `\n\nWhy you're appreciated: ${gratitude}`;
+    }
+    if (support) {
+      message += `\n\nHow they'll support you: ${support}`;
+    }
+    if (help.length) {
+      message += '\n\nWays they can help:';
+      help.forEach((item) => {
+        message += `\n- ${item}`;
+      });
+    }
+    if (fun) {
+      message += `\n\nFun things you share: ${fun}`;
+    }
+    if (link) {
+      message += `\n\nJoin here: ${link}`;
+    }
+    return message.trim();
+  }
+
+  function buildPayload(formData) {
+    clearStatus();
+    const helpExamples = formData.getAll('help_examples').map((value) => String(value || '').trim()).filter(Boolean);
+    if (helpExamples.length < 2) {
+      setInlineMessage('Add at least two ways you can help before creating the invite.');
+      return null;
+    }
+
+    const photoFile = formData.get('photo');
+    if (!(photoFile instanceof File) || photoFile.size === 0) {
+      setInlineMessage('Please upload a photo for your invitee.');
+      return null;
+    }
+
+    const suggestedUsername = String(formData.get('suggested_username') || '').trim();
+    const gratitudeNote = String(formData.get('gratitude_note') || '').trim();
+    const supportMessage = String(formData.get('support_message') || '').trim();
+    const funDetails = String(formData.get('fun_details') || '').trim();
+
+    if (!suggestedUsername || !gratitudeNote || !supportMessage || !funDetails) {
+      setInlineMessage('Please complete every required field before creating the invite.');
+      return null;
+    }
+
+    const sanitized = new FormData();
+    sanitized.append('suggested_username', suggestedUsername);
+    sanitized.append('gratitude_note', gratitudeNote);
+    sanitized.append('support_message', supportMessage);
+    sanitized.append('fun_details', funDetails);
+    helpExamples.slice(0, 3).forEach((item) => sanitized.append('help_examples', item));
+    sanitized.append('photo', photoFile);
+
+    return {
+      formData: sanitized,
+      meta: {
+        suggested_username: suggestedUsername,
+        gratitude_note: gratitudeNote,
+        support_message: supportMessage,
+        fun_details: funDetails,
+        help_examples: helpExamples.slice(0, 3),
+      },
+    };
+  }
+
+  function setInlineMessage(message) {
+    statusEl.classList.add('muted');
+    statusEl.innerHTML = '';
+    statusEl.textContent = message;
+  }
+
+  function clearStatus() {
+    statusEl.classList.add('muted');
+    statusEl.innerHTML = '';
+  }
 </script>
 {% endblock %}

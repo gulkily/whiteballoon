@@ -1,17 +1,36 @@
 from __future__ import annotations
 
 from typing import List, Optional
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
-from app.dependencies import SessionDep, apply_session_cookie, get_current_session, require_admin
+from app.dependencies import (
+    SessionDep,
+    SessionUser,
+    apply_session_cookie,
+    get_current_session,
+    require_admin,
+    require_session_user,
+)
 from app.models import AuthenticationRequest, AuthApproval, User, UserSession
 from app.modules.requests import services as request_services
 from app.services import auth_service
 from app.services.auth_service import InvitePersonalizationPayload
 from app.url_utils import build_invite_link, generate_qr_code_data_url
+from pathlib import Path
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -124,28 +143,51 @@ def logout(db: SessionDep, session_record: Optional[UserSession] = Depends(get_c
 
 
 @router.post("/invites", status_code=status.HTTP_201_CREATED)
-def create_invite(
-    payload: dict,
+async def create_invite(
     request: Request,
     db: SessionDep,
-    admin: User = Depends(require_admin),
+    session_user: SessionUser = Depends(require_session_user),
+    suggested_username: str = Form(...),
+    gratitude_note: str = Form(...),
+    support_message: str = Form(...),
+    fun_details: str = Form(...),
+    help_examples: List[str] = Form(...),
+    photo: UploadFile = File(...),
+    max_uses: int = Form(1),
+    expires_in_days: Optional[int] = Form(None),
 ) -> dict:
-    max_uses = int(payload.get("max_uses", 1))
-    expires_in_days = payload.get("expires_in_days")
-    expires = int(expires_in_days) if expires_in_days is not None else None
-    personalization = _parse_personalization_payload(payload)
-    suggested_username = personalization.pop("suggested_username")
-    suggested_bio = personalization.pop("suggested_bio")
+    try:
+        max_uses_value = max(1, int(max_uses))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="max_uses must be a number")
+
+    expires = None
+    if expires_in_days not in (None, ""):
+        try:
+            expires = int(expires_in_days)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="expires_in_days must be a number")
+
+    personalization = _parse_personalization_payload(
+        suggested_username=suggested_username,
+        gratitude_note=gratitude_note,
+        support_message=support_message,
+        fun_details=fun_details,
+        help_examples=help_examples,
+    )
+
+    photo_url = await _store_invite_photo(photo)
 
     invite_result = auth_service.create_invite_token(
         db,
-        created_by=admin,
-        max_uses=max(max_uses, 1),
+        created_by=session_user.user,
+        max_uses=max_uses_value,
         expires_in_days=expires,
-        suggested_username=suggested_username,
-        suggested_bio=suggested_bio,
-        personalization=InvitePersonalizationPayload(**personalization),
+        suggested_username=personalization.pop("suggested_username"),
+        suggested_bio=personalization.pop("suggested_bio"),
+        personalization=InvitePersonalizationPayload(photo_url=photo_url, **personalization),
     )
+
     invite = invite_result.invite
     link = build_invite_link(invite.token, request)
     personalization_data = auth_service.serialize_invite_personalization(invite_result.personalization)
@@ -164,9 +206,15 @@ def create_invite(
     }
 
 
-def _parse_personalization_payload(payload: dict) -> dict:
-    def require_text(key: str, label: str, *, max_length: int = 512) -> str:
-        value = payload.get(key)
+def _parse_personalization_payload(
+    *,
+    suggested_username: str,
+    gratitude_note: str,
+    support_message: str,
+    fun_details: str,
+    help_examples: List[str],
+) -> dict:
+    def require_text(value: object, label: str, *, max_length: int = 512) -> str:
         if not isinstance(value, str):
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{label} is required.")
         cleaned = value.strip()
@@ -179,23 +227,13 @@ def _parse_personalization_payload(payload: dict) -> dict:
             )
         return cleaned
 
-    suggested_username_raw = require_text("suggested_username", "Suggested username", max_length=64)
-    normalized_username = auth_service.normalize_username(suggested_username_raw)
+    normalized_username = auth_service.normalize_username(require_text(suggested_username, "Suggested username", max_length=64))
+    gratitude = require_text(gratitude_note, "Gratitude note", max_length=600)
+    support = require_text(support_message, "Support message", max_length=600)
+    fun = require_text(fun_details, "Fun details", max_length=600)
 
-    photo_url = require_text("photo_url", "Photo URL", max_length=512)
-    if not (photo_url.startswith("http://") or photo_url.startswith("https://")):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Photo URL must start with http:// or https://")
-
-    gratitude_note = require_text("gratitude_note", "Gratitude note", max_length=600)
-    support_message = require_text("support_message", "Support message", max_length=600)
-    fun_details = require_text("fun_details", "Fun details", max_length=600)
-
-    help_examples_raw = payload.get("help_examples")
-    if not isinstance(help_examples_raw, list):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Help examples are required.")
-
-    help_examples: List[str] = []
-    for item in help_examples_raw:
+    cleaned_examples: List[str] = []
+    for item in help_examples:
         if not isinstance(item, str):
             continue
         trimmed = item.strip()
@@ -206,39 +244,56 @@ def _parse_personalization_payload(payload: dict) -> dict:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Help examples must be 240 characters or fewer each.",
             )
-        help_examples.append(trimmed)
+        cleaned_examples.append(trimmed)
 
-    if len(help_examples) < 2:
+    if len(cleaned_examples) < 2:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Add at least two specific ways you can help.",
         )
 
-    help_examples = help_examples[:3]
+    cleaned_examples = cleaned_examples[:3]
 
     lines = [
         "A note from your inviter:",
-        gratitude_note,
+        gratitude,
         "\nHow they hope to support you:",
-        support_message,
+        support,
         "\nWays they can help:",
     ]
-    for example in help_examples:
+    for example in cleaned_examples:
         lines.append(f"• {example}")
     lines.append("\nShared joys / inside jokes:")
-    lines.append(fun_details)
+    lines.append(fun)
 
     suggested_bio = "\n".join(lines).strip()
 
     return {
         "suggested_username": normalized_username,
         "suggested_bio": suggested_bio,
-        "photo_url": photo_url,
-        "gratitude_note": gratitude_note,
-        "support_message": support_message,
-        "help_examples": help_examples,
-        "fun_details": fun_details,
+        "gratitude_note": gratitude,
+        "support_message": support,
+        "help_examples": cleaned_examples,
+        "fun_details": fun,
     }
+
+
+async def _store_invite_photo(upload: UploadFile) -> str:
+    if not upload.filename:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Photo file is required")
+
+    suffix = Path(upload.filename).suffix.lower() or ".png"
+    uploads_dir = Path("static/uploads/invite_photos")
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid4().hex}{suffix}"
+    destination = uploads_dir / filename
+
+    contents = await upload.read()
+    if not contents:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Photo file is empty")
+
+    destination.write_bytes(contents)
+    return f"/static/uploads/invite_photos/{filename}"
 
 
 @router.get("/requests/{auth_request_id}")
