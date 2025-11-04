@@ -17,9 +17,9 @@
         <input id="invite-username" name="suggested_username" type="text" placeholder="e.g. neighbor-ally" required maxlength="64" />
       </label>
       <label class="stack" for="invite-photo">
-        <span>Photo URL <span class="muted">(required)</span></span>
-        <input id="invite-photo" name="photo_url" type="url" placeholder="https://example.com/friend.jpg" required />
-        <span class="small-text muted">Use a direct link to an image so it can display during signup.</span>
+        <span>Upload a photo <span class="muted">(required)</span></span>
+        <input id="invite-photo" name="photo" type="file" accept="image/*" required />
+        <span class="small-text muted">Choose a picture that will appear on their welcome screen.</span>
       </label>
     </div>
 
@@ -104,13 +104,14 @@
   const previewFun = resultCard.querySelector('[data-preview-fun]');
   const inviter = {{ inviter_username | tojson }};
 
-  async function createInvite(extraFields = {}) {
+  let lastPayload = null;
+
+  async function createInvite(payload) {
     statusEl.textContent = 'Creating invite…';
     try {
       const response = await fetch('/auth/invites', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(extraFields),
+        body: payload.formData,
       });
       if (!response.ok) {
         const errorPayload = await response.json().catch(() => ({}));
@@ -118,7 +119,8 @@
         throw new Error(detail);
       }
       const data = await response.json();
-      populateResults(data, extraFields);
+      populateResults(data, payload.meta);
+      lastPayload = payload;
       statusEl.textContent = '';
       form.hidden = true;
       resultCard.hidden = false;
@@ -128,11 +130,11 @@
     }
   }
 
-  function populateResults(data, fields) {
+  function populateResults(data, fallbackFields) {
     linkInput.value = data.link;
     tokenEl.textContent = data.token;
     qrEl.src = data.qr_code;
-    const personalization = data.personalization || fields;
+    const personalization = data.personalization || fallbackFields;
     updateSharePreview(personalization, data.link);
     updatePersonalizationPreview(personalization);
   }
@@ -207,21 +209,40 @@
       return null;
     }
 
-    const payload = {
-      suggested_username: String(formData.get('suggested_username') || '').trim(),
-      photo_url: String(formData.get('photo_url') || '').trim(),
-      gratitude_note: String(formData.get('gratitude_note') || '').trim(),
-      support_message: String(formData.get('support_message') || '').trim(),
-      fun_details: String(formData.get('fun_details') || '').trim(),
-      help_examples: helpExamples.slice(0, 3),
-    };
+    const photoFile = formData.get('photo');
+    if (!(photoFile instanceof File) || photoFile.size === 0) {
+      statusEl.textContent = 'Please upload a photo for your invitee.';
+      return null;
+    }
 
-    if (!payload.suggested_username || !payload.photo_url || !payload.gratitude_note || !payload.support_message || !payload.fun_details) {
+    const suggestedUsername = String(formData.get('suggested_username') || '').trim();
+    const gratitudeNote = String(formData.get('gratitude_note') || '').trim();
+    const supportMessage = String(formData.get('support_message') || '').trim();
+    const funDetails = String(formData.get('fun_details') || '').trim();
+
+    if (!suggestedUsername || !gratitudeNote || !supportMessage || !funDetails) {
       statusEl.textContent = 'Please complete every required field before creating the invite.';
       return null;
     }
 
-    return payload;
+    const sanitized = new FormData();
+    sanitized.append('suggested_username', suggestedUsername);
+    sanitized.append('gratitude_note', gratitudeNote);
+    sanitized.append('support_message', supportMessage);
+    sanitized.append('fun_details', funDetails);
+    helpExamples.slice(0, 3).forEach((item) => sanitized.append('help_examples', item));
+    sanitized.append('photo', photoFile);
+
+    return {
+      formData: sanitized,
+      meta: {
+        suggested_username: suggestedUsername,
+        gratitude_note: gratitudeNote,
+        support_message: supportMessage,
+        fun_details: funDetails,
+        help_examples: helpExamples.slice(0, 3),
+      },
+    };
   }
 
   form.addEventListener('submit', (event) => {
@@ -235,12 +256,14 @@
   });
 
   regenerateBtn.addEventListener('click', () => {
-    const formData = new FormData(form);
-    const payload = buildPayload(formData);
-    if (!payload) {
+    if (!lastPayload) {
+      statusEl.textContent = 'Fill out the form first to generate an invite.';
       return;
     }
-    createInvite(payload);
+    createInvite({
+      formData: clonePayloadFormData(lastPayload),
+      meta: lastPayload.meta,
+    });
   });
 
   newInviteBtn.addEventListener('click', () => {
@@ -254,7 +277,22 @@
     previewHelp.innerHTML = '';
     previewFun.textContent = '';
     sharePreview.value = '';
+    lastPayload = null;
   });
+
+  function clonePayloadFormData(payload) {
+    const cloned = new FormData();
+    cloned.append('suggested_username', payload.meta.suggested_username);
+    cloned.append('gratitude_note', payload.meta.gratitude_note);
+    cloned.append('support_message', payload.meta.support_message);
+    cloned.append('fun_details', payload.meta.fun_details);
+    payload.meta.help_examples.forEach((item) => cloned.append('help_examples', item));
+    const originalFile = payload.formData.get('photo');
+    if (originalFile instanceof File) {
+      cloned.append('photo', originalFile);
+    }
+    return cloned;
+  }
 
   copyBtn.addEventListener('click', async () => {
     try {
