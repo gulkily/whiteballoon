@@ -40,6 +40,7 @@
   </head>
   <body class="page">
     <div class="background-gradient" aria-hidden="true"></div>
+    <div class="background-texture" aria-hidden="true"></div>
     <div class="background-bubbles" aria-hidden="true">
       <span class="bubble bubble--one"></span>
       <span class="bubble bubble--two"></span>
@@ -49,7 +50,12 @@
     </div>
     <header class="top-nav">
       <div class="container stack stack--row stack--center">
-        <a class="brand" href="/">WhiteBalloon</a>
+        <a class="brand" href="/">
+          <span class="brand-icon" aria-hidden="true">
+            {% include "partials/logo_icon.svg" %}
+          </span>
+          <span class="brand-wordmark">WhiteBalloon</span>
+        </a>
         <nav class="nav-links">
           {% block nav %}{% endblock %}
         </nav>
