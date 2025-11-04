@@ -34,11 +34,11 @@ Four-step process for feature development with optional solution assessment.
 ---
 
 ### Step 3: Development Plan
-**Content**: Atomic stages (~≤1 hour or ~≤50 lines of change each), dependencies, testing approach (even if deferred), risk assessment
+**Content**: Atomic stages (~≤1 hour or ~≤50 lines of change each), dependencies, verification approach (manual is fine), risk assessment
 
 **Format**: Numbered stages in `docs/plans/` (≤1 page)
 **Filename**: `{feature_name}_development_plan.md`
-- Each stage: goal, dependencies, changes, testing (note if postponed), risks (bullet points)
+- Each stage: goal, dependencies, changes, verification (manual smoke allowed), risks (bullet points)
 - Break work into as many small stages as needed; flag any stage that still feels too large so it can be split before implementation.
 - Database changes (conceptual, no SQL)
 - Function signatures (no implementation)
@@ -48,19 +48,18 @@ Four-step process for feature development with optional solution assessment.
 ---
 
 ### Step 4: Implementation
-**Process**: Create feature branch, implement stages in order, and plan tests even if they are delivered after initial implementation
+**Process**: Create feature branch, implement stages in order, and favor the simplest viable implementation before iterating on enhancements or automation.
 
 **Critical Requirements**:
 - **MUST create feature branch first** (e.g., `feature/request-feed-enhancements`)
 - Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work.
 - Complete stages atomically (<2 hours each)
-- Document intended tests (actual coverage may arrive in a follow-up pass)
-- Ensure manual smoke verification before proceeding to the next stage when automated tests are deferred
+- Manual smoke verification is sufficient for each stage; automated tests are optional and can follow later if needed.
 - Update the Step 4 implementation summary document after every stage and commit those updates as you go.
 - Conclude Step 4 by finalizing the implementation summary document.
 
 **Completion Criteria**:
-- All stages implemented and tested
+- All stages implemented and manually verified
 - Feature accessible through normal UI (not just direct URLs)
 - System dependencies resolved (roles, migrations, etc.)
 - Documentation updated

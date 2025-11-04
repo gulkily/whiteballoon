@@ -4,6 +4,7 @@
 {% set has_creator_link = creator_username != '' %}
 {% set creator_name = creator_username if has_creator_link else 'Community member' %}
 {% set request_icon = '✨' if item.status != 'completed' else '💫' %}
+{% set show_detail_link = show_detail_link if show_detail_link is defined else True %}
 <article class="request-item">
   <header class="request-meta">
     <div class="request-meta__lead">
@@ -22,6 +23,9 @@
     <p>{{ item.description or 'No additional details.' }}</p>
   </div>
   <footer class="actions">
+    {% if show_detail_link %}
+      <a class="button button--ghost" href="/requests/{{ item.id }}">View details</a>
+    {% endif %}
     {% if not readonly and item.status != 'completed' and can_complete %}
       <form method='post' action='/requests/{{ item.id }}/complete' data-request-complete data-request-id='{{ item.id }}' class='inline'>
         <button type='submit' class='button'>Mark completed</button>

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Request #{{ request_item.id }} · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="card stack">
+    <div class="stack stack--row stack--center">
+      <a href="/" class="button button--ghost" aria-label="Back to help requests">← Back to feed</a>
+      <h1 class="grow">Request #{{ request_item.id }}</h1>
+    </div>
+    <div class="share-panel">
+      <label for="request-share-url" class="small-text muted">Share this link</label>
+      <input id="request-share-url" type="text" value="{{ request.url }}" readonly />
+    </div>
+    {% set item = request_item %}
+    {% set show_detail_link = False %}
+    <div class="request-detail">
+      {% include "requests/partials/item.html" %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -14,6 +14,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Multi-device login approvals powered by verification codes
 - Session management via secure cookies backed by the database
 - Help-request feed with progressive enhancement for creating and completing requests
+- Per-request detail pages with shareable URLs and consistent permissions
 - Vanilla CSS design system with reusable layout primitives and components
 - JSON API under `/api/requests` for programmatic access to the request feed
 - Invite generation returns share-ready links using the current request origin (fallback to `SITE_URL`)
@@ -85,6 +86,7 @@ The CLI exposes helpers for administration:
 - Authenticated users can post new requests, optionally sharing a contact email for follow-up.
 - Half-authenticated users can submit requests which remain private (`pending` status) until approval.
 - Authors and administrators can mark requests as completed; the UI reflects updates instantly.
+- Each request has a canonical page at `/requests/<id>` that mirrors feed visibility rules and offers a shareable link.
 
 ## Project layout
 ```

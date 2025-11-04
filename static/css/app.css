@@ -666,6 +666,22 @@ a.request-creator:focus-visible {
 .actions {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.share-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.share-panel input[type="text"] {
+  flex: 1;
+  cursor: pointer;
+}
+
+.request-detail {
+  margin-top: 1rem;
 }
 
 .muted {

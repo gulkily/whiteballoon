@@ -356,6 +356,46 @@ def home(
     )
 
 
+@router.get("/requests/{request_id}")
+def request_detail(
+    request: Request,
+    request_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    viewer = session_user.user
+    session_record = session_user.session
+
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+
+    if help_request.status == "pending" and not (
+        viewer.is_admin or help_request.created_by_user_id == viewer.id
+    ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+
+    creator_usernames = request_services.load_creator_usernames(db, [help_request])
+    serialized = RequestResponse.from_model(
+        help_request,
+        created_by_username=creator_usernames.get(help_request.created_by_user_id),
+        can_complete=calculate_can_complete(help_request, viewer),
+    )
+
+    readonly = not session_record.is_fully_authenticated
+    session_role = describe_session_role(viewer, session_record)
+
+    context = {
+        "request": request,
+        "user": viewer,
+        "readonly": readonly,
+        "request_item": serialized,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": viewer.username,
+    }
+
+    return templates.TemplateResponse("requests/detail.html", context)
+
+
 @router.get("/invite/new")
 def invite_new(
     request: Request,

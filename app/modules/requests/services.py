@@ -96,3 +96,10 @@ def load_creator_usernames(session: Session, requests: Sequence[HelpRequest]) ->
     statement = select(User.id, User.username).where(User.id.in_(creator_ids))
     rows = session.exec(statement).all()
     return {user_id: username for user_id, username in rows}
+
+
+def get_request_by_id(session: Session, *, request_id: int) -> HelpRequest:
+    help_request = session.get(HelpRequest, request_id)
+    if not help_request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+    return help_request
