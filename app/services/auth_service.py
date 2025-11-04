@@ -232,7 +232,7 @@ def create_auth_request(
     session.add(session_record)
     session.commit()
     session.refresh(auth_request)
-        session.refresh(session_record)
+    session.refresh(session_record)
     return auth_request, session_record
 
 
