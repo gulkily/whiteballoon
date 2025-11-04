@@ -17,13 +17,11 @@
       <label for="request-share-url" class="small-text muted">Share this link</label>
       <input
         id="request-share-url"
-        type="text"
+        type="url"
         value="{{ request.url }}"
         readonly
         data-share-url
-        aria-describedby="request-share-hint"
       />
-      <span id="request-share-hint" class="visually-hidden">Click to copy the request link</span>
     </div>
     {% set item = request_item %}
     {% set show_detail_link = False %}
