@@ -7,33 +7,76 @@
 {% endblock %}
 
 {% block content %}
-<section class="section">
-  <div class="card stack">
-    <div class="stack stack--row stack--center">
-      <a href="/" class="button button--ghost" aria-label="Back to help requests">← Back to feed</a>
-      <h1 class="grow">Request #{{ request_item.id }}</h1>
+<section class="section request-detail-page">
+  <div class="card stack request-detail-card">
+    <div class="request-detail-header__top">
+      <a href="/" class="request-detail-back" aria-label="Back to help requests">← Back to feed</a>
+    </div>
+    <div class="request-detail-header">
+      <div class="request-detail-header__title">
+        <h1>Request #{{ request_item.id }}</h1>
+        <div class="request-detail-meta">
+          {% if request_item.created_by_username %}
+            <span class="meta-chip">
+              <span class="meta-chip__label">Requester</span>
+              <span class="meta-chip__value">@{{ request_item.created_by_username }}</span>
+            </span>
+          {% else %}
+            <span class="meta-chip">
+              <span class="meta-chip__label">Requester</span>
+              <span class="meta-chip__value">Community member</span>
+            </span>
+          {% endif %}
+          <span class="meta-chip meta-chip--status">
+            <span class="meta-chip__label">Status</span>
+            <span class="meta-chip__value">{{ request_item.status | title }}</span>
+          </span>
+          <span class="meta-chip">
+            <span class="meta-chip__label">Updated</span>
+            <time class="meta-chip__value" datetime="{{ request_item.created_at }}">{{ request_item.created_at | friendly_time }}</time>
+          </span>
+        </div>
+      </div>
     </div>
     <div class="share-panel">
       <label for="request-share-url" class="small-text muted">Share this link</label>
-      <input
-        id="request-share-url"
-        type="url"
-        value="{{ request.url }}"
-        readonly
-        data-share-url
-      />
+      <div class="share-panel__control">
+        <input
+          id="request-share-url"
+          type="url"
+          value="{{ request.url }}"
+          readonly
+          data-share-url
+        />
+        <button type="button" class="share-panel__copy" data-share-copy aria-label="Copy request link">
+          <span aria-hidden="true">Copy</span>
+        </button>
+      </div>
+      <p class="share-panel__feedback" data-share-feedback role="status" aria-live="polite"></p>
     </div>
     {% set item = request_item %}
     {% set show_detail_link = False %}
     <div class="request-detail">
       {% include "requests/partials/item.html" %}
     </div>
+    <div class="request-detail-footer">
+      <h2>Next steps</h2>
+      {% if request_item.contact_email %}
+        <p>Reach out at <a href="mailto:{{ request_item.contact_email }}">{{ request_item.contact_email }}</a> to continue the conversation.</p>
+      {% else %}
+        <p>More tracking tools are coming soon. For now, share the link above to coordinate updates.</p>
+      {% endif %}
+    </div>
   </div>
 </section>
 <script>
   (function () {
     var field = document.querySelector('[data-share-url]');
-    if (!field) {
+    var copyButton = document.querySelector('[data-share-copy]');
+    var feedback = document.querySelector('[data-share-feedback]');
+    var feedbackTimer;
+
+    if (!field || !copyButton || !feedback) {
       return;
     }
 
@@ -47,21 +90,34 @@
       }
     };
 
+    var showFeedback = function (message) {
+      feedback.textContent = message;
+      feedback.classList.add('is-visible');
+      window.clearTimeout(feedbackTimer);
+      feedbackTimer = window.setTimeout(function () {
+        feedback.classList.remove('is-visible');
+        feedback.textContent = '';
+      }, 2000);
+    };
+
+    var fallbackCopy = function () {
+      try {
+        document.execCommand('copy');
+        showFeedback('Copied!');
+      } catch (err) {
+        /* ignore */
+      }
+    };
+
     var copyField = function () {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(field.value).catch(function () {
-          try {
-            document.execCommand('copy');
-          } catch (err) {
-            /* ignore copy failures */
-          }
+        navigator.clipboard.writeText(field.value).then(function () {
+          showFeedback('Copied!');
+        }).catch(function () {
+          fallbackCopy();
         });
       } else {
-        try {
-          document.execCommand('copy');
-        } catch (err) {
-          /* ignore copy failures */
-        }
+        fallbackCopy();
       }
     };
 
@@ -71,6 +127,11 @@
     });
 
     field.addEventListener('focus', selectField);
+
+    copyButton.addEventListener('click', function () {
+      selectField();
+      copyField();
+    });
   })();
 </script>
 {% endblock %}

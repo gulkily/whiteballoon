@@ -682,19 +682,206 @@ a.request-creator:focus-visible {
   flex-wrap: wrap;
 }
 
-.share-panel {
+.request-detail-page {
+  gap: 1.5rem;
+}
+
+.request-detail-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+[data-theme="dark"] .request-detail-card {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.request-detail-header__top {
   display: flex;
+  justify-content: flex-start;
+}
+
+.request-detail-back {
+  display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(124, 58, 237, 0.12);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.request-detail-back:hover,
+.request-detail-back:focus-visible {
+  background: rgba(124, 58, 237, 0.22);
+  transform: translateY(-1px);
+}
+
+.request-detail-header {
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
-.share-panel input[type="text"] {
+.request-detail-header__title h1 {
+  margin: 0;
+  font-size: clamp(2rem, 1.8rem + 0.8vw, 2.6rem);
+}
+
+.request-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--color-text);
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.02em;
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="dark"] .meta-chip {
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.meta-chip--status {
+  background: rgba(34, 197, 94, 0.16);
+  color: var(--color-success);
+}
+
+.meta-chip__label {
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.meta-chip__value {
+  font-weight: 600;
+}
+
+.share-panel {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.share-panel__control {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.35rem 0.35rem 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="dark"] .share-panel__control {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.share-panel__control input[type="url"] {
   flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
   cursor: pointer;
+  padding: 0;
+}
+
+.share-panel__control input[type="url"]:focus {
+  outline: none;
+}
+
+.share-panel__copy {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.85rem;
+  background: rgba(124, 58, 237, 0.9);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.share-panel__copy:hover,
+.share-panel__copy:focus-visible {
+  background: rgba(124, 58, 237, 1);
+  transform: translateY(-1px);
+}
+
+.share-panel__feedback {
+  font-size: var(--font-size-xs);
+  color: var(--color-text);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.share-panel__feedback.is-visible {
+  opacity: 1;
 }
 
 .request-detail {
   margin-top: 1rem;
+}
+
+.request-detail .request-item {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.35);
+}
+
+[data-theme="light"] .request-detail .request-item {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
+}
+
+.request-detail-footer {
+  margin-top: 1.5rem;
+  padding: 1.2rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-text);
+  backdrop-filter: blur(12px);
+}
+
+[data-theme="dark"] .request-detail-footer {
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--color-text);
+}
+
+.request-detail-footer h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.3rem, 1.2rem + 0.4vw, 1.6rem);
+}
+
+.request-detail-footer p {
+  margin: 0;
+}
+
+.request-detail-footer a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.request-detail-footer a:hover,
+.request-detail-footer a:focus-visible {
+  text-decoration: underline;
 }
 
 .muted {
