@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" class="logo-icon">
+  <defs>
+    <linearGradient id="logoBalloon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#7c3aed" />
+    </linearGradient>
+    <linearGradient id="logoString" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7c3aed" />
+      <stop offset="100%" stop-color="#4c1d95" />
+    </linearGradient>
+  </defs>
+  <g fill="none" fill-rule="evenodd">
+    <path d="M32 6c9 0 16 7 16 16 0 8-6 12-11 18-2 2-4 5-5 9-.2.7-1.2.7-1.4 0-1-4-3-7-5-9-5-6-11-10-11-18 0-9 7-16 17-16z" fill="url(#logoBalloon)"/>
+    <path d="M32 40c-1 3-3 5-5 7" stroke="url(#logoString)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M24 48c2 2 4 3 8 3 4 0 6-1 8-3" stroke="url(#logoString)" stroke-width="2" stroke-linecap="round"/>
+    <path d="M32 15c3-3 9-2 9 3 0 4-5 7-9 10-4-3-9-6-9-10 0-5 6-6 9-3z" fill="#fde7ff" fill-opacity="0.6"/>
+  </g>
+</svg>
