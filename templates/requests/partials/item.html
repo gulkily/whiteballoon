@@ -3,13 +3,14 @@
 {% set creator_username = item.created_by_username | default('') %}
 {% set has_creator_link = creator_username != '' %}
 {% set creator_name = creator_username if has_creator_link else 'Community member' %}
+{% set request_icon = '✨' if item.status != 'completed' else '💫' %}
 <article class="request-item">
   <header class="request-meta">
     <div class="request-meta__lead">
       {% if has_creator_link %}
-        <a class="request-creator" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ creator_name }}</a>
+        <a class="request-creator" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ request_icon }} {{ creator_name }}</a>
       {% else %}
-        <span class="request-creator" title="{{ creator_name }}">{{ creator_name }}</span>
+        <span class="request-creator" title="{{ creator_name }}">{{ request_icon }} {{ creator_name }}</span>
       {% endif %}
       <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">
         {{ item.status|title }}
