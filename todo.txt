@@ -8,7 +8,7 @@ fixed:
 - friendlier response for "no invite code"
 - you can now generate invite code on the ui
 - display who made the request
+- invite codes should be shorter
 
 Open items:
-- invite codes should be shorter
 - Share your first request (optional)
