@@ -171,6 +171,7 @@ body.page {
   color: var(--color-text);
   text-decoration: none;
   letter-spacing: 0.02em;
+  text-shadow: 0 2px 8px rgba(15, 23, 42, 0.15);
 }
 
 .nav-links {
@@ -554,6 +555,33 @@ form.inline {
   margin-block: 2rem;
   display: grid;
   gap: 1rem;
+}
+
+.section > .card:first-child {
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.16), rgba(96, 165, 250, 0.12));
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 24px 45px rgba(124, 58, 237, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.section > .card:first-child::before {
+  content: "";
+  position: absolute;
+  inset: -40% 60% 40% -40%;
+  background: radial-gradient(circle at 0 50%, rgba(255, 255, 255, 0.35), transparent 60%);
+  opacity: 0.6;
+}
+
+.section > .card:first-child h1 {
+  font-size: 2rem;
+  color: var(--color-text);
+  margin-bottom: 0.25rem;
+  text-shadow: 0 6px 18px rgba(124, 58, 237, 0.2);
+}
+
+.section > .card:first-child p {
+  max-width: 520px;
 }
 
 .alert {
