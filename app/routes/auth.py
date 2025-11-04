@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
@@ -10,6 +10,7 @@ from app.dependencies import SessionDep, apply_session_cookie, get_current_sessi
 from app.models import AuthenticationRequest, AuthApproval, User, UserSession
 from app.modules.requests import services as request_services
 from app.services import auth_service
+from app.services.auth_service import InvitePersonalizationPayload
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -132,18 +133,25 @@ def create_invite(
     max_uses = int(payload.get("max_uses", 1))
     expires_in_days = payload.get("expires_in_days")
     expires = int(expires_in_days) if expires_in_days is not None else None
-    suggested_username = payload.get("suggested_username")
-    suggested_bio = payload.get("suggested_bio")
+    personalization = _parse_personalization_payload(payload)
+    suggested_username = personalization.pop("suggested_username")
+    suggested_bio = personalization.pop("suggested_bio")
 
-    invite = auth_service.create_invite_token(
+    invite_result = auth_service.create_invite_token(
         db,
         created_by=admin,
         max_uses=max(max_uses, 1),
         expires_in_days=expires,
         suggested_username=suggested_username,
         suggested_bio=suggested_bio,
+        personalization=InvitePersonalizationPayload(**personalization),
     )
+    invite = invite_result.invite
     link = build_invite_link(invite.token, request)
+    personalization_data = auth_service.serialize_invite_personalization(invite_result.personalization)
+    if personalization_data is not None:
+        personalization_data["suggested_username"] = invite.suggested_username or ""
+
     return {
         "token": invite.token,
         "max_uses": invite.max_uses,
@@ -152,6 +160,84 @@ def create_invite(
         "qr_code": generate_qr_code_data_url(link),
         "suggested_username": invite.suggested_username,
         "suggested_bio": invite.suggested_bio,
+        "personalization": personalization_data,
+    }
+
+
+def _parse_personalization_payload(payload: dict) -> dict:
+    def require_text(key: str, label: str, *, max_length: int = 512) -> str:
+        value = payload.get(key)
+        if not isinstance(value, str):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{label} is required.")
+        cleaned = value.strip()
+        if not cleaned:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"{label} is required.")
+        if len(cleaned) > max_length:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"{label} must be {max_length} characters or fewer.",
+            )
+        return cleaned
+
+    suggested_username_raw = require_text("suggested_username", "Suggested username", max_length=64)
+    normalized_username = auth_service.normalize_username(suggested_username_raw)
+
+    photo_url = require_text("photo_url", "Photo URL", max_length=512)
+    if not (photo_url.startswith("http://") or photo_url.startswith("https://")):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Photo URL must start with http:// or https://")
+
+    gratitude_note = require_text("gratitude_note", "Gratitude note", max_length=600)
+    support_message = require_text("support_message", "Support message", max_length=600)
+    fun_details = require_text("fun_details", "Fun details", max_length=600)
+
+    help_examples_raw = payload.get("help_examples")
+    if not isinstance(help_examples_raw, list):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Help examples are required.")
+
+    help_examples: List[str] = []
+    for item in help_examples_raw:
+        if not isinstance(item, str):
+            continue
+        trimmed = item.strip()
+        if not trimmed:
+            continue
+        if len(trimmed) > 240:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Help examples must be 240 characters or fewer each.",
+            )
+        help_examples.append(trimmed)
+
+    if len(help_examples) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Add at least two specific ways you can help.",
+        )
+
+    help_examples = help_examples[:3]
+
+    lines = [
+        "A note from your inviter:",
+        gratitude_note,
+        "\nHow they hope to support you:",
+        support_message,
+        "\nWays they can help:",
+    ]
+    for example in help_examples:
+        lines.append(f"• {example}")
+    lines.append("\nShared joys / inside jokes:")
+    lines.append(fun_details)
+
+    suggested_bio = "\n".join(lines).strip()
+
+    return {
+        "suggested_username": normalized_username,
+        "suggested_bio": suggested_bio,
+        "photo_url": photo_url,
+        "gratitude_note": gratitude_note,
+        "support_message": support_message,
+        "help_examples": help_examples,
+        "fun_details": fun_details,
     }
 
 

@@ -69,6 +69,19 @@ class InviteToken(SQLModel, table=True):
 
 
 
+class InvitePersonalization(SQLModel, table=True):
+    __tablename__ = "invite_personalizations"
+
+    token: str = Field(primary_key=True, foreign_key="invite_tokens.token")
+    photo_url: Optional[str] = Field(default=None, max_length=512)
+    gratitude_note: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    support_message: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    help_examples: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    fun_details: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
+
 class UserAttribute(SQLModel, table=True):
     __tablename__ = "user_attributes"
     __table_args__ = (UniqueConstraint("user_id", "key", name="ux_user_attributes_user_key"),)

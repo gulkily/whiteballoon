@@ -822,6 +822,14 @@ form.inline {
   gap: 1.5rem;
 }
 
+.help-inputs {
+  gap: 0.5rem;
+}
+
+.help-input {
+  width: 100%;
+}
+
 @media (min-width: 768px) {
   .invite-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -849,9 +857,35 @@ form.inline {
   justify-content: space-between;
 }
 
-.invite-details .share-preview {
+.invite-profile {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.invite-profile__photo {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  background: var(--color-surface);
+}
+
+.invite-profile__body {
   display: grid;
   gap: 0.5rem;
+}
+
+.invite-profile__help {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.invite-profile__help li {
+  list-style: disc;
 }
 
 .invite-note {
