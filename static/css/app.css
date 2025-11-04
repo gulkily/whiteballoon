@@ -576,6 +576,19 @@ textarea::placeholder {
   text-transform: none;
 }
 
+.request-meta__timestamp-link {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  text-decoration: none;
+}
+
+.request-meta__timestamp-link:hover,
+.request-meta__timestamp-link:focus-visible {
+  text-decoration: underline;
+  color: var(--color-accent);
+}
+
 .request-meta__lead {
   display: flex;
   align-items: center;

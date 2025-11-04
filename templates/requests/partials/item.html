@@ -17,15 +17,18 @@
         {{ item.status|title }}
       </span>
     </div>
-    <time datetime="{{ item.created_at }}" title="{{ item.created_at }}" class="muted">{{ item.created_at | friendly_time }}</time>
+    {% if show_detail_link %}
+      <a class="request-meta__timestamp-link" href="/requests/{{ item.id }}" title="View request details">
+        <time datetime="{{ item.created_at }}" title="{{ item.created_at }}" class="muted">{{ item.created_at | friendly_time }}</time>
+      </a>
+    {% else %}
+      <time datetime="{{ item.created_at }}" title="{{ item.created_at }}" class="muted">{{ item.created_at | friendly_time }}</time>
+    {% endif %}
   </header>
   <div>
     <p>{{ item.description or 'No additional details.' }}</p>
   </div>
   <footer class="actions">
-    {% if show_detail_link %}
-      <a class="button button--ghost" href="/requests/{{ item.id }}">View details</a>
-    {% endif %}
     {% if not readonly and item.status != 'completed' and can_complete %}
       <form method='post' action='/requests/{{ item.id }}/complete' data-request-complete data-request-id='{{ item.id }}' class='inline'>
         <button type='submit' class='button'>Mark completed</button>
