@@ -58,11 +58,25 @@
           </span>
           <span class="brand-wordmark">WhiteBalloon</span>
         </a>
-        <nav class="nav-links">
+        <nav class="nav-links" data-nav-links>
           {% block nav %}{% endblock %}
         </nav>
-        <div class="theme-toggle-wrapper">
-          {% include "partials/theme_toggle.html" %}
+        <div class="nav-actions">
+          <button class="nav-mobile-toggle" type="button" data-nav-mobile-toggle aria-expanded="false" aria-controls="nav-mobile-panel" hidden>
+            <span class="nav-mobile-toggle__label">Menu</span>
+            <span class="nav-mobile-toggle__icon" aria-hidden="true">☰</span>
+          </button>
+          <div class="nav-inline-actions" data-nav-inline-actions>
+            <div class="theme-toggle-wrapper">
+              {% include "partials/theme_toggle.html" %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-mobile-panel" id="nav-mobile-panel" hidden data-nav-mobile-panel>
+        <div class="nav-mobile-panel__inner">
+          <div class="nav-mobile-panel__account" data-nav-mobile-account></div>
+          <div class="nav-mobile-panel__theme" data-nav-mobile-theme></div>
         </div>
       </div>
     </header>
@@ -70,6 +84,7 @@
       {% block content %}{% endblock %}
     </main>
     <script src="/static/js/theme-toggle.js" defer></script>
+    <script src="/static/js/nav.js" defer></script>
     <script src="/static/js/request-feed.js" defer></script>
   </body>
 </html>
