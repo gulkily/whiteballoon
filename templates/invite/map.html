@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% macro render_node(node, degree_labels) -%}
+  <li class="invite-map__branch" data-degree="{{ node.degree }}">
+    <div class="invite-map__node">
+      <span class="invite-map__name">@{{ node.username }}</span>
+      <span class="invite-map__degree muted small-text">{{ degree_labels.get(node.degree, node.degree ~ '° degree invite') }}</span>
+    </div>
+    {% if node.children %}
+      <ul class="invite-map__tree">
+        {% for child in node.children %}
+          {{ render_node(child, degree_labels) }}
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </li>
+{%- endmacro %}
+
+{% block title %}Invite Map · WhiteBalloon{% endblock %}
+
+{% block content %}
+{% set degree_labels = {0: "You", 1: "1st-degree invite", 2: "2nd-degree invite", 3: "3rd-degree invite"} %}
+<section class="section">
+  <header class="stack">
+    <h1>Invite map</h1>
+    <p class="muted">Explore how your welcome chain grows across first, second, and third degrees.</p>
+  </header>
+
+  {% if graph %}
+    <div class="card invite-map" data-invite-map>
+      <ul class="invite-map__tree invite-map__tree--root">
+        {{ render_node(graph, degree_labels) }}
+      </ul>
+    </div>
+  {% else %}
+    <div class="card stack invite-map__empty">
+      <p class="muted">We couldn’t find any invite activity yet.</p>
+      <a class="button button--ghost" href="/invite/new">Send a welcome</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

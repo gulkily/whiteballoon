@@ -19,7 +19,7 @@ from app.dependencies import (
 from app.models import AuthenticationRequest, InviteToken, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
-from app.services import auth_service
+from app.services import auth_service, invite_graph_service
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 
 router = APIRouter(tags=["ui"])
@@ -399,6 +399,7 @@ def request_detail(
 @router.get("/invite/new")
 def invite_new(
     request: Request,
+    db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
 ) -> Response:
     context = {
@@ -406,6 +407,30 @@ def invite_new(
         "inviter_username": session_user.user.username,
     }
     return templates.TemplateResponse("invite/new.html", context)
+
+
+@router.get("/invite/map")
+def invite_map(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    user = session_user.user
+    graph = invite_graph_service.build_invite_graph(
+        db,
+        root_user_id=user.id,
+        max_degree=invite_graph_service.MAX_INVITE_DEGREE,
+    )
+
+    context = {
+        "request": request,
+        "session": session_user.session,
+        "session_role": describe_session_role(user, session_user.session),
+        "session_username": user.username,
+        "user": user,
+        "graph": graph,
+    }
+    return templates.TemplateResponse("invite/map.html", context)
 
 
 @router.get("/profile")
