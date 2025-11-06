@@ -19,7 +19,7 @@ from app.dependencies import (
 from app.models import AuthenticationRequest, InviteToken, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
-from app.services import auth_service, invite_graph_service
+from app.services import auth_service, invite_graph_service, user_attribute_service
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 
 router = APIRouter(tags=["ui"])
@@ -327,6 +327,8 @@ def home(
             viewer=user,
         )
 
+        session_avatar_url = _get_account_avatar(db, user.id)
+
         context = {
             "request": request,
             "user": user,
@@ -338,9 +340,11 @@ def home(
             "session": session_record,
             "session_role": session_role,
             "session_username": user.username,
+            "session_avatar_url": session_avatar_url,
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
+    session_avatar_url = _get_account_avatar(db, user.id)
     public_requests = _serialize_requests(db, request_services.list_requests(db), viewer=user)
     return templates.TemplateResponse(
         "requests/index.html",
@@ -352,6 +356,7 @@ def home(
             "session": session_record,
             "session_role": session_role,
             "session_username": user.username,
+            "session_avatar_url": session_avatar_url,
         },
     )
 
@@ -391,6 +396,7 @@ def request_detail(
         "session": session_record,
         "session_role": session_role,
         "session_username": viewer.username,
+        "session_avatar_url": session_user.avatar_url,
     }
 
     return templates.TemplateResponse("requests/detail.html", context)
@@ -405,6 +411,10 @@ def invite_new(
     context = {
         "request": request,
         "inviter_username": session_user.user.username,
+        "session": session_user.session,
+        "session_role": describe_session_role(session_user.user, session_user.session),
+        "session_username": session_user.user.username,
+        "session_avatar_url": session_user.avatar_url,
     }
     return templates.TemplateResponse("invite/new.html", context)
 
@@ -472,6 +482,8 @@ def profile(
         },
     ]
 
+    session_avatar_url = session_user.avatar_url
+
     context = {
         "request": request,
         "user": user,
@@ -482,10 +494,12 @@ def profile(
             "username": user.username,
             "contact_email": user.contact_email,
             "created_at": user.created_at,
+            "avatar_url": session_avatar_url,
         },
         "privileges": privilege_descriptors,
         "is_admin": user.is_admin,
         "is_half_authenticated": is_half_authenticated,
+        "session_avatar_url": session_avatar_url,
     }
     return templates.TemplateResponse("profile/index.html", context)
 
@@ -508,10 +522,17 @@ def profile_view(
     viewer_session = session_user.session
     viewer_session_role = describe_session_role(viewer, viewer_session)
 
+    avatar_url = user_attribute_service.get_attribute(
+        db,
+        user_id=person.id,
+        key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
+    )
+
     identity = {
         "username": person.username,
         "contact_email": person.contact_email if can_view_contact else None,
         "created_at": person.created_at,
+        "avatar_url": avatar_url,
     }
 
     context = {
@@ -526,6 +547,7 @@ def profile_view(
         "session": viewer_session,
         "session_role": viewer_session_role,
         "session_username": viewer.username,
+        "session_avatar_url": session_user.avatar_url,
     }
     return templates.TemplateResponse("profile/show.html", context)
 
@@ -559,3 +581,9 @@ def complete_request(
 ):
     request_services.mark_completed(db, request_id=request_id, user=user)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+def _get_account_avatar(db: Session, user_id: int) -> Optional[str]:
+    return user_attribute_service.get_attribute(
+        db,
+        user_id=user_id,
+        key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
+    )

@@ -9,18 +9,27 @@
 {% block content %}
 {% set session = session if session is defined else None %}
 <section class="section stack">
-  <header class="stack">
-    <h1>Your profile</h1>
-    <p class="muted">Review your account details and current access levels.</p>
-    <div class="account-status" aria-label="Account badges">
-      {% if is_admin %}
-        <span class="account-status__tag account-status__tag--admin">Administrator</span>
-      {% endif %}
-      {% if is_half_authenticated %}
-        <span class="account-status__tag account-status__tag--half">Verification pending</span>
+  <header class="profile-header">
+    <div class="profile-avatar" aria-hidden="true">
+      {% if identity.avatar_url %}
+        <img src="{{ identity.avatar_url }}" alt="" />
       {% else %}
-        <span class="account-status__tag account-status__tag--ok">Fully authenticated</span>
+        <span class="profile-avatar__initials">{{ identity.username[:2] | upper }}</span>
       {% endif %}
+    </div>
+    <div class="profile-header__body">
+      <h1>Your profile</h1>
+      <p class="muted">Review your account details and current access levels.</p>
+      <div class="account-status" aria-label="Account badges">
+        {% if is_admin %}
+          <span class="account-status__tag account-status__tag--admin">Administrator</span>
+        {% endif %}
+        {% if is_half_authenticated %}
+          <span class="account-status__tag account-status__tag--half">Verification pending</span>
+        {% else %}
+          <span class="account-status__tag account-status__tag--ok">Fully authenticated</span>
+        {% endif %}
+      </div>
     </div>
   </header>
 

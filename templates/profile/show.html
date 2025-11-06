@@ -8,13 +8,22 @@
 
 {% block content %}
 <section class="section stack">
-  <header class="stack">
-    <h1>{{ person.username }}</h1>
-    {% if is_self %}
-      <p class="muted">This is your profile as seen by other members.</p>
-    {% else %}
-      <p class="muted">Community profile visible to members with sign-in access.</p>
-    {% endif %}
+  <header class="profile-header">
+    <div class="profile-avatar" aria-hidden="true">
+      {% if identity.avatar_url %}
+        <img src="{{ identity.avatar_url }}" alt="" />
+      {% else %}
+        <span class="profile-avatar__initials">{{ identity.username[:2] | upper }}</span>
+      {% endif %}
+    </div>
+    <div class="profile-header__body">
+      <h1>{{ person.username }}</h1>
+      {% if is_self %}
+        <p class="muted">This is your profile as seen by other members.</p>
+      {% else %}
+        <p class="muted">Community profile visible to members with sign-in access.</p>
+      {% endif %}
+    </div>
   </header>
 
   <article class="card stack">

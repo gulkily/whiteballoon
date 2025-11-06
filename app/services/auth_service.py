@@ -121,6 +121,16 @@ def create_user_with_invite(
             actor_user_id=inviter_id,
         )
 
+        personalization_record = get_invite_personalization(session, token_record.token)
+        if personalization_record and personalization_record.photo_url:
+            user_attribute_service.set_attribute(
+                session,
+                user_id=new_user.id,
+                key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
+                value=personalization_record.photo_url.strip() or None,
+                actor_user_id=inviter_id,
+            )
+
         if token_record.auto_approve:
             auto_approved = True
     else:

@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 from app.config import get_settings
 from app.db import get_session
 from app.models import User, UserSession
+from app.services import user_attribute_service
 from app.services.auth_service import SESSION_COOKIE_NAME, touch_session
 from starlette.responses import Response
 
@@ -43,6 +44,15 @@ def get_current_session(
 class SessionUser:
     user: User
     session: UserSession
+    avatar_url: Optional[str]
+
+
+def _get_profile_avatar_url(db: Session, user_id: int) -> Optional[str]:
+    return user_attribute_service.get_attribute(
+        db,
+        user_id=user_id,
+        key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
+    )
 
 
 def require_session_user(
@@ -56,7 +66,8 @@ def require_session_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
-    return SessionUser(user=user, session=session_record)
+    avatar_url = _get_profile_avatar_url(db, user.id)
+    return SessionUser(user=user, session=session_record, avatar_url=avatar_url)
 
 
 def require_authenticated_user(db: SessionDep, session_record: Annotated[Optional[UserSession], Depends(get_current_session)]) -> User:
