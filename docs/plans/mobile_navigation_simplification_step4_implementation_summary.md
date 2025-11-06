@@ -7,7 +7,7 @@
 
 ## Stage 2: Drawer / Expanded Panel
 - Implemented `static/js/nav.js` to manage toggle state, trap escape, and close on outside click.
-- Mobile panel now surfaces account info + sign-out while the header stays minimal.
+- Mobile panel now surfaces account info + sign-out while the header stays minimal, with sectioned cards and an icon-only theme toggle.
 - Status: completed; keyboard navigation requires local smoke test.
 
 ## Stage 3: Typography Token Adjustments

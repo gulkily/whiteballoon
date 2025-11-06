@@ -18,6 +18,11 @@
   var originalLinksNext = navLinks.nextSibling;
   var originalActionsParent = navInlineActions ? navInlineActions.parentNode : null;
   var originalActionsNext = navInlineActions ? navInlineActions.nextSibling : null;
+  var themeToggle = navInlineActions ? navInlineActions.querySelector('[data-theme-toggle]') : null;
+  var originalLabel;
+  if (themeToggle) {
+    originalLabel = themeToggle.querySelector('[data-theme-toggle-label]');
+  }
 
   var isMobile = false;
 
@@ -70,6 +75,9 @@
     if (themeSlot) {
       if (navInlineActions) {
         themeSlot.appendChild(navInlineActions);
+        if (originalLabel) {
+          originalLabel.setAttribute('hidden', '');
+        }
       } else {
         themeSlot.textContent = '';
       }
@@ -100,8 +108,14 @@
       } else {
         originalActionsParent.appendChild(navInlineActions);
       }
+      if (originalLabel) {
+        originalLabel.removeAttribute('hidden');
+      }
     } else if (navInlineActions) {
       navActions.appendChild(navInlineActions);
+      if (originalLabel) {
+        originalLabel.removeAttribute('hidden');
+      }
     }
   };
 
