@@ -5,25 +5,34 @@
 {% set creator_name = creator_username if has_creator_link else 'Community member' %}
 {% set request_icon = '✨' if item.status != 'completed' else '💫' %}
 {% set show_detail_link = show_detail_link if show_detail_link is defined else True %}
+{% set requester_value = request_icon ~ ' ' ~ (creator_username if has_creator_link else creator_name) %}
 <article class="request-item">
   <header class="request-meta">
-    <div class="request-meta__lead">
-      {% if has_creator_link %}
-        <a class="request-creator" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ request_icon }} {{ creator_name }}</a>
-      {% else %}
-        <span class="request-creator" title="{{ creator_name }}">{{ request_icon }} {{ creator_name }}</span>
-      {% endif %}
-      <span class="badge{% if item.status == 'completed' %} badge--completed{% endif %}">
-        {{ item.status|title }}
+    <div class="request-meta__chips">
+      <span class="meta-chip meta-chip--requester">
+        <span class="meta-chip__label">Requester</span>
+        {% if has_creator_link %}
+          <a class="meta-chip__value meta-chip__value--link" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ requester_value }}</a>
+        {% else %}
+          <span class="meta-chip__value">{{ requester_value }}</span>
+        {% endif %}
       </span>
+      <span class="meta-chip meta-chip--status">
+        <span class="meta-chip__label">Status</span>
+        <span class="meta-chip__value">{{ item.status|title }}</span>
+      </span>
+      {% if show_detail_link %}
+        <a class="meta-chip meta-chip--timestamp" href="/requests/{{ item.id }}" title="View request details">
+          <span class="meta-chip__label">Updated</span>
+          <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+        </a>
+      {% else %}
+        <span class="meta-chip meta-chip--timestamp">
+          <span class="meta-chip__label">Updated</span>
+          <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+        </span>
+      {% endif %}
     </div>
-    {% if show_detail_link %}
-      <a class="request-meta__timestamp-link" href="/requests/{{ item.id }}" title="View request details">
-        <time datetime="{{ item.created_at }}" title="{{ item.created_at }}" class="muted">{{ item.created_at | friendly_time }}</time>
-      </a>
-    {% else %}
-      <time datetime="{{ item.created_at }}" title="{{ item.created_at }}" class="muted">{{ item.created_at | friendly_time }}</time>
-    {% endif %}
   </header>
   <div>
     <p>{{ item.description or 'No additional details.' }}</p>

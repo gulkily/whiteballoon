@@ -161,15 +161,29 @@
   function renderRequestItem(item) {
     const createdAt = formatDate(item.created_at);
     const completedAt = item.completed_at ? formatDate(item.completed_at) : null;
-    const badgeClass = item.status === 'completed' ? 'badge badge--completed' : 'badge';
     const canComplete = Boolean(item.can_complete);
     const creatorSlug = item.created_by_username || '';
     const creatorName = escapeHtml(creatorSlug || 'Community member');
     const creatorHref = creatorSlug ? `/people/${encodeURIComponent(creatorSlug)}` : '';
-    const creatorTitle = creatorSlug ? `View ${creatorSlug}'s profile` : creatorSlug || 'Community member';
-    const creatorLabel = creatorSlug
-      ? `<a class="request-creator" href="${escapeHtml(creatorHref)}" title="${escapeHtml(creatorTitle)}">${creatorName}</a>`
-      : `<span class="request-creator" title="${creatorName}">${creatorName}</span>`;
+    const creatorTitle = creatorSlug ? `View ${creatorSlug}'s profile` : 'Community member';
+    const requestIcon = item.status === 'completed' ? '💫' : '✨';
+    const requesterValue = creatorSlug ? `${requestIcon} @${creatorSlug}` : `${requestIcon} Community member`;
+
+    const requesterChip = creatorSlug
+      ? `<span class="meta-chip meta-chip--requester"><span class="meta-chip__label">Requester</span><a class="meta-chip__value meta-chip__value--link" href="${escapeHtml(
+          creatorHref,
+        )}" title="${escapeHtml(creatorTitle)}">${escapeHtml(requesterValue)}</a></span>`
+      : `<span class="meta-chip meta-chip--requester"><span class="meta-chip__label">Requester</span><span class="meta-chip__value">${escapeHtml(
+          requesterValue,
+        )}</span></span>`;
+
+    const statusChip = `<span class="meta-chip meta-chip--status"><span class="meta-chip__label">Status</span><span class="meta-chip__value">${capitalize(
+      item.status,
+    )}</span></span>`;
+
+    const timestampChip = `<a class="meta-chip meta-chip--timestamp" href="/requests/${item.id}" title="View request details"><span class="meta-chip__label">Updated</span><time class="meta-chip__value" datetime="${escapeHtml(
+      item.created_at,
+    )}">${createdAt}</time></a>`;
 
     let completeSection = '';
     if (item.status === 'completed') {
@@ -182,7 +196,7 @@
       ? `<span class="muted">Contact: ${escapeHtml(item.contact_email)}</span>`
       : '';
 
-    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__lead">\n      ${creatorLabel}\n      <span class="${badgeClass}">${capitalize(item.status)}</span>\n    </div>\n    <time datetime="${escapeHtml(item.created_at)}" class="muted">${createdAt}</time>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
+    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__chips">\n      ${requesterChip}\n      ${statusChip}\n      ${timestampChip}\n    </div>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
   }
 
   function showForm(card) {
