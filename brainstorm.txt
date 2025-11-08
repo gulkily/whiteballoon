@@ -1,4 +1,6 @@
 information distribution (feed)
+- scraping information on mutual aid networks
+- all resources related to food, housing, funding, etc
 - sharing resources and mutual aid
 - highly priority information only
 - very customized to your needs
