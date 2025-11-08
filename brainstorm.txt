@@ -1,41 +1,15 @@
-inviting someone (design)
-first visit (design)
+information distribution (feed)
+- sharing resources and mutual aid
+- highly priority information only
+- very customized to your needs
+- ONLY information that is sent by your close community
+- ONLY information that offers help/resources for your need
 
-- make it easy to see map of who invited who
-- filter completed + open requests
-- filter 1st, 2nd, 3rd degree
-- mobile notifications required on
-- repeated visits (10+ visits)
-
-preselected responses!!!
+ways to ask for help
+- preselected responses!!!
 - select from list
-
-before u can write freeform responses
-- eliminated trolls (200 times)
-
-you can talk to the developer 
-
-invite only
-not everyone can access the platform
-ui for "not able to access" (kind)
-
-first degree connections only for first 25 requests
-second degree connections can start coming in (you can opt in)
-third degree connections hold off 
-
-
-viral ideas:
-- sending this to ex/past lovers
-- sending this to parents (gratitude/help)
-- sending to old friends
-- sending to current friends
-- senidng to informal business friends
-
-"is anyone down to do this?"
---> going/down/agree/etc
---> input date and time
-
-what types of help?
+- in a way that is highly assisted
+- especially if u can be directed to the right thing
 --> join me for something? 
 --> project-based stuff
 --> looking for a referral e.g. photographer, mechanic, services, etc.
@@ -47,3 +21,34 @@ what types of help?
 --> petsitting, babysitting, etc.
 --> give me a ride to the airport
 --> help me get a job
+"is anyone down to do this?"
+--> going/down/agree/etc
+--> input date and time
+before u can write freeform responses
+- eliminated trolls (200 times)
+
+funding models
+- ways to fund your ideas
+- ways to get warm intros to funds
+- funding our help initiatives
+- funding the development of this
+
+invite tree & invite form 
+- very clear who invited who
+- very clear who are your 2nd degree connects
+- make it easy to see map of who invited who
+- filter completed + open requests
+- filter 1st, 2nd, 3rd degree
+- mobile notifications required on
+- repeated visits (10+ visits)
+
+reference letters & recommendations (quality control)
+- invite only
+- not everyone can access the platform
+- ui for "not able to access" (kind)
+- must be filled out in order to join
+- 1 click u can send to someone
+- integrate with applications
+- vouch for someone
+- high barrier to entry
+- highly vetted communities only
