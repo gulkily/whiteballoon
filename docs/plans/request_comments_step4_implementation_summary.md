@@ -5,7 +5,8 @@
 - Verification: `pytest tests/models/test_request_comment.py`
 
 ## Stage 2 – Comment retrieval & serialization
-- Pending
+- Changes: Added `app/services/request_comment_service.py` with helpers to list, create, and soft-delete comments plus validation constants; exposed the service via `app/services/__init__.py`. Added unit tests covering add/list/validation behavior.
+- Verification: `pytest tests/services/test_request_comment_service.py`
 
 ## Stage 3 – Posting endpoint + validation
 - Pending
