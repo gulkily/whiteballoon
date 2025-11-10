@@ -35,7 +35,9 @@
       <ul class="stack">
         {% for comment in public_comments %}
           <li>
-            On request #{{ comment.help_request_id }} by user #{{ comment.user_id }}
+            <a href="/requests/{{ comment.help_request_id }}#comment-{{ comment.id }}">
+              Comment {{ comment.id }} on Request #{{ comment.help_request_id }}
+            </a>
             <span class="muted"> · {{ comment.created_at | friendly_time }}</span>
           </li>
         {% endfor %}
@@ -50,7 +52,7 @@
     {% if public_users %}
       <ul class="stack">
         {% for u in public_users %}
-          <li>@{{ u.username }}</li>
+          <li><a href="/people/{{ u.username }}">@{{ u.username }}</a></li>
         {% endfor %}
       </ul>
     {% else %}
@@ -63,7 +65,10 @@
     {% if public_invites %}
       <ul class="stack">
         {% for invite in public_invites %}
-          <li>Token {{ invite.token }} · suggested user {{ invite.suggested_username or 'n/a' }}</li>
+          <li>
+            <a href="/invite/{{ invite.token }}">Token {{ invite.token }}</a>
+            <span class="muted"> · suggested user {{ invite.suggested_username or 'n/a' }}</span>
+          </li>
         {% endfor %}
       </ul>
     {% else %}
