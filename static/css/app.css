@@ -1181,6 +1181,22 @@ form.inline {
   gap: 1rem;
 }
 
+@media (min-width: 768px) {
+  .profile-header {
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+  }
+
+  .profile-header__body {
+    order: 2;
+  }
+
+  .profile-header__actions {
+    order: 3;
+    justify-self: end;
+  }
+}
+
 .profile-avatar {
   width: 4rem;
   height: 4rem;
