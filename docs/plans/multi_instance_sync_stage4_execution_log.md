@@ -5,7 +5,7 @@
 | Date | Capability / Task | Branch / Commit Ref | Tests & Checks | Notes / Risks |
 |------|-------------------|---------------------|----------------|---------------|
 | 2025-11-10 | Stage 1: add `sync_scope` fields + admin toggles (requests/comments/invites/users) | main@54a5046 | `pytest tests/services/test_request_comment_service.py tests/models/test_request_comment.py tests/routes/test_request_comments.py tests/services/test_auth_service.py` | Invites only marked during creation for now; need future admin list/editing UI |
-| 2025-11-10 | Stage 2: export/import CLI + .sync.txt format | main@89de1d9 | `pytest tests/services/test_request_comment_service.py tests/routes/test_request_comments.py tests/services/test_auth_service.py tests/sync/test_export_import.py` | Import assumes mostly empty DB; conflict handling deferred |
+| 2025-11-10 | Stage 2: export/import CLI + .sync.txt format (textual bodies) | main@89de1d9 / main@013bfa5 | `pytest tests/services/test_request_comment_service.py tests/routes/test_request_comments.py tests/services/test_auth_service.py tests/sync/test_export_import.py` | Plain-text bundles with headers + comment blocks; import still assumes empty DB |
 | TBD  | e.g., CLI `sync export` skeleton | feature/sync-export | pytest sync tests, manual CLI | Initial scaffolding; large exports still blocking |
 | TBD  | Vouch creation CLI | feature/sync-vouch | unit tests | Signature format placeholder |
 | TBD  | Hub push/pull prototype | feature/sync-hub | integration test (two sqlite DBs) | manual tokens only |
