@@ -16,6 +16,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Help-request feed with progressive enhancement for creating and completing requests
 - Per-request detail pages with shareable URLs and consistent permissions
 - Comment threads on request detail pages with progressive enhancement (vanilla JS) for instant posting
+- Manual sync bundles (`*.sync.txt`) use email-style headers plus plain-text bodies so exports are Git-friendly
 - Vanilla CSS design system with reusable layout primitives and components
 - JSON API under `/api/requests` for programmatic access to the request feed
 - Invite generation returns share-ready links using the current request origin (fallback to `SITE_URL`)
