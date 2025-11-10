@@ -241,11 +241,16 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_setup(ns)
 
     # Known commands path
-    if ns.command in {"runserver", "init-db", "create-admin", "create-invite"}:
+    if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "sync"}:
+        if ns.command == "sync":
+            if not passthrough:
+                passthrough = ["--help"]
+            elif passthrough[0] == "help":
+                passthrough = ["--help", *passthrough[1:]]
         if ns.command == "runserver" and not preflight_runserver(passthrough):
             return 1
         rc = cmd_known(ns.command, passthrough)
-        if rc != 0 and ns.command != "runserver":
+        if rc != 0 and ns.command not in {"runserver", "sync"}:
             warn("Command failed. Run './wb setup' first if not done.")
             print()
             print_help()
@@ -268,4 +273,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
