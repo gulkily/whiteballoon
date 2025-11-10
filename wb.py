@@ -204,6 +204,7 @@ def print_help() -> None:
     print("  init-db               Initialize the SQLite database")
     print("  create-admin USER     Promote a user to admin")
     print("  create-invite [opts]  Generate invite tokens")
+    print("  sync <command> [opts] Manual sync utilities (export/import)")
     print("  version               Display CLI version info")
     print("  help                  Show this help message")
     print()
@@ -222,6 +223,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("init-db")
     subparsers.add_parser("create-admin")
     subparsers.add_parser("create-invite")
+    subparsers.add_parser("sync")
 
     # Parse only the command; leave the rest as passthrough
     known, passthrough = (argv[:1], argv[1:]) if argv else ([], [])
@@ -266,5 +268,4 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
 
