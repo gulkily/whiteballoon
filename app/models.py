@@ -6,7 +6,7 @@ from typing import Optional
 from uuid import uuid4
 import secrets
 
-from sqlalchemy import Column, Enum as SAEnum, String, UniqueConstraint
+from sqlalchemy import Column, Enum as SAEnum, String, Text, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -94,6 +94,16 @@ class UserAttribute(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     created_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
     updated_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+
+
+
+class InviteMapCache(SQLModel, table=True):
+    __tablename__ = "invite_map_cache"
+
+    user_id: int = Field(primary_key=True, foreign_key="users.id")
+    payload: str = Field(sa_column=Column(Text, nullable=False))
+    version: str = Field(default="v1", sa_column=Column(String(16), nullable=False))
+    generated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 
 
