@@ -49,6 +49,18 @@ class HelpRequest(SQLModel, table=True):
 
 
 
+class RequestComment(SQLModel, table=True):
+    __tablename__ = "request_comments"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    help_request_id: int = Field(foreign_key="help_requests.id", nullable=False, index=True)
+    user_id: int = Field(foreign_key="users.id", nullable=False, index=True)
+    body: str = Field(sa_column=Column(Text, nullable=False))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    deleted_at: Optional[datetime] = Field(default=None)
+
+
+
 def _generate_invite_token() -> str:
     return secrets.token_hex(3)
 
