@@ -29,6 +29,14 @@ from app.services import (
     user_attribute_service,
     vouch_service,
 )
+from app.sync.signing import (
+    MANIFEST_FILENAME,
+    PUBLIC_KEYS_DIRNAME,
+    SIGNATURE_FILENAME,
+    SignatureVerificationError,
+    load_keypair,
+    verify_bundle_signature,
+)
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 
 router = APIRouter(tags=["ui"])
@@ -530,6 +538,53 @@ def sync_public(
     session_record = session_user.session
     session_role = describe_session_role(user, session_record)
 
+    bundle_dir = Path("data/public_sync")
+    manifest_path = bundle_dir / MANIFEST_FILENAME
+    signature_path = bundle_dir / SIGNATURE_FILENAME
+    public_keys_dir = bundle_dir / PUBLIC_KEYS_DIRNAME
+    signature_info: Optional[dict[str, object]] = None
+    signature_error: Optional[str] = None
+    if manifest_path.exists() and signature_path.exists():
+        try:
+            metadata = verify_bundle_signature(bundle_dir)
+            signature_info = {
+                "key_id": metadata.key_id,
+                "signed_at": metadata.signed_at,
+                "manifest_digest": metadata.manifest_digest,
+            }
+        except SignatureVerificationError as exc:
+            signature_error = str(exc)
+    public_key_files: list[dict[str, str]] = []
+    if public_keys_dir.exists():
+        for path in sorted(public_keys_dir.glob("*.pub")):
+            try:
+                data = path.read_text(encoding="utf-8").splitlines()
+            except OSError:
+                continue
+            record: dict[str, str] = {
+                "rel_path": path.relative_to(bundle_dir).as_posix(),
+                "key_id": path.stem,
+                "public_key": "",
+            }
+            for line in data:
+                if ":" not in line:
+                    continue
+                key, value = line.split(":", 1)
+                cleaned = value.strip()
+                if key.strip().lower() == "key-id" and cleaned:
+                    record["key_id"] = cleaned
+                if key.strip().lower() == "public-key" and cleaned:
+                    record["public_key"] = cleaned
+            public_key_files.append(record)
+
+    try:
+        local_key = load_keypair()
+    except ValueError:
+        local_key = None
+        if signature_error is None:
+            signature_error = "Signing key files are corrupted. Regenerate with 'wb sync keygen --force'."
+    keys_dir = Path(".sync/keys")
+
     context = {
         "request": request,
         "user": user,
@@ -541,6 +596,14 @@ def sync_public(
         "public_comments": public_comments,
         "public_users": public_users,
         "public_invites": public_invites,
+        "bundle_dir": bundle_dir,
+        "manifest_path": manifest_path,
+        "signature_path": signature_path,
+        "signature_info": signature_info,
+        "signature_error": signature_error,
+        "public_key_files": public_key_files,
+        "local_signing_key": local_key,
+        "keys_dir": keys_dir,
     }
     return templates.TemplateResponse("sync/public.html", context)
 

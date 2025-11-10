@@ -14,6 +14,64 @@
   </header>
 
   <div class="card stack">
+    <h2>Signing & Bootstrap</h2>
+    <p>
+      Bundles export to <code>{{ bundle_dir }}</code>. Run
+      <code>./wb sync export</code> (or <code>./wb sync push &lt;peer&gt;</code>) after reviewing changes.
+    </p>
+
+    {% if local_signing_key %}
+      <p>
+        Local signing key: <code>{{ local_signing_key.key_id }}</code> stored under
+        <code>{{ keys_dir }}</code>. Share the base64 string printed by
+        <code>./wb sync keygen</code> with peers.
+      </p>
+    {% else %}
+      <p class="muted">No signing key detected. Run <code>./wb sync keygen</code> before exporting.</p>
+    {% endif %}
+
+    {% if signature_info %}
+      <p>
+        Latest manifest signed {{ signature_info.signed_at | friendly_time }} using key
+        <code>{{ signature_info.key_id }}</code>.
+      </p>
+    {% elif signature_error %}
+      <p class="muted">Signature check failed: {{ signature_error }}.</p>
+    {% else %}
+      <p class="muted">No <code>bundle.sig</code> or manifest yet. Export once to create them.</p>
+    {% endif %}
+
+    {% if public_key_files %}
+      <div class="stack">
+        <h3>Published public keys</h3>
+        <ul class="stack">
+          {% for pk in public_key_files %}
+            <li>
+              <code>{{ pk.key_id }}</code>
+              <span class="muted"> · {{ pk.rel_path }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% else %}
+      <p class="muted">Exports will write your key to <code>public_keys/&lt;key-id&gt;.pub</code>.</p>
+    {% endif %}
+
+    <div class="stack">
+      <h3>Bootstrap another node</h3>
+      <ol>
+        <li>Share the exported folder (including <code>public_keys/</code>) via git or shared storage.</li>
+        <li>
+          On the peer, register this bundle as a trusted source:
+          <code>./wb sync peers add --name origin --path {{ bundle_dir }} --public-key &lt;base64&gt;</code>
+        </li>
+        <li>Import data with verification: <code>./wb sync import {{ bundle_dir }} --peer origin</code>.</li>
+      </ol>
+      <p class="muted">Use <code>--allow-unsigned</code> only for historical bundles without signatures.</p>
+    </div>
+  </div>
+
+  <div class="card stack">
     <h2>Requests ({{ public_requests|length }})</h2>
     {% if public_requests %}
       <ul class="stack">

@@ -76,6 +76,20 @@ Stage 5 of the sync plan introduces signed bundles so operators can trust data p
 3. Export/push flows now sign `manifest.sync.txt`, emit `bundle.sig`, and drop your public key under `data/public_sync/public_keys/<key-id>.pub`. Multiple operators can share the same bundle directory; each signer writes/updates only their own file.
 4. `./wb sync pull <peer>` and `./wb sync import <dir> --peer <name>` verify the signature before applying data. Use `--allow-unsigned` only when working with historical bundles that predate signatures.
 
+### Bootstrap a new instance from a shared bundle
+
+1. Clone the repo (or otherwise sync `data/public_sync/`) and run `./wb setup`.
+2. Register the bundle + public key so imports can verify it:
+   ```bash
+   ./wb sync peers add --name origin --path data/public_sync --public-key <base64>
+   ```
+   The `<base64>` value lives in `data/public_sync/public_keys/<key-id>.pub`.
+3. Import the dataset with verification:
+   ```bash
+   ./wb sync import data/public_sync --peer origin
+   ```
+   Only fall back to `--allow-unsigned` if you must ingest historical unsigned bundles.
+
 The signature file stores the manifest digest plus the signer’s key ID. Keep `.sync/keys/` out of version control and rotate keys with `./wb sync keygen --force` if a secret ever leaks.
 
 ## Send Welcome page
