@@ -38,22 +38,6 @@
         </div>
       </div>
     </div>
-    <div class="share-panel">
-      <label for="request-share-url" class="small-text muted">Share this link</label>
-      <div class="share-panel__control">
-        <input
-          id="request-share-url"
-          type="url"
-          value="{{ request.url }}"
-          readonly
-          data-share-url
-        />
-        <button type="button" class="share-panel__copy" data-share-copy aria-label="Copy request link">
-          <span aria-hidden="true">Copy</span>
-        </button>
-      </div>
-      <p class="share-panel__feedback" data-share-feedback role="status" aria-live="polite"></p>
-    </div>
     {% set item = request_item %}
     {% set show_detail_link = False %}
     {% set show_meta = False %}
@@ -105,70 +89,5 @@
     {% endif %}
   </div>
 </section>
-<script>
-  (function () {
-    var field = document.querySelector('[data-share-url]');
-    var copyButton = document.querySelector('[data-share-copy]');
-    var feedback = document.querySelector('[data-share-feedback]');
-    var feedbackTimer;
-
-    if (!field || !copyButton || !feedback) {
-      return;
-    }
-
-    var selectField = function () {
-      field.focus();
-      field.select();
-      try {
-        field.setSelectionRange(0, field.value.length);
-      } catch (err) {
-        /* ignore: unsupported */
-      }
-    };
-
-    var showFeedback = function (message) {
-      feedback.textContent = message;
-      feedback.classList.add('is-visible');
-      window.clearTimeout(feedbackTimer);
-      feedbackTimer = window.setTimeout(function () {
-        feedback.classList.remove('is-visible');
-        feedback.textContent = '';
-      }, 2000);
-    };
-
-    var fallbackCopy = function () {
-      try {
-        document.execCommand('copy');
-        showFeedback('Copied!');
-      } catch (err) {
-        /* ignore */
-      }
-    };
-
-    var copyField = function () {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(field.value).then(function () {
-          showFeedback('Copied!');
-        }).catch(function () {
-          fallbackCopy();
-        });
-      } else {
-        fallbackCopy();
-      }
-    };
-
-    field.addEventListener('click', function () {
-      selectField();
-      copyField();
-    });
-
-    field.addEventListener('focus', selectField);
-
-    copyButton.addEventListener('click', function () {
-      selectField();
-      copyField();
-    });
-  })();
-</script>
 <script src="/static/js/request-comments.js" defer></script>
 {% endblock %}
