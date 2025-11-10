@@ -150,8 +150,8 @@ async def create_invite(
     suggested_username: str = Form(...),
     gratitude_note: str = Form(...),
     support_message: str = Form(...),
-    fun_details: str = Form(...),
-    help_examples: List[str] = Form(...),
+    fun_details: Optional[str] = Form(None),
+    help_examples: Optional[List[str]] = Form(None),
     photo: UploadFile = File(...),
     max_uses: int = Form(1),
     expires_in_days: Optional[int] = Form(None),
@@ -211,8 +211,8 @@ def _parse_personalization_payload(
     suggested_username: str,
     gratitude_note: str,
     support_message: str,
-    fun_details: str,
-    help_examples: List[str],
+    fun_details: Optional[str],
+    help_examples: Optional[List[str]],
 ) -> dict:
     def require_text(value: object, label: str, *, max_length: int = 512) -> str:
         if not isinstance(value, str):
@@ -230,27 +230,34 @@ def _parse_personalization_payload(
     normalized_username = auth_service.normalize_username(require_text(suggested_username, "Suggested username", max_length=64))
     gratitude = require_text(gratitude_note, "Gratitude note", max_length=600)
     support = require_text(support_message, "Support message", max_length=600)
-    fun = require_text(fun_details, "Fun details", max_length=600)
 
-    cleaned_examples: List[str] = []
-    for item in help_examples:
-        if not isinstance(item, str):
-            continue
-        trimmed = item.strip()
-        if not trimmed:
-            continue
-        if len(trimmed) > 240:
+    def optional_text(value: Optional[str], label: str, *, max_length: int) -> str:
+        if not isinstance(value, str):
+            return ""
+        cleaned = value.strip()
+        if len(cleaned) > max_length:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Help examples must be 240 characters or fewer each.",
+                detail=f"{label} must be {max_length} characters or fewer.",
             )
-        cleaned_examples.append(trimmed)
+        return cleaned
 
-    if len(cleaned_examples) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Add at least two specific ways you can help.",
-        )
+    fun = optional_text(fun_details, "Fun details", max_length=600)
+
+    cleaned_examples: List[str] = []
+    if help_examples:
+        for item in help_examples:
+            if not isinstance(item, str):
+                continue
+            trimmed = item.strip()
+            if not trimmed:
+                continue
+            if len(trimmed) > 240:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="Help examples must be 240 characters or fewer each.",
+                )
+            cleaned_examples.append(trimmed)
 
     cleaned_examples = cleaned_examples[:3]
 
@@ -259,12 +266,14 @@ def _parse_personalization_payload(
         gratitude,
         "\nHow they hope to support you:",
         support,
-        "\nWays they can help:",
     ]
-    for example in cleaned_examples:
-        lines.append(f"• {example}")
-    lines.append("\nShared joys / inside jokes:")
-    lines.append(fun)
+    if cleaned_examples:
+        lines.append("\nWays they can help:")
+        for example in cleaned_examples:
+            lines.append(f"• {example}")
+    if fun:
+        lines.append("\nShared joys / inside jokes:")
+        lines.append(fun)
 
     suggested_bio = "\n".join(lines).strip()
 

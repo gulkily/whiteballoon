@@ -34,20 +34,6 @@
       </label>
     </div>
 
-    <div class="stack">
-      <span>Ways you can help <span class="muted">(add at least two)</span></span>
-      <div class="stack help-inputs" data-help-list>
-        <input class="help-input" name="help_examples" type="text" placeholder="e.g. Weekly grocery runs" maxlength="240" required />
-        <input class="help-input" name="help_examples" type="text" placeholder="e.g. Rides to appointments" maxlength="240" required />
-        <input class="help-input" name="help_examples" type="text" placeholder="e.g. Childcare on Fridays" maxlength="240" />
-      </div>
-    </div>
-
-    <label class="stack" for="invite-fun">
-      <span>Fun details / inside jokes <span class="muted">(required)</span></span>
-      <textarea id="invite-fun" name="fun_details" rows="3" placeholder="Add shared hobbies, memories, or jokes" required maxlength="600"></textarea>
-    </label>
-
     <div class="stack stack--row invite-actions">
       <button type="submit" class="button">Create invite</button>
       <a class="button button--ghost" href="/">Back home</a>
@@ -191,12 +177,6 @@
 
   function buildPayload(formData) {
     clearStatus();
-    const helpExamples = formData.getAll('help_examples').map((value) => String(value || '').trim()).filter(Boolean);
-    if (helpExamples.length < 2) {
-      setInlineMessage('Add at least two ways you can help before creating the invite.');
-      return null;
-    }
-
     const photoFile = formData.get('photo');
     if (!(photoFile instanceof File) || photoFile.size === 0) {
       setInlineMessage('Please upload a photo for your invitee.');
@@ -206,9 +186,8 @@
     const suggestedUsername = String(formData.get('suggested_username') || '').trim();
     const gratitudeNote = String(formData.get('gratitude_note') || '').trim();
     const supportMessage = String(formData.get('support_message') || '').trim();
-    const funDetails = String(formData.get('fun_details') || '').trim();
 
-    if (!suggestedUsername || !gratitudeNote || !supportMessage || !funDetails) {
+    if (!suggestedUsername || !gratitudeNote || !supportMessage) {
       setInlineMessage('Please complete every required field before creating the invite.');
       return null;
     }
@@ -217,8 +196,6 @@
     sanitized.append('suggested_username', suggestedUsername);
     sanitized.append('gratitude_note', gratitudeNote);
     sanitized.append('support_message', supportMessage);
-    sanitized.append('fun_details', funDetails);
-    helpExamples.slice(0, 3).forEach((item) => sanitized.append('help_examples', item));
     sanitized.append('photo', photoFile);
 
     return {
@@ -227,8 +204,8 @@
         suggested_username: suggestedUsername,
         gratitude_note: gratitudeNote,
         support_message: supportMessage,
-        fun_details: funDetails,
-        help_examples: helpExamples.slice(0, 3),
+        fun_details: '',
+        help_examples: [],
       },
     };
   }
