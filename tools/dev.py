@@ -17,6 +17,7 @@ from app.schema_utils import ensure_schema_integrity
 from app.services import auth_service
 from app.url_utils import build_invite_link
 from app.sync.export_import import export_sync_data, import_sync_data
+from app.sync.peers import Peer, get_peer, load_peers, save_peers
 
 
 @click.group(help="Developer utilities for the WhiteBalloon project.")
@@ -51,6 +52,80 @@ def sync_import(input_dir: Path) -> None:
     with Session(engine) as session:
         count = import_sync_data(session, Path(input_dir))
     click.secho(f"Imported {count} records from {input_dir}", fg="green")
+
+
+@sync_group.command(name="push")
+@click.argument("peer_name")
+def sync_push(peer_name: str) -> None:
+    peer = get_peer(peer_name)
+    if not peer:
+        raise click.ClickException(f"Peer '{peer_name}' not found. Use 'wb sync peers add'.")
+    engine = get_engine()
+    with Session(engine) as session:
+        temp_dir = Path("data/public_sync")
+        files = export_sync_data(session, temp_dir)
+    dest = peer.path
+    dest.mkdir(parents=True, exist_ok=True)
+    for file in temp_dir.rglob("*.sync.txt"):
+        rel = file.relative_to(temp_dir)
+        target = dest / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(file.read_text(encoding="utf-8"), encoding="utf-8")
+    click.secho(f"Pushed {len(files)} files to peer '{peer_name}'", fg="green")
+
+
+@sync_group.command(name="pull")
+@click.argument("peer_name")
+def sync_pull(peer_name: str) -> None:
+    peer = get_peer(peer_name)
+    if not peer:
+        raise click.ClickException(f"Peer '{peer_name}' not found. Use 'wb sync peers add'.")
+    source = peer.path
+    if not source.exists():
+        raise click.ClickException(f"Peer path not found: {source}")
+    engine = get_engine()
+    with Session(engine) as session:
+        count = import_sync_data(session, source)
+    click.secho(f"Pulled {count} records from peer '{peer_name}'", fg="green")
+
+
+@sync_group.group(name="peers")
+def peers_group() -> None:
+    """Manage peer registry."""
+
+
+@peers_group.command(name="list")
+def peers_list() -> None:
+    peers = load_peers()
+    if not peers:
+        click.echo("No peers configured. Use 'wb sync peers add'.")
+        return
+    for peer in peers:
+        click.echo(f"- {peer.name}: {peer.path}")
+
+
+@peers_group.command(name="add")
+@click.option("--name", prompt="Peer name")
+@click.option("--path", prompt="Bundle directory", type=click.Path(path_type=Path))
+@click.option("--token", default=None, help="Optional auth token")
+def peers_add(name: str, path: Path, token: str | None) -> None:
+    peers = load_peers()
+    if any(peer.name == name for peer in peers):
+        raise click.ClickException(f"Peer '{name}' already exists")
+    peers.append(Peer(name=name, path=path, token=token))
+    save_peers(peers)
+    click.secho(f"Added peer '{name}'", fg="green")
+
+
+@peers_group.command(name="remove")
+@click.argument("name")
+def peers_remove(name: str) -> None:
+    peers = load_peers()
+    filtered = [peer for peer in peers if peer.name != name]
+    if len(filtered) == len(peers):
+        raise click.ClickException(f"Peer '{name}' not found")
+    save_peers(filtered)
+    click.secho(f"Removed peer '{name}'", fg="green")
 
 
 @cli.command()
