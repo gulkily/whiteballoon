@@ -14,7 +14,17 @@
   </header>
 
   {% if form_message %}
-    <div class="alert alert--info">{{ form_message }}</div>
+    <div class="alert {{ 'alert--success' if form_status == 'success' else 'alert--error' if form_status == 'error' else 'alert--info' }}">{{ form_message }}</div>
+  {% endif %}
+
+  {% if form_errors %}
+    <div class="alert alert--error">
+      <ul class="stack">
+        {% for error in form_errors %}
+          <li>{{ error }}</li>
+        {% endfor %}
+      </ul>
+    </div>
   {% endif %}
 
   <form class="card stack account-settings__form" method="post" enctype="multipart/form-data">
@@ -53,8 +63,7 @@
     </div>
 
     <div class="stack">
-      <p class="muted">Saving changes will be available soon.</p>
-      <button type="submit" class="button" disabled>Save changes</button>
+      <button type="submit" class="button">Save changes</button>
     </div>
   </form>
 </section>

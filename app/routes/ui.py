@@ -424,6 +424,9 @@ def invite_new(
     return templates.TemplateResponse("invite/new.html", context)
 
 
+CONTACT_EMAIL_MAX_LENGTH = 255
+
+
 def _build_account_settings_context(
     request: Request,
     db: Session,
@@ -431,6 +434,8 @@ def _build_account_settings_context(
     *,
     form_values: Optional[dict[str, Optional[str]]] = None,
     form_message: Optional[str] = None,
+    form_status: Optional[str] = None,
+    form_errors: Optional[list[str]] = None,
 ) -> dict[str, object]:
     user = session_user.user
     session_record = session_user.session
@@ -451,8 +456,23 @@ def _build_account_settings_context(
         "session_avatar_url": session_avatar_url,
         "form_values": form_values,
         "form_message": form_message,
+        "form_status": form_status,
+        "form_errors": form_errors or [],
         "current_avatar_url": session_avatar_url,
     }
+
+
+def _validate_contact_email(value: str) -> Optional[str]:
+    if not value:
+        return None
+    if len(value) > CONTACT_EMAIL_MAX_LENGTH:
+        return "Contact email must be 255 characters or fewer."
+    if "@" not in value or value.count("@") != 1:
+        return "Enter a valid email address."
+    local_part, domain_part = value.split("@", 1)
+    if not local_part or not domain_part or "." not in domain_part:
+        return "Enter a valid email address."
+    return None
 
 
 @router.get("/settings/account")
@@ -474,12 +494,36 @@ def account_settings_submit(
 ) -> Response:
     normalized_email = (contact_email or "").strip()
     form_values = {"contact_email": normalized_email}
+    errors: list[str] = []
+
+    validation_error = _validate_contact_email(normalized_email)
+    if validation_error:
+        errors.append(validation_error)
+
+    if errors:
+        context = _build_account_settings_context(
+            request,
+            db,
+            session_user,
+            form_values=form_values,
+            form_errors=errors,
+            form_status="error",
+        )
+        return templates.TemplateResponse("settings/account.html", context)
+
+    user = session_user.user
+    user.contact_email = normalized_email or None
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
     context = _build_account_settings_context(
         request,
         db,
         session_user,
-        form_values=form_values,
-        form_message="Profile editing is on the way. Hold tight!",
+        form_values={"contact_email": user.contact_email or ""},
+        form_message="Account details updated.",
+        form_status="success",
     )
     return templates.TemplateResponse("settings/account.html", context)
 

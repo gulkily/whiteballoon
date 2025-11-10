@@ -5,7 +5,8 @@
 - Verification: Manually loaded the settings and profile pages in dev to confirm navigation and layout; no automated tests yet.
 
 ## Stage 2 – Email update backend
-- Pending
+- Changes: Enabled POST handling on `/settings/account` to validate contact emails, persist updates to `User.contact_email`, and surface success/error alerts; wired the template to display validation feedback and enabled the save button. Added route tests covering successful updates and validation failures.
+- Verification: `pytest tests/routes/test_account_settings.py tests/services/test_invite_graph_service.py`
 
 ## Stage 3 – Photo upload pipeline
 - Pending
