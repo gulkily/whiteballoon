@@ -9,7 +9,8 @@
 - Verification: `pytest tests/services/test_request_comment_service.py`
 
 ## Stage 3 – Posting endpoint + validation
-- Pending
+- Changes: Added `/requests/{id}/comments` POST handler that enforces full authentication, validates bodies via the service, persists comments, and returns both rendered HTML fragments (for vanilla JS) and JSON metadata. Built comment partial template, context wiring in request detail view, and fetch-based JS to insert comments without reload; added route tests covering success, validation failures, and permission checks.
+- Verification: `pytest tests/routes/test_request_comments.py tests/services/test_request_comment_service.py tests/models/test_request_comment.py`
 
 ## Stage 4 – UI integration & vanilla JS
 - Pending

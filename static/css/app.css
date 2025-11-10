@@ -860,6 +860,59 @@ textarea::placeholder {
   gap: 0.75rem;
 }
 
+.request-comments-section {
+  margin-top: 2rem;
+}
+
+.request-comments {
+  gap: 1rem;
+}
+
+.request-comments__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.request-comment {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  background: var(--color-card);
+}
+
+.request-comment__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.request-comment__author {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.request-comment__body {
+  margin: 0.5rem 0 0;
+  white-space: pre-wrap;
+}
+
+.request-comments__form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.request-comments__form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .request-detail-header__title h1 {
   margin: 0;
   font-size: clamp(2rem, 1.8rem + 0.8vw, 2.6rem);

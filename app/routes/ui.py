@@ -6,7 +6,7 @@ from typing import Annotated, Optional, Union
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
 
@@ -18,13 +18,14 @@ from app.dependencies import (
     require_authenticated_user,
     require_session_user,
 )
-from app.models import AuthenticationRequest, InviteToken, User, UserSession
+from app.models import AuthenticationRequest, HelpRequest, InviteToken, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
     auth_service,
     invite_graph_service,
     invite_map_cache_service,
+    request_comment_service,
     user_attribute_service,
 )
 from app.url_utils import build_invite_link, generate_qr_code_data_url
@@ -375,38 +376,71 @@ def request_detail(
     db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
 ) -> Response:
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    context = _build_request_detail_context(request, db, session_user, help_request)
+    return templates.TemplateResponse("requests/detail.html", context)
+
+
+@router.post("/requests/{request_id}/comments")
+async def create_request_comment(
+    request: Request,
+    request_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    body: Annotated[Optional[str], Form()] = None,
+) -> Response:
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
     viewer = session_user.user
     session_record = session_user.session
 
-    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    if not session_record.is_fully_authenticated:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Fully authenticated session required")
 
-    if help_request.status == "pending" and not (
-        viewer.is_admin or help_request.created_by_user_id == viewer.id
-    ):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+    trimmed_body = (body or "").strip()
+    errors: list[str] = []
 
-    creator_usernames = request_services.load_creator_usernames(db, [help_request])
-    serialized = RequestResponse.from_model(
-        help_request,
-        created_by_username=creator_usernames.get(help_request.created_by_user_id),
-        can_complete=calculate_can_complete(help_request, viewer),
+    try:
+        comment = request_comment_service.add_comment(
+            db,
+            help_request_id=help_request.id,
+            user_id=viewer.id,
+            body=trimmed_body,
+        )
+    except ValueError as exc:
+        errors.append(str(exc))
+        comment = None
+
+    wants_json = _wants_json(request)
+
+    if errors:
+        if wants_json:
+            return JSONResponse({"errors": errors}, status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+        context = _build_request_detail_context(
+            request,
+            db,
+            session_user,
+            help_request,
+            comment_form_errors=errors,
+            comment_form_body=trimmed_body,
+        )
+        return templates.TemplateResponse(
+            "requests/detail.html",
+            context,
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        )
+
+    db.commit()
+    db.refresh(comment)
+
+    comment_payload = request_comment_service.serialize_comment(comment, viewer)
+    fragment = templates.get_template("requests/partials/comment.html").render(
+        {"request": request, "comment": comment_payload}
     )
 
-    readonly = not session_record.is_fully_authenticated
-    session_role = describe_session_role(viewer, session_record)
+    if wants_json:
+        return JSONResponse({"html": fragment, "comment": comment_payload})
 
-    context = {
-        "request": request,
-        "user": viewer,
-        "readonly": readonly,
-        "request_item": serialized,
-        "session": session_record,
-        "session_role": session_role,
-        "session_username": viewer.username,
-        "session_avatar_url": session_user.avatar_url,
-    }
-
-    return templates.TemplateResponse("requests/detail.html", context)
+    return RedirectResponse(url=f"/requests/{request_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @router.get("/invite/new")
@@ -433,6 +467,14 @@ PROFILE_ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
 PROFILE_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
 PROFILE_PHOTO_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _wants_json(request: Request) -> bool:
+    accept = request.headers.get("accept", "").lower()
+    if "application/json" in accept:
+        return True
+    requested_with = request.headers.get("x-requested-with", "")
+    return requested_with.lower() in {"fetch", "xmlhttprequest"}
 
 
 def _build_account_settings_context(
@@ -467,6 +509,53 @@ def _build_account_settings_context(
         "form_status": form_status,
         "form_errors": form_errors or [],
         "current_avatar_url": session_avatar_url,
+    }
+
+
+def _build_request_detail_context(
+    request: Request,
+    db: Session,
+    session_user: SessionUser,
+    help_request: HelpRequest,
+    *,
+    comment_form_errors: Optional[list[str]] = None,
+    comment_form_body: str = "",
+) -> dict[str, object]:
+    viewer = session_user.user
+    session_record = session_user.session
+
+    if help_request.status == "pending" and not (
+        viewer.is_admin or help_request.created_by_user_id == viewer.id
+    ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+
+    creator_usernames = request_services.load_creator_usernames(db, [help_request])
+    serialized = RequestResponse.from_model(
+        help_request,
+        created_by_username=creator_usernames.get(help_request.created_by_user_id),
+        can_complete=calculate_can_complete(help_request, viewer),
+    )
+
+    readonly = not session_record.is_fully_authenticated
+    session_role = describe_session_role(viewer, session_record)
+
+    comment_rows = request_comment_service.list_comments(db, help_request_id=help_request.id)
+    comments = [request_comment_service.serialize_comment(comment, author) for comment, author in comment_rows]
+
+    return {
+        "request": request,
+        "user": viewer,
+        "readonly": readonly,
+        "request_item": serialized,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": viewer.username,
+        "session_avatar_url": session_user.avatar_url,
+        "comments": comments,
+        "can_comment": session_record.is_fully_authenticated,
+        "comment_form_errors": comment_form_errors or [],
+        "comment_form_body": comment_form_body,
+        "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
     }
 
 

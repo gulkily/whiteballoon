@@ -69,6 +69,56 @@
     </div>
   </div>
 </section>
+<section class="section request-comments-section">
+  <div class="card stack request-comments" data-comment-section>
+    <div class="request-comments__header">
+      <h2>Discussion</h2>
+      <p class="muted small-text">Share clarifications or encouragement below.</p>
+    </div>
+    {% if comments %}
+      <ul class="request-comments__list" data-comment-list>
+        {% for comment in comments %}
+          {% include "requests/partials/comment.html" %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No comments yet. Be the first to say hello.</p>
+      <ul class="request-comments__list" data-comment-list hidden></ul>
+    {% endif %}
+
+    {% if can_comment %}
+      <form class="stack request-comments__form" method="post" action="/requests/{{ request_item.id }}/comments" data-comment-form>
+        {% if comment_form_errors %}
+          <div class="alert alert--error" data-comment-errors>
+            <ul class="stack">
+              {% for error in comment_form_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% else %}
+          <div class="alert alert--error" data-comment-errors hidden></div>
+        {% endif %}
+        <label class="stack" for="comment-body">
+          <span class="small-text">Add a comment</span>
+          <textarea
+            id="comment-body"
+            name="body"
+            rows="3"
+            maxlength="{{ comment_max_length }}"
+            data-comment-body
+          >{{ comment_form_body }}</textarea>
+        </label>
+        <div class="request-comments__form-footer">
+          <span class="muted small-text">Max {{ comment_max_length }} characters.</span>
+          <button type="submit" class="button" data-comment-submit>Post comment</button>
+        </div>
+      </form>
+    {% else %}
+      <p class="muted">You need a fully verified session to comment on requests.</p>
+    {% endif %}
+  </div>
+</section>
 <script>
   (function () {
     var field = document.querySelector('[data-share-url]');
@@ -134,4 +184,5 @@
     });
   })();
 </script>
+<script src="/static/js/request-comments.js" defer></script>
 {% endblock %}

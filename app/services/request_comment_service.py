@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Iterable
 
 from sqlmodel import Session, select
 
@@ -14,9 +13,9 @@ MAX_COMMENT_LENGTH = 2000
 def list_comments(session: Session, help_request_id: int) -> list[tuple[RequestComment, User]]:
     rows = session.exec(
         select(RequestComment, User)
+        .join(User, User.id == RequestComment.user_id)
         .where(RequestComment.help_request_id == help_request_id)
         .where(RequestComment.deleted_at.is_(None))
-        .where(RequestComment.user_id == User.id)
         .order_by(RequestComment.created_at.asc())
     ).all()
     return rows
@@ -54,3 +53,15 @@ def soft_delete_comment(session: Session, comment_id: int) -> None:
     comment.deleted_at = datetime.utcnow()
     session.add(comment)
     session.flush()
+
+
+def serialize_comment(comment: RequestComment, user: User) -> dict[str, object]:
+    created_at_iso = comment.created_at.isoformat() if comment.created_at else None
+    return {
+        "id": comment.id,
+        "body": comment.body,
+        "created_at": created_at_iso,
+        "created_at_iso": created_at_iso,
+        "user_id": user.id,
+        "username": user.username,
+    }
