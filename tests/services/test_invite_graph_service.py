@@ -77,3 +77,51 @@ def test_build_invite_graph_respects_max_degree(session: Session) -> None:
     assert len(graph.children) == 1
     assert graph.children[0].username == "first"
     assert graph.children[0].children == []
+
+
+def test_build_bidirectional_invite_map_includes_upstream_and_downstream(session: Session) -> None:
+    grandparent = create_user(session, "grandparent")
+    parent = create_user(session, "parent")
+    root = create_user(session, "root")
+    child = create_user(session, "child")
+    grandchild = create_user(session, "grandchild")
+
+    link_invite(session, root, parent)
+    link_invite(session, parent, grandparent)
+    link_invite(session, child, root)
+    link_invite(session, grandchild, child)
+
+    invite_map = invite_graph_service.build_bidirectional_invite_map(
+        session,
+        root_user_id=root.id,
+        max_degree=2,
+    )
+
+    assert invite_map is not None
+    assert invite_map.root.user_id == root.id
+
+    downstream_children = {node.user_id for node in invite_map.root.children}
+    assert downstream_children == {child.id}
+    assert invite_map.root.children[0].children[0].user_id == grandchild.id
+
+    upstream_ids = [ancestor.user_id for ancestor in invite_map.upstream]
+    assert upstream_ids == [parent.id, grandparent.id]
+    assert all(ancestor.degree in {1, 2} for ancestor in invite_map.upstream)
+
+
+def test_build_bidirectional_invite_map_stops_on_cycles(session: Session) -> None:
+    user_a = create_user(session, "user-a")
+    user_b = create_user(session, "user-b")
+
+    link_invite(session, user_a, user_b)
+    # Force a cycle (not expected in prod but guards loop)
+    link_invite(session, user_b, user_a)
+
+    invite_map = invite_graph_service.build_bidirectional_invite_map(
+        session,
+        root_user_id=user_a.id,
+        max_degree=2,
+    )
+
+    assert invite_map is not None
+    assert [ancestor.user_id for ancestor in invite_map.upstream] == [user_b.id]

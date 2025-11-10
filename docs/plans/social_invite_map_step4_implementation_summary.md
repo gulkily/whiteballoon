@@ -5,7 +5,8 @@
 - Verification: `tests/models/test_invite_map_cache.py` ensures the table can be created in-memory and stores JSON payloads.
 
 ## Stage 2 – Bidirectional 2-degree graph builder
-- Pending
+- Changes: Added upstream ancestor + invite map dataclasses and `build_bidirectional_invite_map` helper in `app/services/invite_graph_service.py`, ensuring 2-degree traversal in both directions with cycle guards.
+- Verification: Extended `tests/services/test_invite_graph_service.py` to cover upstream/downstream assembly and confirm cycle protection.
 
 ## Stage 3 – Cache read/write/invalidation utilities
 - Pending

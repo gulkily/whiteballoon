@@ -11,6 +11,7 @@ from app.services.user_attribute_service import INVITED_BY_USER_ID_KEY
 
 
 MAX_INVITE_DEGREE = 3
+DEFAULT_MAP_DEGREE = 2
 
 
 @dataclass(slots=True)
@@ -22,6 +23,20 @@ class InviteGraphNode:
     degree: int
     invited_at: Optional[str] = None
     children: list["InviteGraphNode"] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class InviteAncestor:
+    user_id: int
+    username: str
+    degree: int
+    invited_at: Optional[str] = None
+
+
+@dataclass(slots=True)
+class InviteMapPayload:
+    root: InviteGraphNode
+    upstream: list[InviteAncestor]
 
 
 def build_invite_graph(
@@ -74,6 +89,22 @@ def build_invite_graph(
     return root_node
 
 
+def build_bidirectional_invite_map(
+    session: Session,
+    *,
+    root_user_id: int,
+    max_degree: int = DEFAULT_MAP_DEGREE,
+) -> Optional[InviteMapPayload]:
+    """Return upstream and downstream invite relationships limited to `max_degree`."""
+
+    downstream = build_invite_graph(session, root_user_id=root_user_id, max_degree=max_degree)
+    if not downstream:
+        return None
+
+    upstream = _load_upstream_chain(session, start_user_id=root_user_id, max_degree=max_degree)
+    return InviteMapPayload(root=downstream, upstream=upstream)
+
+
 def _load_invitees(
     session: Session,
     *,
@@ -103,3 +134,57 @@ def _load_invitees(
             by_inviter[inviter_id] = []
         by_inviter[inviter_id].append((user, attribute))
     return by_inviter
+
+
+def _load_upstream_chain(
+    session: Session,
+    *,
+    start_user_id: int,
+    max_degree: int,
+) -> list[InviteAncestor]:
+    if max_degree <= 0:
+        return []
+
+    ancestors: list[InviteAncestor] = []
+    degree = 1
+    current_user_id = start_user_id
+    visited: set[int] = {start_user_id}
+
+    while degree <= max_degree:
+        attribute = _load_inviter_attribute(session, user_id=current_user_id)
+        if not attribute or not attribute.value:
+            break
+        try:
+            inviter_id = int(attribute.value)
+        except (TypeError, ValueError):
+            break
+
+        if inviter_id in visited:
+            break
+
+        inviter = session.get(User, inviter_id)
+        if not inviter:
+            break
+
+        ancestors.append(
+            InviteAncestor(
+                user_id=inviter.id,
+                username=inviter.username,
+                degree=degree,
+                invited_at=attribute.created_at.isoformat() if attribute.created_at else None,
+            )
+        )
+
+        visited.add(inviter_id)
+        current_user_id = inviter_id
+        degree += 1
+
+    return ancestors
+
+
+def _load_inviter_attribute(session: Session, *, user_id: int) -> Optional[UserAttribute]:
+    return session.exec(
+        select(UserAttribute)
+        .where(UserAttribute.user_id == user_id)
+        .where(UserAttribute.key == INVITED_BY_USER_ID_KEY)
+    ).first()
