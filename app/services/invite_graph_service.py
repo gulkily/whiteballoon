@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Any, Optional
 
 from sqlmodel import Session, select
 
@@ -188,3 +188,61 @@ def _load_inviter_attribute(session: Session, *, user_id: int) -> Optional[UserA
         .where(UserAttribute.user_id == user_id)
         .where(UserAttribute.key == INVITED_BY_USER_ID_KEY)
     ).first()
+
+
+def serialize_invite_map(payload: InviteMapPayload) -> dict[str, Any]:
+    return {
+        "root": _serialize_graph_node(payload.root),
+        "upstream": [_serialize_ancestor(ancestor) for ancestor in payload.upstream],
+    }
+
+
+def deserialize_invite_map(data: dict[str, Any]) -> InviteMapPayload:
+    root_data = data.get("root")
+    if not root_data:
+        raise ValueError("Invite map payload missing root node")
+    upstream_data = data.get("upstream", [])
+    return InviteMapPayload(
+        root=_deserialize_graph_node(root_data),
+        upstream=[_deserialize_ancestor(item) for item in upstream_data],
+    )
+
+
+def _serialize_graph_node(node: InviteGraphNode) -> dict[str, Any]:
+    return {
+        "user_id": node.user_id,
+        "username": node.username,
+        "degree": node.degree,
+        "invited_at": node.invited_at,
+        "children": [_serialize_graph_node(child) for child in node.children],
+    }
+
+
+def _deserialize_graph_node(data: dict[str, Any]) -> InviteGraphNode:
+    node = InviteGraphNode(
+        user_id=int(data["user_id"]),
+        username=data["username"],
+        degree=int(data["degree"]),
+        invited_at=data.get("invited_at"),
+    )
+    children_data = data.get("children", []) or []
+    node.children = [_deserialize_graph_node(child) for child in children_data]
+    return node
+
+
+def _serialize_ancestor(ancestor: InviteAncestor) -> dict[str, Any]:
+    return {
+        "user_id": ancestor.user_id,
+        "username": ancestor.username,
+        "degree": ancestor.degree,
+        "invited_at": ancestor.invited_at,
+    }
+
+
+def _deserialize_ancestor(data: dict[str, Any]) -> InviteAncestor:
+    return InviteAncestor(
+        user_id=int(data["user_id"]),
+        username=data["username"],
+        degree=int(data["degree"]),
+        invited_at=data.get("invited_at"),
+    )

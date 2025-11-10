@@ -9,7 +9,8 @@
 - Verification: Extended `tests/services/test_invite_graph_service.py` to cover upstream/downstream assembly and confirm cycle protection.
 
 ## Stage 3 – Cache read/write/invalidation utilities
-- Pending
+- Changes: Introduced `app/services/invite_map_cache_service.py` with TTL-aware read/write helpers plus serialization/deserialization support in `invite_graph_service`.
+- Verification: Added `tests/services/test_invite_map_cache_service.py` covering round-trip storage, TTL expiry, and invalidation.
 
 ## Stage 4 – UI route integration & template adjustments
 - Pending
