@@ -1,0 +1,21 @@
+we want to update the design of this website.
+
+we looked at partiful as a role model, and here are some notes we took:
+
+moving background
+
+colorful
+
+bubbly
+
+action/confetti/floating ui elements
+
+graphics
+
+can see who is coming
+
+distinct bubbles, rainbowy
+
+semi-transparent
+
+based on these notes, please write a plan for updating the design of our website.
