@@ -12,7 +12,7 @@
    - Surfaces warning if admin toggles public on data with private fields (e.g., request contact email).
 
 3. **Public Dataset Store**  
-   - Define git-friendly format (`*.sync.txt` bundles with headers, e.g., RFC822-style).  
+   - Define git-friendly format (`*.sync.txt` bundles with email-style headers + plain-text body; requests include inline comment transcripts).  
    - CLI command `wb sync export --public` writes files under `data/public_sync/`.  
    - Repo maintainers can review/commit these files to seed new instances.
 
