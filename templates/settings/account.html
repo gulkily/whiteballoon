@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack account-settings">
+  <header class="stack">
+    <h1>Account settings</h1>
+    <p class="muted">Update your contact details and personal photo.</p>
+  </header>
+
+  {% if form_message %}
+    <div class="alert alert--info">{{ form_message }}</div>
+  {% endif %}
+
+  <form class="card stack account-settings__form" method="post" enctype="multipart/form-data">
+    <div class="stack">
+      <label class="stack" for="account-email">
+        <span>Contact email</span>
+        <input
+          id="account-email"
+          name="contact_email"
+          type="email"
+          value="{{ form_values.contact_email or '' }}"
+          placeholder="you@example.com"
+        />
+      </label>
+      <p class="muted small-text">
+        We use this to send replies to your requests. Leave blank if you prefer not to share it.
+      </p>
+    </div>
+
+    <div class="stack">
+      <span>Profile photo</span>
+      <div class="settings-avatar">
+        {% if current_avatar_url %}
+          <span class="settings-avatar__preview" aria-label="Current profile photo">
+            <img src="{{ current_avatar_url }}" alt="" />
+          </span>
+        {% else %}
+          <span class="settings-avatar__preview settings-avatar__preview--empty" aria-label="No profile photo">
+            <span class="settings-avatar__initials">{{ user.username[:2] | upper }}</span>
+          </span>
+        {% endif %}
+        <label class="button button--ghost" for="account-photo">Choose file</label>
+        <input id="account-photo" name="profile_photo" type="file" accept="image/*" hidden />
+      </div>
+      <p class="muted small-text">JPEG, PNG, or WebP up to 5 MB. Square images look best.</p>
+    </div>
+
+    <div class="stack">
+      <p class="muted">Saving changes will be available soon.</p>
+      <button type="submit" class="button" disabled>Save changes</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

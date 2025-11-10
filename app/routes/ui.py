@@ -424,6 +424,66 @@ def invite_new(
     return templates.TemplateResponse("invite/new.html", context)
 
 
+def _build_account_settings_context(
+    request: Request,
+    db: Session,
+    session_user: SessionUser,
+    *,
+    form_values: Optional[dict[str, Optional[str]]] = None,
+    form_message: Optional[str] = None,
+) -> dict[str, object]:
+    user = session_user.user
+    session_record = session_user.session
+    session_avatar_url = _get_account_avatar(db, user.id)
+    session_role = describe_session_role(user, session_record)
+
+    if form_values is None:
+        form_values = {
+            "contact_email": user.contact_email or "",
+        }
+
+    return {
+        "request": request,
+        "user": user,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": user.username,
+        "session_avatar_url": session_avatar_url,
+        "form_values": form_values,
+        "form_message": form_message,
+        "current_avatar_url": session_avatar_url,
+    }
+
+
+@router.get("/settings/account")
+def account_settings(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    context = _build_account_settings_context(request, db, session_user)
+    return templates.TemplateResponse("settings/account.html", context)
+
+
+@router.post("/settings/account")
+def account_settings_submit(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    contact_email: Annotated[Optional[str], Form()] = None,
+) -> Response:
+    normalized_email = (contact_email or "").strip()
+    form_values = {"contact_email": normalized_email}
+    context = _build_account_settings_context(
+        request,
+        db,
+        session_user,
+        form_values=form_values,
+        form_message="Profile editing is on the way. Hold tight!",
+    )
+    return templates.TemplateResponse("settings/account.html", context)
+
+
 @router.get("/invite/map")
 def invite_map(
     request: Request,
@@ -494,6 +554,7 @@ def profile(
     ]
 
     session_avatar_url = session_user.avatar_url
+    active_privileges = [descriptor for descriptor in privilege_descriptors if descriptor["active"]]
 
     context = {
         "request": request,
@@ -507,7 +568,7 @@ def profile(
             "created_at": user.created_at,
             "avatar_url": session_avatar_url,
         },
-        "privileges": privilege_descriptors,
+        "privileges": active_privileges,
         "is_admin": user.is_admin,
         "is_half_authenticated": is_half_authenticated,
         "session_avatar_url": session_avatar_url,
