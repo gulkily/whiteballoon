@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Optional
 from pathlib import Path
+import shutil
 
 import click
 import uvicorn
@@ -18,6 +19,14 @@ from app.services import auth_service, vouch_service
 from app.url_utils import build_invite_link
 from app.sync.export_import import export_sync_data, import_sync_data
 from app.sync.peers import Peer, get_peer, load_peers, save_peers
+from app.sync.signing import (
+    SignatureVerificationError,
+    SigningKey,
+    ensure_local_keypair,
+    generate_keypair,
+    sign_bundle,
+    verify_bundle_signature,
+)
 
 
 @click.group(help="Developer utilities for the WhiteBalloon project.")
@@ -30,6 +39,42 @@ def sync_group() -> None:
     """Group of sync commands."""
 
 
+def _ensure_signing_key(auto_generate: bool = True) -> SigningKey:
+    keypair, created = ensure_local_keypair(auto_generate=auto_generate)
+    if keypair is None:
+        raise click.ClickException("Signing key missing. Run 'wb sync keygen'.")
+    if created:
+        click.secho(
+            f"Generated new signing key (id {keypair.key_id}) under .sync/keys.",
+            fg="yellow",
+        )
+    return keypair
+
+
+def _verify_bundle_dir(bundle_dir: Path, peer: Peer | None, allow_unsigned: bool) -> None:
+    expected_key = peer.public_key if peer else None
+    try:
+        metadata = verify_bundle_signature(bundle_dir, expected_public_key=expected_key)
+    except SignatureVerificationError as exc:
+        if allow_unsigned:
+            click.secho(
+                f"Warning: {exc}. Continuing due to --allow-unsigned.",
+                fg="yellow",
+            )
+            return
+        raise click.ClickException(str(exc)) from exc
+    if expected_key:
+        click.secho(
+            f"Verified bundle signature for peer '{peer.name}' (key {metadata.key_id}).",
+            fg="green",
+        )
+    else:
+        click.secho(
+            f"Verified bundle signature (key {metadata.key_id}) but no trusted peer key registered.",
+            fg="yellow",
+        )
+
+
 @sync_group.command(name="export")
 @click.option(
     "--output",
@@ -39,15 +84,32 @@ def sync_group() -> None:
     help="Directory to write .sync.txt files",
 )
 def sync_export(output: Path) -> None:
+    keypair = _ensure_signing_key(auto_generate=True)
     engine = get_engine()
     with Session(engine) as session:
         files = export_sync_data(session, output)
+    sig_path = sign_bundle(output, keypair)
     click.secho(f"Wrote {len(files)} files to {output}", fg="green")
+    click.secho(f"Signed manifest ({sig_path})", fg="cyan")
 
 
 @sync_group.command(name="import")
 @click.argument("input_dir", type=click.Path(path_type=Path))
-def sync_import(input_dir: Path) -> None:
+@click.option("--peer", "peer_name", default=None, help="Peer entry for signature verification")
+@click.option(
+    "--allow-unsigned",
+    is_flag=True,
+    default=False,
+    help="Skip signature verification (not recommended)",
+)
+def sync_import(input_dir: Path, peer_name: str | None, allow_unsigned: bool) -> None:
+    peer: Peer | None = None
+    if peer_name:
+        peer = get_peer(peer_name)
+        if not peer:
+            raise click.ClickException(f"Peer '{peer_name}' not found. Use 'wb sync peers list'.")
+    _ensure_signing_key(auto_generate=True)
+    _verify_bundle_dir(input_dir, peer=peer, allow_unsigned=allow_unsigned)
     engine = get_engine()
     with Session(engine) as session:
         count = import_sync_data(session, Path(input_dir))
@@ -60,33 +122,65 @@ def sync_push(peer_name: str) -> None:
     peer = get_peer(peer_name)
     if not peer:
         raise click.ClickException(f"Peer '{peer_name}' not found. Use 'wb sync peers add'.")
+    keypair = _ensure_signing_key(auto_generate=True)
     engine = get_engine()
     with Session(engine) as session:
         temp_dir = Path("data/public_sync")
         files = export_sync_data(session, temp_dir)
+    sign_bundle(temp_dir, keypair)
     dest = peer.path
     dest.mkdir(parents=True, exist_ok=True)
-    for file in temp_dir.rglob("*.sync.txt"):
+    copied = 0
+    for file in temp_dir.rglob("*"):
+        if not file.is_file():
+            continue
         rel = file.relative_to(temp_dir)
         target = dest / rel
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_text(file.read_text(encoding="utf-8"), encoding="utf-8")
-    click.secho(f"Pushed {len(files)} files to peer '{peer_name}'", fg="green")
+        shutil.copy2(file, target)
+        copied += 1
+    click.secho(f"Pushed {copied} files (data + signature) to peer '{peer_name}'", fg="green")
 
 
 @sync_group.command(name="pull")
 @click.argument("peer_name")
-def sync_pull(peer_name: str) -> None:
+@click.option(
+    "--allow-unsigned",
+    is_flag=True,
+    default=False,
+    help="Skip signature verification (not recommended)",
+)
+def sync_pull(peer_name: str, allow_unsigned: bool) -> None:
     peer = get_peer(peer_name)
     if not peer:
         raise click.ClickException(f"Peer '{peer_name}' not found. Use 'wb sync peers add'.")
     source = peer.path
     if not source.exists():
         raise click.ClickException(f"Peer path not found: {source}")
+    _ensure_signing_key(auto_generate=True)
+    _verify_bundle_dir(source, peer=peer, allow_unsigned=allow_unsigned)
     engine = get_engine()
     with Session(engine) as session:
         count = import_sync_data(session, source)
     click.secho(f"Pulled {count} records from peer '{peer_name}'", fg="green")
+
+
+@sync_group.command(name="keygen")
+@click.option("--force", is_flag=True, default=False, help="Regenerate the signing keypair")
+def sync_keygen(force: bool) -> None:
+    if force:
+        keypair = generate_keypair(force=True)
+        click.secho(f"Regenerated signing key (id {keypair.key_id}).", fg="yellow")
+    else:
+        keypair, created = ensure_local_keypair(auto_generate=True)
+        if not keypair:
+            raise click.ClickException("Unable to initialize signing keypair.")
+        if created:
+            click.secho(f"Generated signing key (id {keypair.key_id}).", fg="green")
+        else:
+            click.secho(f"Signing key already present (id {keypair.key_id}).", fg="cyan")
+    click.echo("Public key (share with peers):")
+    click.echo(f"  {keypair.public_key_b64}")
 
 
 @sync_group.group(name="peers")
@@ -101,18 +195,26 @@ def peers_list() -> None:
         click.echo("No peers configured. Use 'wb sync peers add'.")
         return
     for peer in peers:
-        click.echo(f"- {peer.name}: {peer.path}")
+        details = f"- {peer.name}: {peer.path}"
+        if peer.public_key:
+            details += f" (pub={peer.public_key[:16]}...)"
+        click.echo(details)
 
 
 @peers_group.command(name="add")
 @click.option("--name", prompt="Peer name")
 @click.option("--path", prompt="Bundle directory", type=click.Path(path_type=Path))
 @click.option("--token", default=None, help="Optional auth token")
-def peers_add(name: str, path: Path, token: str | None) -> None:
+@click.option(
+    "--public-key",
+    default=None,
+    help="Peer's Ed25519 public key (base64) for signature verification",
+)
+def peers_add(name: str, path: Path, token: str | None, public_key: str | None) -> None:
     peers = load_peers()
     if any(peer.name == name for peer in peers):
         raise click.ClickException(f"Peer '{name}' already exists")
-    peers.append(Peer(name=name, path=path, token=token))
+    peers.append(Peer(name=name, path=path, token=token, public_key=public_key))
     save_peers(peers)
     click.secho(f"Added peer '{name}'", fg="green")
 

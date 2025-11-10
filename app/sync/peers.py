@@ -12,6 +12,7 @@ class Peer:
     name: str
     path: Path
     token: str | None = None
+    public_key: str | None = None
 
 
 def load_peers(peer_file: Path | None = None) -> list[Peer]:
@@ -47,6 +48,8 @@ def save_peers(peers: Iterable[Peer], peer_file: Path | None = None) -> None:
         lines.append(f"path={peer.path}")
         if peer.token:
             lines.append(f"token={peer.token}")
+        if peer.public_key:
+            lines.append(f"public_key={peer.public_key}")
         lines.append("")
     file_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
@@ -64,4 +67,4 @@ def _peer_from_dict(data: dict[str, str]) -> Peer:
     path = data.get("path")
     if not name or not path:
         raise ValueError("Peer entries require name and path")
-    return Peer(name=name, path=Path(path), token=data.get("token"))
+    return Peer(name=name, path=Path(path), token=data.get("token"), public_key=data.get("public_key"))

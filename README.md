@@ -60,6 +60,24 @@ Requires Python 3.10+.
 
 > **Invite links**: By default invite links use the incoming request origin. Set `SITE_URL` in `.env` to provide a fallback host for CLI usage or non-HTTP contexts.
 
+## Manual sync bundles & signatures
+
+Stage 5 of the sync plan introduces signed bundles so operators can trust data pulled from peers:
+
+1. Generate a signing keypair once per instance:
+   ```bash
+   ./wb sync keygen
+   ```
+   The private key lives under `.sync/keys/` and the CLI prints the base64 public key you should share with peers. The key is auto-created the first time you run any sync command if it’s missing.
+2. Register peers with their bundle directory and public key so pulls can authenticate signatures:
+   ```bash
+   ./wb sync peers add --name hub --path ../shared/public_sync --public-key <base64>
+   ```
+3. Export/push flows now sign `manifest.sync.txt`, emit `bundle.sig`, and drop your public key under `data/public_sync/public_keys/<key-id>.pub`. Multiple operators can share the same bundle directory; each signer writes/updates only their own file.
+4. `./wb sync pull <peer>` and `./wb sync import <dir> --peer <name>` verify the signature before applying data. Use `--allow-unsigned` only when working with historical bundles that predate signatures.
+
+The signature file stores the manifest digest plus the signer’s key ID. Keep `.sync/keys/` out of version control and rotate keys with `./wb sync keygen --force` if a secret ever leaks.
+
 ## Send Welcome page
 - While signed in, use the “Send Welcome” button (header menu) to generate an invite instantly.
 - The page shows the invite link, token, QR code, and optional fields for suggested username/bio to share with the invitee.
