@@ -6,6 +6,7 @@ from . import (
     invite_map_cache_service,
     request_comment_service,
     user_attribute_service,
+    vouch_service,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "invite_map_cache_service",
     "request_comment_service",
     "user_attribute_service",
+    "vouch_service",
 ]

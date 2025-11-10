@@ -14,7 +14,7 @@ from app.config import get_settings
 from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
 from app.schema_utils import ensure_schema_integrity
-from app.services import auth_service
+from app.services import auth_service, vouch_service
 from app.url_utils import build_invite_link
 from app.sync.export_import import export_sync_data, import_sync_data
 from app.sync.peers import Peer, get_peer, load_peers, save_peers

@@ -151,3 +151,15 @@ class AuthApproval(SQLModel, table=True):
     auth_request_id: str = Field(foreign_key="auth_requests.id", nullable=False)
     approver_user_id: int = Field(foreign_key="users.id", nullable=False)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
+
+class Vouch(SQLModel, table=True):
+    __tablename__ = "vouches"
+    __table_args__ = (UniqueConstraint("voucher_user_id", "subject_user_id", name="ux_vouches_unique"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    voucher_user_id: int = Field(foreign_key="users.id", nullable=False)
+    subject_user_id: int = Field(foreign_key="users.id", nullable=False)
+    signature: Optional[str] = Field(default=None, max_length=128)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
