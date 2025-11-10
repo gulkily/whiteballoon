@@ -1,6 +1,6 @@
 # Complex Feature Process
 
-When pursuing multi-instance sync or other large-scale features, use this five-stage process to force clarity before touching code. Each stage produces a short artifact in `docs/plans/` (≤1 page unless noted) and must be approved before moving on. Keep each stage’s doc uncommitted until reviewed, then commit right before starting the next stage so pending work stays visible. The outcome is a detailed description (or set of descriptions) that feeds directly into the FEATURE_DEVELOPMENT_PROCESS planning docs—development must not begin until both processes conclude.
+When pursuing multi-instance sync or other large-scale features, use this five-stage process to force clarity before touching code. Each stage produces a short artifact in `docs/plans/` (≤1 page unless noted) and must be approved before moving on. Keep each stage’s doc uncommitted until reviewed, then commit right before starting the next stage so pending work stays visible. The outcome is a detailed description (or set of descriptions) that become the Step 1 solution assessment(s) feeding into FEATURE_DEVELOPMENT_PROCESS—development must not begin until both processes conclude.
 
 ## Stage 0 – Problem Framing
 **When**: At the first hint of cross-cutting impact (infra, data sync, multiple orgs, external integrations).
