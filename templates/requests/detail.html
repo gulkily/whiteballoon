@@ -59,14 +59,6 @@
     <div class="request-detail">
       {% include "requests/partials/item.html" %}
     </div>
-    <div class="request-detail-footer">
-      <h2>Next steps</h2>
-      {% if request_item.contact_email %}
-        <p>Reach out at <a href="mailto:{{ request_item.contact_email }}">{{ request_item.contact_email }}</a> to continue the conversation.</p>
-      {% else %}
-        <p>More tracking tools are coming soon. For now, share the link above to coordinate updates.</p>
-      {% endif %}
-    </div>
   </div>
 </section>
 <section class="section request-comments-section">
