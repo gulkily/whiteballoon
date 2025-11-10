@@ -20,6 +20,7 @@ htmlcov/
 *.sqlite3
 *.db
 /data/app.db
+data/
 
 *.egg-info/
 fonts-raw/
