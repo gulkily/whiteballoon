@@ -258,12 +258,13 @@ def _render_request_body(request_obj: HelpRequest, comments: list[dict[str, obje
     if comments:
         lines.append("Comments:")
         for comment in comments:
-            header = (
-                f"--- id={comment.get('id')} user_id={comment.get('user_id')} "
-                f"username={comment.get('username')} created_at={comment.get('created_at')} "
-                f"sync_scope={comment.get('sync_scope')}"
-            )
-            lines.append(header)
+            lines.append("---")
+            lines.append(f"Comment-ID: {comment.get('id')}")
+            lines.append(f"User-ID: {comment.get('user_id')}")
+            lines.append(f"Username: {comment.get('username')}")
+            lines.append(f"Created-At: {comment.get('created_at')}")
+            lines.append(f"Sync-Scope: {comment.get('sync_scope')}")
+            lines.append("")
             lines.append(comment.get("body") or "")
             lines.append("")
     return "\n".join(lines).rstrip() + "\n"
@@ -306,17 +307,25 @@ def _parse_request_body(body_text: str) -> tuple[str, list[dict[str, object]]]:
     comments: list[dict[str, object]] = []
     if comments_section:
         current: dict[str, object] | None = None
+        headers_done = False
         for line in comments_section.splitlines():
-            if line.startswith("--- "):
+            if line.strip() == "---":
                 if current:
                     comments.append(current)
-                meta = _parse_comment_meta(line[4:])
-                current = meta
-                current["body_lines"] = []
-            else:
-                if current is None:
+                current = {"body_lines": []}
+                headers_done = False
+                continue
+            if current is None:
+                continue
+            if not headers_done:
+                if not line.strip():
+                    headers_done = True
                     continue
-                current.setdefault("body_lines", []).append(line)
+                if ":" in line:
+                    key, value = line.split(":", 1)
+                    current[key.strip().lower()] = value.strip()
+                continue
+            current.setdefault("body_lines", []).append(line)
         if current:
             comments.append(current)
     parsed_comments: list[dict[str, object]] = []
@@ -324,11 +333,11 @@ def _parse_request_body(body_text: str) -> tuple[str, list[dict[str, object]]]:
         body_lines = item.pop("body_lines", [])
         parsed_comments.append(
             {
-                "id": _maybe_int(item.get("id")),
-                "user_id": _maybe_int(item.get("user_id")),
+                "id": _maybe_int(item.get("comment-id")),
+                "user_id": _maybe_int(item.get("user-id")),
                 "username": item.get("username"),
-                "created_at": item.get("created_at"),
-                "sync_scope": item.get("sync_scope", "public"),
+                "created_at": item.get("created-at"),
+                "sync_scope": item.get("sync-scope", "public"),
                 "body": "\n".join(body_lines).strip(),
             }
         )
