@@ -21,6 +21,10 @@
         <input id="invite-photo" name="photo" type="file" accept="image/*" required />
         <span class="small-text muted">Choose a picture that will appear on their welcome screen.</span>
       </label>
+      <label class="stack" for="invite-share">
+        <span>Share this invite publicly?</span>
+        <input id="invite-share" name="share_publicly" type="checkbox" value="1" />
+      </label>
     </div>
 
     <div class="stack">
@@ -147,8 +151,6 @@
     const username = (fields.suggested_username || '').trim();
     const gratitude = (fields.gratitude_note || '').trim();
     const support = (fields.support_message || '').trim();
-    const fun = (fields.fun_details || '').trim();
-    const help = Array.isArray(fields.help_examples) ? fields.help_examples : [];
 
     let message = `Hi! ${inviter} has welcomed you into WhiteBalloon.`;
     if (username) {
@@ -159,15 +161,6 @@
     }
     if (support) {
       message += `\n\nHow they'll support you: ${support}`;
-    }
-    if (help.length) {
-      message += '\n\nWays they can help:';
-      help.forEach((item) => {
-        message += `\n- ${item}`;
-      });
-    }
-    if (fun) {
-      message += `\n\nFun things you share: ${fun}`;
     }
     if (link) {
       message += `\n\nJoin here: ${link}`;
@@ -186,6 +179,7 @@
     const suggestedUsername = String(formData.get('suggested_username') || '').trim();
     const gratitudeNote = String(formData.get('gratitude_note') || '').trim();
     const supportMessage = String(formData.get('support_message') || '').trim();
+    const sharePublicly = formData.get('share_publicly') === '1';
 
     if (!suggestedUsername || !gratitudeNote || !supportMessage) {
       setInlineMessage('Please complete every required field before creating the invite.');
@@ -197,6 +191,9 @@
     sanitized.append('gratitude_note', gratitudeNote);
     sanitized.append('support_message', supportMessage);
     sanitized.append('photo', photoFile);
+    if (sharePublicly) {
+      sanitized.append('share_publicly', '1');
+    }
 
     return {
       formData: sanitized,
@@ -204,8 +201,7 @@
         suggested_username: suggestedUsername,
         gratitude_note: gratitudeNote,
         support_message: supportMessage,
-        fun_details: '',
-        help_examples: [],
+        share_publicly: sharePublicly,
       },
     };
   }

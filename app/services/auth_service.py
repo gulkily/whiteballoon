@@ -175,6 +175,7 @@ def create_invite_token(
     suggested_username: Optional[str] = None,
     suggested_bio: Optional[str] = None,
     personalization: Optional[InvitePersonalizationPayload] = None,
+    sync_scope: str = "private",
 ) -> InviteCreationResult:
     invite = InviteToken(
         created_by_user_id=created_by.id if created_by else None,
@@ -182,6 +183,7 @@ def create_invite_token(
         auto_approve=auto_approve,
         suggested_username=(suggested_username.strip() if suggested_username else None),
         suggested_bio=(suggested_bio.strip() if suggested_bio else None),
+        sync_scope=sync_scope,
     )
     if expires_in_days:
         invite.expires_at = datetime.utcnow() + timedelta(days=expires_in_days)

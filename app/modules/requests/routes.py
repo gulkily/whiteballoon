@@ -28,6 +28,7 @@ class RequestResponse(BaseModel):
     updated_at: str
     completed_at: str | None
     can_complete: bool = False
+    sync_scope: str = "private"
 
     @classmethod
     def from_model(
@@ -48,6 +49,7 @@ class RequestResponse(BaseModel):
             updated_at=request.updated_at.isoformat() + "Z",
             completed_at=request.completed_at.isoformat() + "Z" if request.completed_at else None,
             can_complete=can_complete,
+            sync_scope=getattr(request, "sync_scope", "private"),
         )
 
 

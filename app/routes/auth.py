@@ -152,6 +152,7 @@ async def create_invite(
     support_message: str = Form(...),
     fun_details: Optional[str] = Form(None),
     help_examples: Optional[List[str]] = Form(None),
+    share_publicly: Optional[str] = Form(None),
     photo: UploadFile = File(...),
     max_uses: int = Form(1),
     expires_in_days: Optional[int] = Form(None),
@@ -177,6 +178,7 @@ async def create_invite(
     )
 
     photo_url = await _store_invite_photo(photo)
+    sync_scope = "public" if share_publicly else "private"
 
     invite_result = auth_service.create_invite_token(
         db,
@@ -186,6 +188,7 @@ async def create_invite(
         suggested_username=personalization.pop("suggested_username"),
         suggested_bio=personalization.pop("suggested_bio"),
         personalization=InvitePersonalizationPayload(photo_url=photo_url, **personalization),
+        sync_scope=sync_scope,
     )
 
     invite = invite_result.invite

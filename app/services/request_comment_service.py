@@ -64,4 +64,5 @@ def serialize_comment(comment: RequestComment, user: User) -> dict[str, object]:
         "created_at_iso": created_at_iso,
         "user_id": user.id,
         "username": user.username,
+        "sync_scope": comment.sync_scope,
     }

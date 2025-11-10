@@ -34,7 +34,22 @@
             <span class="meta-chip__label">Updated</span>
             <time class="meta-chip__value" datetime="{{ request_item.created_at }}">{{ request_item.created_at | friendly_time }}</time>
           </span>
+          <span class="meta-chip">
+            <span class="meta-chip__label">Sharing</span>
+            <span class="meta-chip__value">{{ request_item.sync_scope | title }}</span>
+          </span>
         </div>
+        {% if can_toggle_sync_scope %}
+          <form class="sync-scope-toggle" method="post" action="/sync/scope">
+            <input type="hidden" name="entity_type" value="request" />
+            <input type="hidden" name="entity_id" value="{{ request_item.id }}" />
+            <input type="hidden" name="next" value="{{ request.url.path }}" />
+            <input type="hidden" name="scope" value="{{ 'public' if request_item.sync_scope == 'private' else 'private' }}" />
+            <button type="submit" class="button button--ghost">
+              {{ 'Share publicly' if request_item.sync_scope == 'private' else 'Keep private' }}
+            </button>
+          </form>
+        {% endif %}
       </div>
     </div>
     {% set item = request_item %}

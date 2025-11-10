@@ -32,6 +32,17 @@
       </div>
       <div class="profile-header__actions">
         <a class="button button--ghost" href="/settings/account">Edit account settings</a>
+        {% if user.is_admin %}
+          <form class="sync-scope-toggle" method="post" action="/sync/scope">
+            <input type="hidden" name="entity_type" value="user" />
+            <input type="hidden" name="entity_id" value="{{ user.id }}" />
+            <input type="hidden" name="next" value="{{ request.url.path }}" />
+            <input type="hidden" name="scope" value="{{ 'public' if user.sync_scope == 'private' else 'private' }}" />
+            <button type="submit" class="button button--ghost">
+              {{ 'Share profile' if user.sync_scope == 'private' else 'Keep profile private' }}
+            </button>
+          </form>
+        {% endif %}
       </div>
     </div>
   </header>

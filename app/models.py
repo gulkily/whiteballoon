@@ -18,6 +18,7 @@ class User(SQLModel, table=True):
     is_admin: bool = Field(default=False, nullable=False)
     contact_email: Optional[str] = Field(default=None, max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
 
 
@@ -46,6 +47,7 @@ class HelpRequest(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     completed_at: Optional[datetime] = Field(default=None)
+    sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
 
 
@@ -58,6 +60,7 @@ class RequestComment(SQLModel, table=True):
     body: str = Field(sa_column=Column(Text, nullable=False))
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
     deleted_at: Optional[datetime] = Field(default=None)
+    sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
 
 
@@ -78,6 +81,7 @@ class InviteToken(SQLModel, table=True):
     auto_approve: bool = Field(default=True, nullable=False)
     suggested_username: Optional[str] = Field(default=None, max_length=64)
     suggested_bio: Optional[str] = Field(default=None, max_length=512)
+    sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
 
 

@@ -438,6 +438,7 @@ async def create_request_comment(
             "request": request,
             "comment": comment_payload,
             "can_moderate_comments": viewer.is_admin,
+            "can_toggle_sync_scope": viewer.is_admin,
             "request_id": help_request.id,
         }
     )
@@ -475,6 +476,41 @@ def delete_request_comment(
     return RedirectResponse(url=f"/requests/{request_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
+@router.post("/sync/scope")
+def update_sync_scope(
+    request: Request,
+    entity_type: Annotated[str, Form(...)],
+    entity_id: Annotated[int, Form(...)],
+    scope: Annotated[str, Form(...)],
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    next_url: Optional[str] = Form(None),
+) -> Response:
+    user = session_user.user
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+    cleaned_scope = scope.lower().strip()
+    if cleaned_scope not in SYNC_SCOPE_VALUES:
+        cleaned_scope = "private"
+
+    model = SYNC_SCOPE_MODELS.get(entity_type)
+    if not model:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported entity type")
+
+    record = db.get(model, entity_id)
+    if not record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Record not found")
+
+    if getattr(record, "sync_scope", cleaned_scope) != cleaned_scope:
+        record.sync_scope = cleaned_scope
+        db.add(record)
+        db.commit()
+
+    redirect_to = next_url or request.headers.get("referer") or "/"
+    return RedirectResponse(url=redirect_to, status_code=status.HTTP_303_SEE_OTHER)
+
+
 @router.get("/invite/new")
 def invite_new(
     request: Request,
@@ -507,6 +543,15 @@ def _wants_json(request: Request) -> bool:
         return True
     requested_with = request.headers.get("x-requested-with", "")
     return requested_with.lower() in {"fetch", "xmlhttprequest"}
+
+
+SYNC_SCOPE_VALUES = {"private", "public"}
+SYNC_SCOPE_MODELS = {
+    "request": HelpRequest,
+    "comment": RequestComment,
+    "user": User,
+    "invite": InviteToken,
+}
 
 
 def _build_account_settings_context(
@@ -574,6 +619,7 @@ def _build_request_detail_context(
     comment_rows = request_comment_service.list_comments(db, help_request_id=help_request.id)
     comments = [request_comment_service.serialize_comment(comment, author) for comment, author in comment_rows]
     can_moderate = viewer.is_admin
+    can_toggle_sync_scope = viewer.is_admin
 
     return {
         "request": request,
@@ -587,6 +633,7 @@ def _build_request_detail_context(
         "comments": comments,
         "can_comment": session_record.is_fully_authenticated,
         "can_moderate_comments": can_moderate,
+        "can_toggle_sync_scope": can_toggle_sync_scope,
         "comment_form_errors": comment_form_errors or [],
         "comment_form_body": comment_form_body,
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,

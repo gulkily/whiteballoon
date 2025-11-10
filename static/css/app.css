@@ -924,6 +924,23 @@ textarea::placeholder {
   gap: 1rem;
 }
 
+.sync-scope-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sync-scope-toggle .button {
+  padding: 0.35rem 0.75rem;
+}
+
+.request-comment__scope {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .request-detail-header__title h1 {
   margin: 0;
   font-size: clamp(2rem, 1.8rem + 0.8vw, 2.6rem);
