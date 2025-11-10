@@ -71,10 +71,6 @@
 </section>
 <section class="section request-comments-section">
   <div class="card stack request-comments" data-comment-section>
-    <div class="request-comments__header">
-      <h2>Discussion</h2>
-      <p class="muted small-text">Share clarifications or encouragement below.</p>
-    </div>
     {% if comments %}
       <ul class="request-comments__list" data-comment-list>
         {% for comment in comments %}
@@ -82,7 +78,6 @@
         {% endfor %}
       </ul>
     {% else %}
-      <p class="muted">No comments yet. Be the first to say hello.</p>
       <ul class="request-comments__list" data-comment-list hidden></ul>
     {% endif %}
 
@@ -100,7 +95,6 @@
           <div class="alert alert--error" data-comment-errors hidden></div>
         {% endif %}
         <label class="stack" for="comment-body">
-          <span class="small-text">Add a comment</span>
           <textarea
             id="comment-body"
             name="body"
@@ -110,12 +104,11 @@
           >{{ comment_form_body }}</textarea>
         </label>
         <div class="request-comments__form-footer">
-          <span class="muted small-text">Max {{ comment_max_length }} characters.</span>
           <button type="submit" class="button" data-comment-submit>Post comment</button>
         </div>
       </form>
     {% else %}
-      <p class="muted">You need a fully verified session to comment on requests.</p>
+      <p class="muted"></p>
     {% endif %}
   </div>
 </section>
