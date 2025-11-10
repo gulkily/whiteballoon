@@ -25,7 +25,7 @@
 ## Capability C – Public Dataset Store (Git-friendly)
 - **Goal**: Stage shareable snapshots that can be committed to GitHub.
 - **Tasks**:
-  1. Define `.sync.txt` format: header block (Entity, Version, Instance-ID, Updated-At) + body (JSON payload or YAML). Include `Sync-Scope` header.
+  1. Define `.sync.txt` format: header block (Entity, Version, Instance-ID, Updated-At, Sync-Scope) + plain-text body (description plus comment transcripts separated by `---`).
   2. Export command writes one file per entity instance (user, request, etc.) with stable filenames (`<entity>_<id>.sync.txt`).
   3. Generate manifest file `data/public_sync/manifest.sync.txt` listing all files and checksums.
   4. Document repo workflow: review diffs, commit, include manifest.
@@ -47,9 +47,9 @@
 ## Capability E – Peer Registry (Manual)
 - **Goal**: Track known peers for future sync commands.
 - **Tasks**:
-  1. Define `sync_peers.txt` format: repeated blocks with `Peer-ID`, `URL`, `Public-Key`, `Notes`.
+  1. Define `sync_peers.txt` format: repeated blocks with `name`, `path`/URL, optional token/notes.
   2. CLI commands `wb sync peers list/add/remove` editing the file.
-  3. Sync commands read this file to know push/pull targets (hub entry + manual peers).
+  3. Sync commands read this file to know push/pull targets (hub entry + manual repos/dirs).
 - **Verification**: CLI tests ensuring file updates are deterministic.
 - **Risks**: Manual file edits causing conflicts; instruct operators to use CLI.
 
@@ -58,7 +58,7 @@
 - **Tasks**:
   1. Document `./wb sync import data/public_sync` as part of setup instructions.
   2. Provide check ensuring schema compatibility before import.
-  3. Add optional `wb sync init --from repo` command that runs import + registers peers from repo defaults.
+  3. Add optional helpers to export/import directly into a dedicated public-data repo (e.g., `wb sync git-export` / `git-import`) and mention optional git hooks for auto-export before commit or auto-import after pull.
 - **Verification**: Fresh DB test using exported bundle; confirm data appears and privacy flags remain intact.
 - **Risks**: Mixed schema versions; rely on schema headers + warnings.
 
