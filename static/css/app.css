@@ -1567,6 +1567,16 @@ form.inline {
   gap: 1.5rem;
 }
 
+.settings-fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.settings-fieldset legend {
+  font-weight: 600;
+}
+
 .settings-avatar {
   display: flex;
   align-items: center;
@@ -1607,6 +1617,11 @@ form.inline {
 .settings-avatar__initials {
   font-weight: 600;
   color: var(--color-muted);
+}
+
+.settings-submit {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .background-bubbles,
