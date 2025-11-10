@@ -16,11 +16,41 @@ from app.modules.requests import services as request_services
 from app.schema_utils import ensure_schema_integrity
 from app.services import auth_service
 from app.url_utils import build_invite_link
+from app.sync.export_import import export_sync_data, import_sync_data
 
 
 @click.group(help="Developer utilities for the WhiteBalloon project.")
 def cli() -> None:
     """Entry point for the CLI group."""
+
+
+@cli.group(name="sync", help="Manual sync utilities")
+def sync_group() -> None:
+    """Group of sync commands."""
+
+
+@sync_group.command(name="export")
+@click.option(
+    "--output",
+    default="data/public_sync",
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Directory to write .sync.txt files",
+)
+def sync_export(output: Path) -> None:
+    engine = get_engine()
+    with Session(engine) as session:
+        files = export_sync_data(session, output)
+    click.secho(f"Wrote {len(files)} files to {output}", fg="green")
+
+
+@sync_group.command(name="import")
+@click.argument("input_dir", type=click.Path(path_type=Path))
+def sync_import(input_dir: Path) -> None:
+    engine = get_engine()
+    with Session(engine) as session:
+        count = import_sync_data(session, Path(input_dir))
+    click.secho(f"Imported {count} records from {input_dir}", fg="green")
 
 
 @cli.command()
