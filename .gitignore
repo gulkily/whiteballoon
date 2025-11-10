@@ -23,3 +23,4 @@ htmlcov/
 
 *.egg-info/
 fonts-raw/
+static/uploads/
