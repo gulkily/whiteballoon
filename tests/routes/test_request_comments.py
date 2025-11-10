@@ -7,6 +7,7 @@ from sqlmodel import Session, SQLModel, create_engine, select
 from app.db import get_session
 from app.main import create_app
 from app.models import HelpRequest, RequestComment, User, UserSession
+from app.services import request_comment_service
 from app.services.auth_service import SESSION_COOKIE_NAME
 
 
@@ -106,6 +107,65 @@ def test_create_comment_requires_full_auth():
         f"/requests/{request_id}/comments",
         headers={"X-Requested-With": "Fetch", "Accept": "application/json"},
         data={"body": "Message"},
+    )
+
+    assert response.status_code == 403
+
+    app.dependency_overrides.clear()
+
+
+def test_admin_can_delete_comment():
+    app, engine = build_app_and_engine()
+    client = TestClient(app)
+    admin_id, session_id, request_id = create_user_with_session(engine, username="admin")
+
+    with Session(engine) as session:
+        session.get(User, admin_id).is_admin = True
+        session.commit()
+        comment = request_comment_service.add_comment(
+            session,
+            help_request_id=request_id,
+            user_id=admin_id,
+            body="Note",
+        )
+        session.commit()
+        comment_id = comment.id
+
+    client.cookies.set(SESSION_COOKIE_NAME, session_id)
+    response = client.post(
+        f"/requests/{request_id}/comments/{comment_id}/delete",
+        headers={"X-Requested-With": "Fetch", "Accept": "application/json"},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("deleted") is True
+
+    with Session(engine) as session:
+        stored = session.get(RequestComment, comment_id)
+        assert stored.deleted_at is not None
+
+    app.dependency_overrides.clear()
+
+
+def test_non_admin_cannot_delete_comment():
+    app, engine = build_app_and_engine()
+    client = TestClient(app)
+    user_id, session_id, request_id = create_user_with_session(engine, username="member")
+
+    with Session(engine) as session:
+        comment = request_comment_service.add_comment(
+            session,
+            help_request_id=request_id,
+            user_id=user_id,
+            body="hello",
+        )
+        session.commit()
+        comment_id = comment.id
+
+    client.cookies.set(SESSION_COOKIE_NAME, session_id)
+    response = client.post(
+        f"/requests/{request_id}/comments/{comment_id}/delete",
+        headers={"X-Requested-With": "Fetch", "Accept": "application/json"},
     )
 
     assert response.status_code == 403

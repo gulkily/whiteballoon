@@ -18,7 +18,7 @@ from app.dependencies import (
     require_authenticated_user,
     require_session_user,
 )
-from app.models import AuthenticationRequest, HelpRequest, InviteToken, User, UserSession
+from app.models import AuthenticationRequest, HelpRequest, InviteToken, RequestComment, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
@@ -434,11 +434,43 @@ async def create_request_comment(
 
     comment_payload = request_comment_service.serialize_comment(comment, viewer)
     fragment = templates.get_template("requests/partials/comment.html").render(
-        {"request": request, "comment": comment_payload}
+        {
+            "request": request,
+            "comment": comment_payload,
+            "can_moderate_comments": viewer.is_admin,
+            "request_id": help_request.id,
+        }
     )
 
     if wants_json:
         return JSONResponse({"html": fragment, "comment": comment_payload})
+
+    return RedirectResponse(url=f"/requests/{request_id}", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/requests/{request_id}/comments/{comment_id}/delete")
+def delete_request_comment(
+    request: Request,
+    request_id: int,
+    comment_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    viewer = session_user.user
+
+    if not viewer.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+    comment = db.get(RequestComment, comment_id)
+    if not comment or comment.help_request_id != help_request.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+
+    request_comment_service.soft_delete_comment(db, comment_id)
+    db.commit()
+
+    if _wants_json(request):
+        return JSONResponse({"deleted": True, "comment_id": comment_id})
 
     return RedirectResponse(url=f"/requests/{request_id}", status_code=status.HTTP_303_SEE_OTHER)
 
@@ -541,6 +573,7 @@ def _build_request_detail_context(
 
     comment_rows = request_comment_service.list_comments(db, help_request_id=help_request.id)
     comments = [request_comment_service.serialize_comment(comment, author) for comment, author in comment_rows]
+    can_moderate = viewer.is_admin
 
     return {
         "request": request,
@@ -553,9 +586,11 @@ def _build_request_detail_context(
         "session_avatar_url": session_user.avatar_url,
         "comments": comments,
         "can_comment": session_record.is_fully_authenticated,
+        "can_moderate_comments": can_moderate,
         "comment_form_errors": comment_form_errors or [],
         "comment_form_body": comment_form_body,
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
+        "request_id": help_request.id,
     }
 
 

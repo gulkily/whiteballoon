@@ -1,3 +1,4 @@
+
 (function () {
   const form = document.querySelector('[data-comment-form]');
   if (!form) return;
@@ -60,6 +61,45 @@
       form.submit();
     } finally {
       submitButton?.removeAttribute('disabled');
+    }
+  });
+
+  const commentSection = document.querySelector('[data-comment-section]');
+  if (!commentSection) return;
+
+  commentSection.addEventListener('submit', async (event) => {
+    const target = event.target;
+    if (!target.matches('[data-comment-delete-form]')) return;
+
+    if (!window.fetch) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const commentEl = target.closest('[data-comment-id]');
+    const deleteButton = target.querySelector('[data-comment-delete]');
+    deleteButton?.setAttribute('disabled', 'disabled');
+
+    try {
+      const response = await fetch(target.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'Fetch', Accept: 'application/json' },
+      });
+
+      if (!response.ok) {
+        target.submit();
+        return;
+      }
+
+      commentEl?.remove();
+      if (list && !list.children.length) {
+        list.setAttribute('hidden', 'hidden');
+      }
+    } catch (error) {
+      target.submit();
+    } finally {
+      deleteButton?.removeAttribute('disabled');
     }
   });
 })();

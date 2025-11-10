@@ -9,11 +9,13 @@
 - Verification: `pytest tests/services/test_request_comment_service.py`
 
 ## Stage 3 – Posting endpoint + validation
-- Changes: Added `/requests/{id}/comments` POST handler that enforces full authentication, validates bodies via the service, persists comments, and returns both rendered HTML fragments (for vanilla JS) and JSON metadata. Built comment partial template, context wiring in request detail view, and fetch-based JS to insert comments without reload; added route tests covering success, validation failures, and permission checks.
+- Changes: Added `/requests/{id}/comments` POST handler that enforces full authentication, validates bodies via the service, commits to the DB, and returns rendered comment fragments plus JSON metadata for the frontend. Added route tests covering success, validation failures, and auth checks.
 - Verification: `pytest tests/routes/test_request_comments.py tests/services/test_request_comment_service.py tests/models/test_request_comment.py`
 
 ## Stage 4 – UI integration & vanilla JS
-- Pending
+- Changes: Request detail template now renders the discussion section (list, form, alerts) plus comment partial and new CSS. Added `static/js/request-comments.js` to handle fetch-based posting and DOM insertion with graceful fallback.
+- Verification: Manual browser test; covered indirectly by route tests (HTML snippet path).
 
 ## Stage 5 – Moderation hooks & documentation
-- Pending
+- Changes: Added admin-only delete endpoint/forms for comments (supports JSON + fallback), updated JS to remove comments inline, tweaked partial/template for controls, and documented the feature in README.
+- Verification: Manual smoke test of delete button (admin) and README update.

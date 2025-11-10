@@ -891,6 +891,12 @@ textarea::placeholder {
   color: var(--color-muted);
 }
 
+.request-comment__meta-right {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .request-comment__author {
   font-weight: 600;
   color: var(--color-text);
@@ -899,6 +905,11 @@ textarea::placeholder {
 .request-comment__body {
   margin: 0.5rem 0 0;
   white-space: pre-wrap;
+}
+
+.request-comment__delete {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
 }
 
 .request-comments__form textarea {
