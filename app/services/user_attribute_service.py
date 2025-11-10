@@ -36,6 +36,7 @@ def set_attribute(
     actor_user_id: Optional[int],
 ) -> UserAttribute:
     now = datetime.utcnow()
+    previous_value: Optional[str] = None
     record = session.exec(
         select(UserAttribute).where(
             UserAttribute.user_id == user_id,
@@ -44,6 +45,7 @@ def set_attribute(
     ).first()
 
     if record:
+        previous_value = record.value
         record.value = value
         record.updated_at = now
         record.updated_by_user_id = actor_user_id
@@ -60,6 +62,20 @@ def set_attribute(
         session.add(record)
 
     session.flush()
+
+    if key == INVITED_BY_USER_ID_KEY:
+        affected_user_ids = {user_id}
+        for raw_value in (value, previous_value):
+            if not raw_value:
+                continue
+            try:
+                affected_user_ids.add(int(raw_value))
+            except (TypeError, ValueError):
+                continue
+        from app.services import invite_map_cache_service
+
+        invite_map_cache_service.invalidate_many(session, affected_user_ids)
+
     return record
 
 

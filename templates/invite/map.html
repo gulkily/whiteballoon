@@ -1,40 +1,106 @@
 {% extends "base.html" %}
 
-{% macro render_node(node, degree_labels) -%}
-  <li class="invite-map__branch" data-degree="{{ node.degree }}">
-    <div class="invite-map__node">
-      <span class="invite-map__name">@{{ node.username }}</span>
-      <span class="invite-map__degree muted small-text">{{ degree_labels.get(node.degree, node.degree ~ '° degree invite') }}</span>
+{% macro render_avatar(avatar_url, username) -%}
+  <span class="invite-map__avatar" aria-hidden="true">
+    {% if avatar_url %}
+      <img src="{{ avatar_url }}" alt="" loading="lazy" />
+    {% else %}
+      <span class="invite-map__avatar-fallback">{{ username[:1].upper() }}</span>
+    {% endif %}
+  </span>
+{%- endmacro %}
+
+{% macro render_node(node, degree_labels, current_user_id) -%}
+  {% set is_self = node.user_id == current_user_id %}
+  <li class="invite-map__branch" data-degree="{{ node.degree }}" data-direction="downstream">
+    <div class="invite-map__node{% if is_self %} invite-map__node--self{% endif %}">
+      <div class="invite-map__node-body">
+        {{ render_avatar(node.avatar_url, node.username) }}
+        <div class="invite-map__node-meta">
+          <a class="invite-map__link" href="{{ url_for('profile_view', username=node.username) }}">@{{ node.username }}</a>
+          <span class="invite-map__degree muted small-text">{{ degree_labels.get(node.degree, node.degree ~ '° degree invitee') }}</span>
+        </div>
+      </div>
+      {% if node.invited_at %}
+        <span class="invite-map__timestamp muted small-text">Invited {{ node.invited_at }}</span>
+      {% endif %}
     </div>
     {% if node.children %}
       <ul class="invite-map__tree">
         {% for child in node.children %}
-          {{ render_node(child, degree_labels) }}
+          {{ render_node(child, degree_labels, current_user_id) }}
         {% endfor %}
       </ul>
     {% endif %}
   </li>
 {%- endmacro %}
 
+{% macro render_upstream_chain(chain, root_node, degree_labels, upstream_labels, current_user_id) -%}
+  {% set ancestor = chain[0] %}
+  <li class="invite-map__branch invite-map__branch--upstream" data-degree="{{ ancestor.degree }}" data-direction="upstream">
+    <div class="invite-map__node invite-map__node--upstream">
+      <div class="invite-map__node-body">
+        {{ render_avatar(ancestor.avatar_url, ancestor.username) }}
+        <div class="invite-map__node-meta">
+          <a class="invite-map__link" href="{{ url_for('profile_view', username=ancestor.username) }}">@{{ ancestor.username }}</a>
+          <span class="invite-map__degree muted small-text">{{ upstream_labels.get(ancestor.degree, ancestor.degree ~ '° inviter') }}</span>
+        </div>
+      </div>
+      {% if ancestor.invited_at %}
+        <span class="invite-map__timestamp muted small-text">Invited {{ ancestor.invited_at }}</span>
+      {% endif %}
+    </div>
+    <ul class="invite-map__tree">
+      {% if chain|length > 1 %}
+        {{ render_upstream_chain(chain[1:], root_node, degree_labels, upstream_labels, current_user_id) }}
+      {% else %}
+        {{ render_node(root_node, degree_labels, current_user_id) }}
+      {% endif %}
+      {% for invitee in ancestor.invitees %}
+        {{ render_node(invitee, degree_labels, current_user_id) }}
+      {% endfor %}
+    </ul>
+  </li>
+{%- endmacro %}
+
 {% block title %}Invite Map · WhiteBalloon{% endblock %}
 
 {% block content %}
-{% set degree_labels = {0: "You", 1: "1st-degree invite", 2: "2nd-degree invite", 3: "3rd-degree invite"} %}
+{% set degree_labels = {0: "You", 1: "1st-degree invitee", 2: "2nd-degree invitee"} %}
+{% set upstream_labels = {1: "1st-degree inviter", 2: "2nd-degree inviter"} %}
 <section class="section">
   <header class="stack">
     <h1>Invite map</h1>
-    <p class="muted">Explore how your welcome chain grows across first, second, and third degrees.</p>
+    <p class="muted">See the two-degree path of who welcomed you and who you’ve welcomed so far.</p>
   </header>
 
-  {% if graph %}
-    <div class="card invite-map" data-invite-map>
-      <ul class="invite-map__tree invite-map__tree--root">
-        {{ render_node(graph, degree_labels) }}
+  {% if invite_map %}
+    <article class="card stack invite-map__outline" data-invite-map>
+      <div class="invite-map__outline-header">
+        <h2>Invite outline</h2>
+        {% if invite_map_cache_hit %}
+          <span class="muted small-text">Cached</span>
+        {% endif %}
+      </div>
+      <p class="muted small-text">Each node links to the next, so you can trace the full chain at a glance.</p>
+      <ul class="invite-map__tree invite-map__tree--root invite-map__tree--outline">
+        {% if invite_map.upstream %}
+          {% set sorted_upstream = invite_map.upstream | sort(attribute='degree', reverse=True) %}
+          {{ render_upstream_chain(sorted_upstream, invite_map.root, degree_labels, upstream_labels, user.id) }}
+        {% else %}
+          {{ render_node(invite_map.root, degree_labels, user.id) }}
+        {% endif %}
       </ul>
-    </div>
+      {% if not invite_map.root.children %}
+        <div class="stack invite-map__empty">
+          <p class="muted">We couldn’t find any invite activity yet.</p>
+          <a class="button button--ghost" href="/invite/new">Send a welcome</a>
+        </div>
+      {% endif %}
+    </article>
   {% else %}
     <div class="card stack invite-map__empty">
-      <p class="muted">We couldn’t find any invite activity yet.</p>
+      <p class="muted">We couldn’t load your invite map just yet.</p>
       <a class="button button--ghost" href="/invite/new">Send a welcome</a>
     </div>
   {% endif %}

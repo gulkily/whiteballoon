@@ -7,7 +7,7 @@ from typing import Any, Optional
 from sqlmodel import Session, select
 
 from app.models import User, UserAttribute
-from app.services.user_attribute_service import INVITED_BY_USER_ID_KEY
+from app.services.user_attribute_service import INVITED_BY_USER_ID_KEY, PROFILE_PHOTO_URL_KEY
 
 
 MAX_INVITE_DEGREE = 3
@@ -23,6 +23,7 @@ class InviteGraphNode:
     degree: int
     invited_at: Optional[str] = None
     children: list["InviteGraphNode"] = field(default_factory=list)
+    avatar_url: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -31,6 +32,8 @@ class InviteAncestor:
     username: str
     degree: int
     invited_at: Optional[str] = None
+    invitees: list[InviteGraphNode] = field(default_factory=list)
+    avatar_url: Optional[str] = None
 
 
 @dataclass(slots=True)
@@ -64,6 +67,7 @@ def build_invite_graph(
 
     visited: set[int] = {root.id}
     queue = deque([(root_node, 1)])
+    node_registry: list[InviteGraphNode] = [root_node]
 
     while queue:
         parent_node, degree = queue.popleft()
@@ -83,9 +87,11 @@ def build_invite_graph(
             parent_node.children.append(child_node)
             visited.add(invitee_user.id)
             queue.append((child_node, degree + 1))
+            node_registry.append(child_node)
 
         parent_node.children.sort(key=lambda node: node.username.lower())
 
+    _assign_avatars(session, node_registry)
     return root_node
 
 
@@ -102,6 +108,14 @@ def build_bidirectional_invite_map(
         return None
 
     upstream = _load_upstream_chain(session, start_user_id=root_user_id, max_degree=max_degree)
+    if upstream:
+        _assign_ancestor_avatars(session, upstream)
+        _attach_ancestor_invitees(
+            session,
+            ancestors=upstream,
+            start_child_id=root_user_id,
+            degree_cap=max_degree,
+        )
     return InviteMapPayload(root=downstream, upstream=upstream)
 
 
@@ -190,6 +204,63 @@ def _load_inviter_attribute(session: Session, *, user_id: int) -> Optional[UserA
     ).first()
 
 
+def _load_profile_photos(session: Session, user_ids: list[int]) -> dict[int, str]:
+    if not user_ids:
+        return {}
+    rows = session.exec(
+        select(UserAttribute)
+        .where(UserAttribute.user_id.in_(user_ids))
+        .where(UserAttribute.key == PROFILE_PHOTO_URL_KEY)
+    ).all()
+    return {row.user_id: row.value for row in rows if row and row.value}
+
+
+def _assign_avatars(session: Session, nodes: list[InviteGraphNode]) -> None:
+    if not nodes:
+        return
+    photos = _load_profile_photos(session, [node.user_id for node in nodes])
+    for node in nodes:
+        node.avatar_url = photos.get(node.user_id)
+
+
+def _assign_ancestor_avatars(session: Session, ancestors: list[InviteAncestor]) -> None:
+    if not ancestors:
+        return
+    photos = _load_profile_photos(session, [ancestor.user_id for ancestor in ancestors])
+    for ancestor in ancestors:
+        ancestor.avatar_url = photos.get(ancestor.user_id)
+
+
+def _attach_ancestor_invitees(
+    session: Session,
+    *,
+    ancestors: list[InviteAncestor],
+    start_child_id: int,
+    degree_cap: int,
+) -> None:
+    child_in_chain = start_child_id
+    for ancestor in ancestors:
+        invitees = _load_invitees(session, inviter_ids=[ancestor.user_id])
+        nodes: list[InviteGraphNode] = []
+        invitee_ids: list[int] = []
+        for invitee_user, invite_attribute in invitees.get(ancestor.user_id, []):
+            if invitee_user.id == child_in_chain:
+                continue
+            node = InviteGraphNode(
+                user_id=invitee_user.id,
+                username=invitee_user.username,
+                degree=min(degree_cap, ancestor.degree),
+                invited_at=invite_attribute.created_at.isoformat() if invite_attribute else None,
+            )
+            nodes.append(node)
+            invitee_ids.append(invitee_user.id)
+        nodes.sort(key=lambda node: node.username.lower())
+        if invitee_ids:
+            _assign_avatars(session, nodes)
+        ancestor.invitees = nodes
+        child_in_chain = ancestor.user_id
+
+
 def serialize_invite_map(payload: InviteMapPayload) -> dict[str, Any]:
     return {
         "root": _serialize_graph_node(payload.root),
@@ -214,6 +285,7 @@ def _serialize_graph_node(node: InviteGraphNode) -> dict[str, Any]:
         "username": node.username,
         "degree": node.degree,
         "invited_at": node.invited_at,
+        "avatar_url": node.avatar_url,
         "children": [_serialize_graph_node(child) for child in node.children],
     }
 
@@ -224,6 +296,7 @@ def _deserialize_graph_node(data: dict[str, Any]) -> InviteGraphNode:
         username=data["username"],
         degree=int(data["degree"]),
         invited_at=data.get("invited_at"),
+        avatar_url=data.get("avatar_url"),
     )
     children_data = data.get("children", []) or []
     node.children = [_deserialize_graph_node(child) for child in children_data]
@@ -236,6 +309,8 @@ def _serialize_ancestor(ancestor: InviteAncestor) -> dict[str, Any]:
         "username": ancestor.username,
         "degree": ancestor.degree,
         "invited_at": ancestor.invited_at,
+        "avatar_url": ancestor.avatar_url,
+        "invitees": [_serialize_graph_node(invitee) for invitee in ancestor.invitees],
     }
 
 
@@ -245,4 +320,6 @@ def _deserialize_ancestor(data: dict[str, Any]) -> InviteAncestor:
         username=data["username"],
         degree=int(data["degree"]),
         invited_at=data.get("invited_at"),
+        avatar_url=data.get("avatar_url"),
+        invitees=[_deserialize_graph_node(invitee) for invitee in data.get("invitees", [])],
     )

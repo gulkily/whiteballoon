@@ -19,7 +19,12 @@ from app.dependencies import (
 from app.models import AuthenticationRequest, InviteToken, User, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
-from app.services import auth_service, invite_graph_service, user_attribute_service
+from app.services import (
+    auth_service,
+    invite_graph_service,
+    invite_map_cache_service,
+    user_attribute_service,
+)
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 
 router = APIRouter(tags=["ui"])
@@ -426,11 +431,16 @@ def invite_map(
     session_user: SessionUser = Depends(require_session_user),
 ) -> Response:
     user = session_user.user
-    graph = invite_graph_service.build_invite_graph(
-        db,
-        root_user_id=user.id,
-        max_degree=invite_graph_service.MAX_INVITE_DEGREE,
-    )
+    invite_map = invite_map_cache_service.get_cached_map(db, user_id=user.id)
+    cache_hit = invite_map is not None
+    if not invite_map:
+        invite_map = invite_graph_service.build_bidirectional_invite_map(
+            db,
+            root_user_id=user.id,
+            max_degree=invite_graph_service.DEFAULT_MAP_DEGREE,
+        )
+        if invite_map:
+            invite_map_cache_service.store_cached_map(db, user_id=user.id, invite_map=invite_map)
 
     context = {
         "request": request,
@@ -438,7 +448,8 @@ def invite_map(
         "session_role": describe_session_role(user, session_user.session),
         "session_username": user.username,
         "user": user,
-        "graph": graph,
+        "invite_map": invite_map,
+        "invite_map_cache_hit": cache_hit,
     }
     return templates.TemplateResponse("invite/map.html", context)
 

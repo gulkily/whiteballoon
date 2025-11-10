@@ -85,11 +85,17 @@ def test_build_bidirectional_invite_map_includes_upstream_and_downstream(session
     root = create_user(session, "root")
     child = create_user(session, "child")
     grandchild = create_user(session, "grandchild")
+    sibling = create_user(session, "sibling")
+    aunt = create_user(session, "aunt")
+    uncle = create_user(session, "uncle")
 
     link_invite(session, root, parent)
     link_invite(session, parent, grandparent)
     link_invite(session, child, root)
     link_invite(session, grandchild, child)
+    link_invite(session, sibling, parent)
+    link_invite(session, aunt, grandparent)
+    link_invite(session, uncle, grandparent)
 
     invite_map = invite_graph_service.build_bidirectional_invite_map(
         session,
@@ -107,6 +113,14 @@ def test_build_bidirectional_invite_map_includes_upstream_and_downstream(session
     upstream_ids = [ancestor.user_id for ancestor in invite_map.upstream]
     assert upstream_ids == [parent.id, grandparent.id]
     assert all(ancestor.degree in {1, 2} for ancestor in invite_map.upstream)
+
+    parent_ancestor = next(a for a in invite_map.upstream if a.user_id == parent.id)
+    assert {node.user_id for node in parent_ancestor.invitees} == {sibling.id}
+    assert all(node.degree == 1 for node in parent_ancestor.invitees)
+
+    grandparent_ancestor = next(a for a in invite_map.upstream if a.user_id == grandparent.id)
+    assert {node.user_id for node in grandparent_ancestor.invitees} == {aunt.id, uncle.id}
+    assert all(node.degree == 2 for node in grandparent_ancestor.invitees)
 
 
 def test_build_bidirectional_invite_map_stops_on_cycles(session: Session) -> None:
