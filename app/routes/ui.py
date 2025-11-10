@@ -27,6 +27,7 @@ from app.services import (
     invite_map_cache_service,
     request_comment_service,
     user_attribute_service,
+    vouch_service,
 )
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 
@@ -509,6 +510,39 @@ def update_sync_scope(
 
     redirect_to = next_url or request.headers.get("referer") or "/"
     return RedirectResponse(url=redirect_to, status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.get("/sync/public")
+def sync_public(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    user = session_user.user
+    if not user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+    public_requests = db.exec(select(HelpRequest).where(HelpRequest.sync_scope == "public")).all()
+    public_comments = db.exec(select(RequestComment).where(RequestComment.sync_scope == "public")).all()
+    public_users = db.exec(select(User).where(User.sync_scope == "public")).all()
+    public_invites = db.exec(select(InviteToken).where(InviteToken.sync_scope == "public")).all()
+
+    session_record = session_user.session
+    session_role = describe_session_role(user, session_record)
+
+    context = {
+        "request": request,
+        "user": user,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": user.username,
+        "session_avatar_url": session_user.avatar_url,
+        "public_requests": public_requests,
+        "public_comments": public_comments,
+        "public_users": public_users,
+        "public_invites": public_invites,
+    }
+    return templates.TemplateResponse("sync/public.html", context)
 
 
 @router.get("/invite/new")

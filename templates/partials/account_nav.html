@@ -30,4 +30,7 @@
   <form action="/logout" method="post" class="inline">
     <button type="submit" class="button button--ghost">Sign out</button>
   </form>
+  {% if show_admin %}
+    <a class="button button--ghost" href="/sync/public">Sync dashboard</a>
+  {% endif %}
 </div>

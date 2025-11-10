@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Sync Dashboard · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack">
+  <header class="stack">
+    <h1>Shared Data</h1>
+    <p class="muted">Everything below is marked for public sync. Review before exporting bundles.</p>
+  </header>
+
+  <div class="card stack">
+    <h2>Requests ({{ public_requests|length }})</h2>
+    {% if public_requests %}
+      <ul class="stack">
+        {% for item in public_requests %}
+          <li>
+            <a href="/requests/{{ item.id }}">Request #{{ item.id }}</a>
+            <span class="muted"> · {{ item.status | title }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No requests marked for sharing.</p>
+    {% endif %}
+  </div>
+
+  <div class="card stack">
+    <h2>Comments ({{ public_comments|length }})</h2>
+    {% if public_comments %}
+      <ul class="stack">
+        {% for comment in public_comments %}
+          <li>
+            On request #{{ comment.help_request_id }} by user #{{ comment.user_id }}
+            <span class="muted"> · {{ comment.created_at | friendly_time }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No comments marked for sharing.</p>
+    {% endif %}
+  </div>
+
+  <div class="card stack">
+    <h2>Users ({{ public_users|length }})</h2>
+    {% if public_users %}
+      <ul class="stack">
+        {% for u in public_users %}
+          <li>@{{ u.username }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No profiles marked for sharing.</p>
+    {% endif %}
+  </div>
+
+  <div class="card stack">
+    <h2>Invites ({{ public_invites|length }})</h2>
+    {% if public_invites %}
+      <ul class="stack">
+        {% for invite in public_invites %}
+          <li>Token {{ invite.token }} · suggested user {{ invite.suggested_username or 'n/a' }}</li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No invites marked public.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
