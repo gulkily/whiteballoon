@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Annotated, Optional, Union
+from uuid import uuid4
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile, status
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -425,6 +427,12 @@ def invite_new(
 
 
 CONTACT_EMAIL_MAX_LENGTH = 255
+PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024
+PROFILE_PHOTO_DIR = Path("static/uploads/profile_photos")
+PROFILE_ALLOWED_MIME = {"image/jpeg", "image/png", "image/webp"}
+PROFILE_ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+PROFILE_PHOTO_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _build_account_settings_context(
@@ -475,6 +483,37 @@ def _validate_contact_email(value: str) -> Optional[str]:
     return None
 
 
+async def _store_profile_photo(upload: UploadFile) -> str:
+    if not upload or not upload.filename:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Select a photo to upload.")
+
+    contents = await upload.read()
+    if not contents:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Uploaded photo is empty.")
+    if len(contents) > PROFILE_PHOTO_MAX_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Photo must be 5 MB or smaller.",
+        )
+
+    content_type = upload.content_type or ""
+    if content_type not in PROFILE_ALLOWED_MIME:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail="Use JPEG, PNG, or WebP images.")
+
+    suffix = Path(upload.filename).suffix.lower()
+    if suffix not in PROFILE_ALLOWED_EXTENSIONS:
+        suffix = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp",
+        }.get(content_type, ".png")
+
+    filename = f"{uuid4().hex}{suffix}"
+    destination = PROFILE_PHOTO_DIR / filename
+    destination.write_bytes(contents)
+    return f"/static/uploads/profile_photos/{filename}"
+
+
 @router.get("/settings/account")
 def account_settings(
     request: Request,
@@ -486,11 +525,13 @@ def account_settings(
 
 
 @router.post("/settings/account")
-def account_settings_submit(
+async def account_settings_submit(
     request: Request,
     db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
     contact_email: Annotated[Optional[str], Form()] = None,
+    profile_photo: Annotated[Optional[UploadFile], File()] = None,
+    remove_photo: Annotated[Optional[str], Form()] = None,
 ) -> Response:
     normalized_email = (contact_email or "").strip()
     form_values = {"contact_email": normalized_email}
@@ -499,6 +540,16 @@ def account_settings_submit(
     validation_error = _validate_contact_email(normalized_email)
     if validation_error:
         errors.append(validation_error)
+
+    new_avatar_url: Optional[str] = None
+    remove_photo_requested = bool(remove_photo)
+
+    if profile_photo and profile_photo.filename:
+        try:
+            new_avatar_url = await _store_profile_photo(profile_photo)
+        except HTTPException as exc:
+            detail = exc.detail if isinstance(exc.detail, str) else "Unable to upload photo."
+            errors.append(detail)
 
     if errors:
         context = _build_account_settings_context(
@@ -514,6 +565,22 @@ def account_settings_submit(
     user = session_user.user
     user.contact_email = normalized_email or None
     db.add(user)
+
+    if remove_photo_requested:
+        user_attribute_service.delete_attribute(
+            db,
+            user_id=user.id,
+            key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
+        )
+    elif new_avatar_url:
+        user_attribute_service.set_attribute(
+            db,
+            user_id=user.id,
+            key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
+            value=new_avatar_url,
+            actor_user_id=user.id,
+        )
+
     db.commit()
     db.refresh(user)
 

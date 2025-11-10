@@ -9,7 +9,8 @@
 - Verification: `pytest tests/routes/test_account_settings.py tests/services/test_invite_graph_service.py`
 
 ## Stage 3 – Photo upload pipeline
-- Pending
+- Changes: Account settings POST now accepts profile photo uploads (JPEG/PNG/WebP ≤5 MB), stores them under `static/uploads/profile_photos`, and writes/removes the `profile_photo_url` attribute so avatars refresh instantly. Template gained upload controls, removal checkbox, and alert styling.
+- Verification: `pytest tests/routes/test_account_settings.py tests/services/test_invite_graph_service.py`
 
 ## Stage 4 – UI polish + feedback states
 - Pending

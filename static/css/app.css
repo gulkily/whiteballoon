@@ -1574,6 +1574,13 @@ form.inline {
   flex-wrap: wrap;
 }
 
+.settings-avatar__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .settings-avatar__preview {
   width: 96px;
   height: 96px;

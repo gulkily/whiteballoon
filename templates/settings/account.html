@@ -56,8 +56,14 @@
             <span class="settings-avatar__initials">{{ user.username[:2] | upper }}</span>
           </span>
         {% endif %}
-        <label class="button button--ghost" for="account-photo">Choose file</label>
-        <input id="account-photo" name="profile_photo" type="file" accept="image/*" hidden />
+        <div class="settings-avatar__actions">
+          <label class="button button--ghost" for="account-photo">Choose file</label>
+          <input id="account-photo" name="profile_photo" type="file" accept="image/*" hidden />
+          <label class="checkbox">
+            <input type="checkbox" name="remove_photo" value="1" />
+            Remove current photo
+          </label>
+        </div>
       </div>
       <p class="muted small-text">JPEG, PNG, or WebP up to 5 MB. Square images look best.</p>
     </div>
