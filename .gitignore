@@ -21,6 +21,7 @@ htmlcov/
 *.db
 /data/app.db
 data/
+.sync/
 
 *.egg-info/
 fonts-raw/
