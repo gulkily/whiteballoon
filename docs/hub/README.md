@@ -4,9 +4,10 @@ The sync hub is a lightweight FastAPI service that relays signed `data/public_sy
 
 ## Configuration
 
-1. Launching the hub for the first time generates a sample config:
+1. Launching the hub for the first time generates a sample config (run from the repo root so `app/` is on `PYTHONPATH`):
    ```bash
-   WB_HUB_CONFIG=.sync/hub_config.json python tools/hub.py
+   cd /path/to/whiteballoon
+   PYTHONPATH=. WB_HUB_CONFIG=.sync/hub_config.json python tools/hub.py
    ```
    If `.sync/hub_config.json` is missing, the process writes a stub and exits.
 2. Edit `.sync/hub_config.json`:
@@ -29,7 +30,8 @@ The sync hub is a lightweight FastAPI service that relays signed `data/public_sy
 ## Running the Hub
 
 ```
-WB_HUB_CONFIG=.sync/hub_config.json python tools/hub.py
+cd /path/to/whiteballoon
+PYTHONPATH=. WB_HUB_CONFIG=.sync/hub_config.json python tools/hub.py
 ```
 - Default port: `9100` (adjust by wrapping with uvicorn CLI if needed).
 - Endpoints:
@@ -55,3 +57,5 @@ On each WhiteBalloon instance:
 - Hub never alters bundle contents; it only validates signatures and stores the uploaded files verbatim.
 - Public keys in `data/public_sync/public_keys/` travel with each bundle, allowing new peers to bootstrap trust.
 - Front the hub with TLS (Caddy/NGINX) and rotate tokens periodically. For multi-tenant deployments, consider moving peer config into a database.
+
+See `docs/hub/INSTALL_UBUNTU.md` for a step-by-step deployment guide on Ubuntu (including systemd service wiring).
