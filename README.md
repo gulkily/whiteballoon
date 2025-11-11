@@ -76,7 +76,7 @@ Stage 5 of the sync plan introduces signed bundles so operators can trust data p
 3. Export/push flows now sign `manifest.sync.txt`, emit `bundle.sig`, and drop your public key under `data/public_sync/public_keys/<key-id>.pub`. Multiple operators can share the same bundle directory; each signer writes/updates only their own file.
 4. `./wb sync pull <peer>` and `./wb sync import <dir> --peer <name>` verify the signature before applying data. Use `--allow-unsigned` only when working with historical bundles that predate signatures.
 
-### Bootstrap a new instance from a shared bundle
+### Bootstrap a new instance from a shared bundle (filesystem)
 
 1. Clone the repo (or otherwise sync `data/public_sync/`) and run `./wb setup`.
 2. Register the bundle + public key so imports can verify it:
@@ -91,6 +91,22 @@ Stage 5 of the sync plan introduces signed bundles so operators can trust data p
    Only fall back to `--allow-unsigned` if you must ingest historical unsigned bundles.
 
 The signature file stores the manifest digest plus the signer’s key ID. Keep `.sync/keys/` out of version control and rotate keys with `./wb sync keygen --force` if a secret ever leaks.
+
+### Optional: Hub relay
+
+Instead of syncing via shared folders, you can run the lightweight hub service in this repo (`app/hub/`).
+
+1. Start the hub (once) and configure peers in `.sync/hub_config.json` (see `docs/hub/README.md`).
+2. On each instance, register the hub peer:
+   ```bash
+   ./wb sync peers add --name hub --url https://hub.example --token <secret> --public-key <base64>
+   ```
+3. Use the same commands as before:
+   ```bash
+   ./wb sync push hub
+   ./wb sync pull hub
+   ```
+   The CLI detects `--url` and uploads/downloads bundles via HTTPS, verifying signatures before import.
 
 ## Send Welcome page
 - While signed in, use the “Send Welcome” button (header menu) to generate an invite instantly.

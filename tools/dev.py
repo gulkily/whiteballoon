@@ -3,8 +3,12 @@ from __future__ import annotations
 from typing import Optional
 from pathlib import Path
 import shutil
+import io
+import tarfile
+import tempfile
 
 import click
+import httpx
 import uvicorn
 from sqlalchemy import inspect
 from sqlalchemy.engine.url import make_url
@@ -75,6 +79,92 @@ def _verify_bundle_dir(bundle_dir: Path, peer: Peer | None, allow_unsigned: bool
         )
 
 
+def _peer_uses_hub(peer: Peer) -> bool:
+    return bool(peer.url)
+
+
+def _ensure_peer_path(peer: Peer) -> Path:
+    if peer.path is None:
+        raise click.ClickException(
+            f"Peer '{peer.name}' is hub-only. Provide a filesystem path or use 'wb sync pull {peer.name}' with a hub URL."
+        )
+    return peer.path
+
+
+def _bundle_tarball(bundle_dir: Path) -> bytes:
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w:gz") as tar:
+        for file_path in bundle_dir.rglob("*"):
+            tar.add(file_path, arcname=file_path.relative_to(bundle_dir))
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def _hub_endpoint(peer: Peer, suffix: str) -> str:
+    if not peer.url:
+        raise click.ClickException(f"Peer '{peer.name}' is not configured with a hub URL.")
+    base = peer.url.rstrip("/")
+    return f"{base}/api/v1/sync/{peer.name}/{suffix.lstrip('/')}"
+
+
+def _hub_headers(peer: Peer) -> dict[str, str]:
+    if not peer.token:
+        raise click.ClickException(
+            f"Peer '{peer.name}' requires a token for hub access. Re-run 'wb sync peers add --token <value>'."
+        )
+    return {"Authorization": f"Bearer {peer.token}"}
+
+
+def _push_to_hub(peer: Peer, bundle_dir: Path) -> None:
+    payload = _bundle_tarball(bundle_dir)
+    url = _hub_endpoint(peer, "bundle")
+    headers = _hub_headers(peer)
+    click.secho(f"Uploading bundle to hub peer '{peer.name}'...", fg="cyan")
+    try:
+        with httpx.Client(timeout=120.0) as client:
+            response = client.post(url, headers=headers, files={"bundle": ("bundle.tar.gz", payload, "application/gzip")})
+    except httpx.HTTPError as exc:
+        raise click.ClickException(f"Hub upload failed: {exc}") from exc
+    if response.status_code >= 400:
+        detail = response.text
+        try:
+            detail = response.json().get("detail", detail)
+        except Exception:
+            pass
+        raise click.ClickException(f"Hub upload failed ({response.status_code}): {detail}")
+    data = response.json()
+    click.secho(
+        f"Hub accepted bundle (digest {data.get('manifest_digest')}, files {data.get('stored_files')}).",
+        fg="green",
+    )
+
+
+def _pull_from_hub(peer: Peer, temp_root: Path, allow_unsigned: bool) -> Path:
+    url = _hub_endpoint(peer, "bundle")
+    headers = _hub_headers(peer)
+    click.secho(f"Downloading bundle from hub peer '{peer.name}'...", fg="cyan")
+    try:
+        with httpx.Client(timeout=120.0) as client:
+            response = client.get(url, headers=headers)
+    except httpx.HTTPError as exc:
+        raise click.ClickException(f"Hub download failed: {exc}") from exc
+    if response.status_code >= 400:
+        detail = response.text
+        try:
+            detail = response.json().get("detail", detail)
+        except Exception:
+            pass
+        raise click.ClickException(f"Hub download failed ({response.status_code}): {detail}")
+    tar_path = temp_root / "bundle.tar.gz"
+    tar_path.write_bytes(response.content)
+    extract_dir = temp_root / "bundle"
+    extract_dir.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(tar_path, "r:gz") as tar:
+        tar.extractall(path=extract_dir)
+    _verify_bundle_dir(extract_dir, peer=peer, allow_unsigned=allow_unsigned)
+    return extract_dir
+
+
 @sync_group.command(name="export")
 @click.option(
     "--output",
@@ -128,18 +218,21 @@ def sync_push(peer_name: str) -> None:
         temp_dir = Path("data/public_sync")
         files = export_sync_data(session, temp_dir)
     sign_bundle(temp_dir, keypair)
-    dest = peer.path
-    dest.mkdir(parents=True, exist_ok=True)
-    copied = 0
-    for file in temp_dir.rglob("*"):
-        if not file.is_file():
-            continue
-        rel = file.relative_to(temp_dir)
-        target = dest / rel
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(file, target)
-        copied += 1
-    click.secho(f"Pushed {copied} files (data + signature) to peer '{peer_name}'", fg="green")
+    if _peer_uses_hub(peer):
+        _push_to_hub(peer, temp_dir)
+    else:
+        dest = _ensure_peer_path(peer)
+        dest.mkdir(parents=True, exist_ok=True)
+        copied = 0
+        for file in temp_dir.rglob("*"):
+            if not file.is_file():
+                continue
+            rel = file.relative_to(temp_dir)
+            target = dest / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(file, target)
+            copied += 1
+        click.secho(f"Pushed {copied} files (data + signature) to peer '{peer_name}'", fg="green")
 
 
 @sync_group.command(name="pull")
@@ -154,14 +247,22 @@ def sync_pull(peer_name: str, allow_unsigned: bool) -> None:
     peer = get_peer(peer_name)
     if not peer:
         raise click.ClickException(f"Peer '{peer_name}' not found. Use 'wb sync peers add'.")
-    source = peer.path
-    if not source.exists():
-        raise click.ClickException(f"Peer path not found: {source}")
     _ensure_signing_key(auto_generate=True)
-    _verify_bundle_dir(source, peer=peer, allow_unsigned=allow_unsigned)
-    engine = get_engine()
-    with Session(engine) as session:
-        count = import_sync_data(session, source)
+    if _peer_uses_hub(peer):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            bundle_dir = _pull_from_hub(peer, tmp_path, allow_unsigned)
+            engine = get_engine()
+            with Session(engine) as session:
+                count = import_sync_data(session, bundle_dir)
+    else:
+        source = _ensure_peer_path(peer)
+        if not source.exists():
+            raise click.ClickException(f"Peer path not found: {source}")
+        _verify_bundle_dir(source, peer=peer, allow_unsigned=allow_unsigned)
+        engine = get_engine()
+        with Session(engine) as session:
+            count = import_sync_data(session, source)
     click.secho(f"Pulled {count} records from peer '{peer_name}'", fg="green")
 
 
@@ -195,7 +296,10 @@ def peers_list() -> None:
         click.echo("No peers configured. Use 'wb sync peers add'.")
         return
     for peer in peers:
-        details = f"- {peer.name}: {peer.path}"
+        location = peer.url if peer.url else peer.path
+        details = f"- {peer.name}: {location}"
+        if peer.url:
+            details += " [hub]"
         if peer.public_key:
             details += f" (pub={peer.public_key[:16]}...)"
         click.echo(details)
@@ -203,18 +307,23 @@ def peers_list() -> None:
 
 @peers_group.command(name="add")
 @click.option("--name", prompt="Peer name")
-@click.option("--path", prompt="Bundle directory", type=click.Path(path_type=Path))
+@click.option("--path", type=click.Path(path_type=Path), default=None, help="Filesystem bundle directory")
+@click.option("--url", default=None, help="Hub base URL (e.g., https://hub.example)")
 @click.option("--token", default=None, help="Optional auth token")
 @click.option(
     "--public-key",
     default=None,
     help="Peer's Ed25519 public key (base64) for signature verification",
 )
-def peers_add(name: str, path: Path, token: str | None, public_key: str | None) -> None:
+def peers_add(name: str, path: Path | None, url: str | None, token: str | None, public_key: str | None) -> None:
     peers = load_peers()
     if any(peer.name == name for peer in peers):
         raise click.ClickException(f"Peer '{name}' already exists")
-    peers.append(Peer(name=name, path=path, token=token, public_key=public_key))
+    if not path and not url:
+        raise click.ClickException("Provide --path for filesystem peers or --url for hub peers.")
+    if url and not token:
+        click.secho("Warning: hub peers typically require --token for authentication.", fg="yellow")
+    peers.append(Peer(name=name, path=path, url=url, token=token, public_key=public_key))
     save_peers(peers)
     click.secho(f"Added peer '{name}'", fg="green")
 

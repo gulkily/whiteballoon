@@ -10,7 +10,8 @@ PEER_FILE = Path(".sync/sync_peers.txt")
 @dataclass
 class Peer:
     name: str
-    path: Path
+    path: Path | None = None
+    url: str | None = None
     token: str | None = None
     public_key: str | None = None
 
@@ -44,12 +45,15 @@ def save_peers(peers: Iterable[Peer], peer_file: Path | None = None) -> None:
     lines: list[str] = []
     for peer in peers:
         lines.append("[peer]")
-        lines.append(f"name={peer.name}")
-        lines.append(f"path={peer.path}")
-        if peer.token:
-            lines.append(f"token={peer.token}")
-        if peer.public_key:
-            lines.append(f"public_key={peer.public_key}")
+            lines.append(f"name={peer.name}")
+            if peer.path:
+                lines.append(f"path={peer.path}")
+            if peer.url:
+                lines.append(f"url={peer.url}")
+            if peer.token:
+                lines.append(f"token={peer.token}")
+            if peer.public_key:
+                lines.append(f"public_key={peer.public_key}")
         lines.append("")
     file_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 
@@ -64,7 +68,17 @@ def get_peer(name: str, peer_file: Path | None = None) -> Peer | None:
 
 def _peer_from_dict(data: dict[str, str]) -> Peer:
     name = data.get("name")
-    path = data.get("path")
-    if not name or not path:
-        raise ValueError("Peer entries require name and path")
-    return Peer(name=name, path=Path(path), token=data.get("token"), public_key=data.get("public_key"))
+    path_text = data.get("path")
+    url = data.get("url")
+    if not name:
+        raise ValueError("Peer entries require name")
+    if not path_text and not url:
+        raise ValueError("Peer entries require either path or url")
+    path = Path(path_text) if path_text else None
+    return Peer(
+        name=name,
+        path=path,
+        url=url,
+        token=data.get("token"),
+        public_key=data.get("public_key"),
+    )
