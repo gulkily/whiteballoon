@@ -1,11 +1,25 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import logging
 from pathlib import Path
+import re
 from typing import Annotated, Optional, Union
+from urllib.parse import urlencode
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, select
@@ -29,6 +43,10 @@ from app.services import (
     user_attribute_service,
     vouch_service,
 )
+from app.security.csrf import generate_csrf_token, validate_csrf_token
+from app.sync import job_tracker
+from app.sync.peer_status import collect_peer_statuses
+from app.sync.peers import Peer, load_peers, save_peers
 from app.sync.signing import (
     MANIFEST_FILENAME,
     PUBLIC_KEYS_DIRNAME,
@@ -42,6 +60,8 @@ from app.url_utils import build_invite_link, generate_qr_code_data_url
 router = APIRouter(tags=["ui"])
 
 templates = Jinja2Templates(directory="templates")
+
+logger = logging.getLogger(__name__)
 
 
 def _parse_iso_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:
@@ -140,6 +160,355 @@ def describe_session_role(user: User, session: Optional[UserSession]) -> Optiona
     return {"label": "Member", "tone": "muted"}
 
 
+
+def _default_peer_form_values(name: str = "") -> dict[str, str]:
+    return {
+        "name": name,
+        "path": "",
+        "url": "",
+        "token": "",
+        "public_key": "",
+    }
+
+
+def _serialize_peer_form(peer: Peer) -> dict[str, str]:
+    values = _default_peer_form_values(peer.name)
+    values.update(
+        {
+            "path": peer.path.as_posix() if isinstance(peer.path, Path) else (peer.path or ""),
+            "url": peer.url or "",
+            "token": peer.token or "",
+            "public_key": peer.public_key or "",
+        }
+    )
+    return values
+
+
+def _normalize_field(value: Optional[str]) -> str:
+    return (value or "").strip()
+
+
+def _normalize_public_key_input(value: Optional[str]) -> Optional[str]:
+    cleaned = _normalize_field(value)
+    if not cleaned:
+        return None
+    return "".join(cleaned.split())
+
+
+def _coerce_path(value: str) -> Optional[Path]:
+    cleaned = _normalize_field(value)
+    if not cleaned:
+        return None
+    return Path(cleaned).expanduser()
+
+
+def _validate_peer_payload(
+    *,
+    name: str,
+    path: str,
+    url: str,
+    token: str,
+    existing_names: set[str],
+    editing: bool = False,
+) -> list[str]:
+    errors: list[str] = []
+    normalized_name = name.strip()
+    if not editing:
+        if not normalized_name:
+            errors.append("Enter a peer name.")
+        elif not re.fullmatch(r"[a-zA-Z0-9_-]+", normalized_name):
+            errors.append("Peer names may contain letters, numbers, hyphens, and underscores only.")
+        elif normalized_name in existing_names:
+            errors.append(f"Peer '{normalized_name}' already exists.")
+
+    has_path = bool(path)
+    has_url = bool(url)
+    if not has_path and not has_url:
+        errors.append("Provide a filesystem path or hub URL.")
+
+    if has_url and not url.startswith(("http://", "https://")):
+        errors.append("Hub URLs must start with http:// or https://.")
+
+    if has_url and not token:
+        errors.append("Hub peers require a bearer token.")
+
+    return errors
+
+
+def _load_peer_or_404(peer_name: str) -> Peer:
+    peers = load_peers()
+    for peer in peers:
+        if peer.name == peer_name:
+            return peer
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer not found")
+
+
+def _require_admin_session(session_user: SessionUser) -> None:
+    if not session_user.user.is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
+
+
+def _ensure_csrf(session: UserSession, token: str) -> None:
+    if not validate_csrf_token(session.id, token):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid form token")
+
+
+def _redirect_to_sync_control(request: Request, message: Optional[str], tone: str = "info") -> Response:
+    url = request.url_for("sync_control_center")
+    if message:
+        params = urlencode({"peer_message": message, "peer_message_tone": tone})
+        url = f"{url}?{params}"
+    return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
+
+
+def _run_push_job(peer_name: str) -> None:
+    logger.info("Starting push job for peer '%s'", peer_name)
+    job_tracker.mark_started(peer_name, "push")
+    try:
+        from tools.dev import sync_push  # type: ignore
+
+        sync_push(peer_name)
+        job_tracker.mark_finished(peer_name, "push", True, "Push completed successfully")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Push job for peer '%s' failed", peer_name)
+        job_tracker.mark_finished(peer_name, "push", False, str(exc))
+
+
+def _run_pull_job(peer_name: str, allow_unsigned: bool) -> None:
+    logger.info("Starting pull job for peer '%s'", peer_name)
+    job_tracker.mark_started(peer_name, "pull")
+    try:
+        from tools.dev import sync_pull  # type: ignore
+
+        sync_pull(peer_name, allow_unsigned=allow_unsigned)
+        job_tracker.mark_finished(peer_name, "pull", True, "Pull completed successfully")
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("Pull job for peer '%s' failed", peer_name)
+        job_tracker.mark_finished(peer_name, "pull", False, str(exc))
+
+
+def _build_sync_control_context(
+    request: Request,
+    session_user: SessionUser,
+    *,
+    add_form_values: Optional[dict[str, str]] = None,
+    add_form_errors: Optional[list[str]] = None,
+    edit_form_errors: Optional[dict[str, list[str]]] = None,
+    banner_message: Optional[str] = None,
+    banner_tone: str = "info",
+) -> dict[str, object]:
+    user = session_user.user
+    session_record = session_user.session
+    session_role = describe_session_role(user, session_record)
+    add_values = add_form_values or _default_peer_form_values()
+    edit_errors = edit_form_errors or {}
+
+    peer_statuses = collect_peer_statuses()
+    peers = load_peers()
+    peer_forms = [_serialize_peer_form(peer) for peer in peers]
+    csrf_token = generate_csrf_token(session_record.id)
+
+    return {
+        "request": request,
+        "user": user,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": user.username,
+        "session_avatar_url": session_user.avatar_url,
+        "peer_statuses": peer_statuses,
+        "peer_forms": peer_forms,
+        "add_peer_form": add_values,
+        "add_peer_errors": add_form_errors or [],
+        "edit_peer_errors": edit_errors,
+        "peer_banner_message": banner_message,
+        "peer_banner_tone": banner_tone,
+        "csrf_token": csrf_token,
+        "job_statuses": job_tracker.snapshot(),
+    }
+
+
+@router.get("/admin/sync-control")
+def sync_control_center(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    banner_message = request.query_params.get("peer_message")
+    banner_tone = request.query_params.get("peer_message_tone", "info")
+    context = _build_sync_control_context(
+        request,
+        session_user,
+        banner_message=banner_message,
+        banner_tone=banner_tone,
+    )
+    return templates.TemplateResponse("sync/control.html", context)
+
+
+@router.post("/admin/sync-control/peers/add")
+def sync_control_add_peer(
+    request: Request,
+    name: Annotated[str, Form(...)],
+    csrf_token: Annotated[str, Form(...)],
+    path: Annotated[Optional[str], Form()] = None,
+    url: Annotated[Optional[str], Form()] = None,
+    token: Annotated[Optional[str], Form()] = None,
+    public_key: Annotated[Optional[str], Form()] = None,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    _ensure_csrf(session_user.session, csrf_token)
+    add_form_values = {
+        "name": _normalize_field(name),
+        "path": _normalize_field(path),
+        "url": _normalize_field(url),
+        "token": _normalize_field(token),
+        "public_key": _normalize_field(public_key),
+    }
+
+    peers = load_peers()
+    existing_names = {peer.name for peer in peers}
+    errors = _validate_peer_payload(
+        name=add_form_values["name"],
+        path=add_form_values["path"],
+        url=add_form_values["url"],
+        token=add_form_values["token"],
+        existing_names=existing_names,
+        editing=False,
+    )
+    if errors:
+        context = _build_sync_control_context(
+            request,
+            session_user,
+            add_form_values=add_form_values,
+            add_form_errors=errors,
+        )
+        return templates.TemplateResponse("sync/control.html", context, status_code=status.HTTP_400_BAD_REQUEST)
+
+    new_peer = Peer(
+        name=add_form_values["name"],
+        path=_coerce_path(add_form_values["path"]),
+        url=add_form_values["url"] or None,
+        token=add_form_values["token"] or None,
+        public_key=_normalize_public_key_input(add_form_values["public_key"]),
+    )
+    peers.append(new_peer)
+    save_peers(peers)
+    logger.info("Admin %s added sync peer '%s'", session_user.user.username, new_peer.name)
+    return _redirect_to_sync_control(request, f"Peer '{new_peer.name}' added.", tone="success")
+
+
+@router.post("/admin/sync-control/peers/{peer_name}/edit")
+def sync_control_edit_peer(
+    peer_name: str,
+    request: Request,
+    csrf_token: Annotated[str, Form(...)],
+    path: Annotated[Optional[str], Form()] = None,
+    url: Annotated[Optional[str], Form()] = None,
+    token: Annotated[Optional[str], Form()] = None,
+    public_key: Annotated[Optional[str], Form()] = None,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    _ensure_csrf(session_user.session, csrf_token)
+    peers = load_peers()
+    target = next((peer for peer in peers if peer.name == peer_name), None)
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer not found")
+
+    form_values = _default_peer_form_values(peer_name)
+    form_values.update(
+        {
+            "path": _normalize_field(path),
+            "url": _normalize_field(url),
+            "token": _normalize_field(token),
+            "public_key": _normalize_field(public_key),
+        }
+    )
+
+    existing_names = {peer.name for peer in peers if peer.name != peer_name}
+    errors = _validate_peer_payload(
+        name=peer_name,
+        path=form_values["path"],
+        url=form_values["url"],
+        token=form_values["token"],
+        existing_names=existing_names,
+        editing=True,
+    )
+    if errors:
+        context = _build_sync_control_context(
+            request,
+            session_user,
+            edit_form_errors={peer_name: errors},
+        )
+        return templates.TemplateResponse("sync/control.html", context, status_code=status.HTTP_400_BAD_REQUEST)
+
+    target.path = _coerce_path(form_values["path"])
+    target.url = form_values["url"] or None
+    target.token = form_values["token"] or None
+    target.public_key = _normalize_public_key_input(form_values["public_key"])
+    save_peers(peers)
+    logger.info("Admin %s updated sync peer '%s'", session_user.user.username, peer_name)
+    return _redirect_to_sync_control(request, f"Peer '{peer_name}' updated.", tone="success")
+
+
+@router.post("/admin/sync-control/peers/{peer_name}/delete")
+def sync_control_delete_peer(
+    peer_name: str,
+    request: Request,
+    csrf_token: Annotated[str, Form(...)],
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    _ensure_csrf(session_user.session, csrf_token)
+    peers = load_peers()
+    remaining = [peer for peer in peers if peer.name != peer_name]
+    if len(remaining) == len(peers):
+        logger.warning("Attempt to remove unknown peer '%s'", peer_name)
+        context = _build_sync_control_context(
+            request,
+            session_user,
+            banner_message=f"Peer '{peer_name}' no longer exists.",
+            banner_tone="warning",
+        )
+        return templates.TemplateResponse("sync/control.html", context, status_code=status.HTTP_404_NOT_FOUND)
+
+    save_peers(remaining)
+    logger.info("Admin %s removed sync peer '%s'", session_user.user.username, peer_name)
+    return _redirect_to_sync_control(request, f"Peer '{peer_name}' removed.", tone="success")
+
+
+@router.post("/admin/sync-control/peers/{peer_name}/push")
+def sync_control_push_peer(
+    peer_name: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    csrf_token: Annotated[str, Form(...)],
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    _ensure_csrf(session_user.session, csrf_token)
+    _load_peer_or_404(peer_name)
+    job_tracker.queue_job(peer_name, "push")
+    background_tasks.add_task(_run_push_job, peer_name)
+    return _redirect_to_sync_control(request, f"Push queued for '{peer_name}'.", tone="info")
+
+
+@router.post("/admin/sync-control/peers/{peer_name}/pull")
+def sync_control_pull_peer(
+    peer_name: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    csrf_token: Annotated[str, Form(...)],
+    allow_unsigned: Annotated[Optional[str], Form()] = None,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    _ensure_csrf(session_user.session, csrf_token)
+    _load_peer_or_404(peer_name)
+    job_tracker.queue_job(peer_name, "pull")
+    background_tasks.add_task(_run_pull_job, peer_name, bool(allow_unsigned))
+    tone = "warning" if allow_unsigned else "info"
+    return _redirect_to_sync_control(request, f"Pull queued for '{peer_name}'.", tone=tone)
 
 
 @router.get("/login")
