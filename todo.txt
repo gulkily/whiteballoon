@@ -1,0 +1,18 @@
+todo
+====
+
+remove html strings from python strings
+	and codify that this shouldn't happen
+
+make the hub placeholder page look cooler
+
+better handling of ctrl+c in both servers
+
+make "share first request" field optional to reduce friction of registration process
+
+get rid of "suggested message" which appears after invite successful
+
+make register url prettier (no ? or =)
+
+for each user, display full invite tree path just above them
+
