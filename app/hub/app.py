@@ -81,16 +81,23 @@ def create_hub_app() -> FastAPI:
               <span class=\"tag\">WhiteBalloon</span>
               <h1>Sync Hub Relay</h1>
               <p>
-                This service relays signed <code>data/public_sync</code> bundles between peer instances.
-                Use the CLI to manage transfers:
+                Welcome to the bridge between WhiteBalloon communities. This hub ferries the public heartbeat
+                of each node—requests, invites, vouches—so distant clusters can stay in tune with one another.
+              </p>
+              <p>
+                Operators can push fresh stories from their local node and pull the latest from peers, weaving
+                trust across time zones. Every bundle is signed, so authenticity flows right alongside warmth.
+              </p>
+              <p>
+                Ready to explore?
               </p>
               <ul>
-                <li><code>./wb sync push &lt;peer&gt;</code> → uploads via <code>POST /api/v1/sync/&lt;peer&gt;/bundle</code></li>
-                <li><code>./wb sync pull &lt;peer&gt;</code> → downloads from <code>GET /api/v1/sync/&lt;peer&gt;/bundle</code></li>
+                <li>Share your universe: <code>./wb sync push &lt;peer&gt;</code></li>
+                <li>Collect new constellations: <code>./wb sync pull &lt;peer&gt;</code></li>
               </ul>
               <p>
-                Peers and tokens are defined in your <code>WB_HUB_CONFIG</code>. All bundles must include
-                <code>bundle.sig</code> and pass the Ed25519 verification performed by the hub.
+                Configure peers + tokens in <code>WB_HUB_CONFIG</code>, then let the CLI handle the journey.
+                This page is just a postcard; the real magic happens between communities.
               </p>
             </main>
           </body>
