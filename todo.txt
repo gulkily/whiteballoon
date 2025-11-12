@@ -16,3 +16,11 @@ make register url prettier (no ? or =)
 
 for each user, display full invite tree path just above them
 
+allow encrypting (publishing) packets specifically for individual/multiple clients (using their public key)
+
+enable users/operators to skin their own instance
+	may need a refactor of the html/css templates
+
+idea: entry page with a door opening
+	invite could be an image instead of text
+
