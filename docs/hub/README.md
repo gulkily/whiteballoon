@@ -4,10 +4,9 @@ The sync hub is a lightweight FastAPI service that relays signed `data/public_sy
 
 ## Configuration
 
-1. Launching the hub for the first time generates a sample config (run from the repo root so `app/` is on `PYTHONPATH`):
+1. Launching the hub for the first time generates a sample config:
    ```bash
-   cd /path/to/whiteballoon
-   PYTHONPATH=. WB_HUB_CONFIG=.sync/hub_config.json python tools/hub.py
+   ./wb hub serve --config .sync/hub_config.json --host 127.0.0.1 --port 9100
    ```
    If `.sync/hub_config.json` is missing, the process writes a stub and exits.
 2. Edit `.sync/hub_config.json`:
@@ -30,8 +29,7 @@ The sync hub is a lightweight FastAPI service that relays signed `data/public_sy
 ## Running the Hub
 
 ```
-cd /path/to/whiteballoon
-PYTHONPATH=. WB_HUB_CONFIG=.sync/hub_config.json python tools/hub.py
+./wb hub serve --config .sync/hub_config.json --host 0.0.0.0 --port 9100
 ```
 - Default port: `9100` (adjust by wrapping with uvicorn CLI if needed).
 - Endpoints:

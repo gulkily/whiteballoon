@@ -5,7 +5,7 @@ Use this checklist to exercise the hub against your local WhiteBalloon instance.
 ## 1. Start the hub from the repo root
 ```bash
 cd /path/to/whiteballoon
-PYTHONPATH=. WB_HUB_CONFIG=.sync/hub_local.json python tools/hub.py
+./wb hub serve --config .sync/hub_local.json --host 127.0.0.1 --port 9100
 ```
 - On first run a sample config is written to `.sync/hub_local.json`; edit it so `peers` contains at least one entry:
   ```json

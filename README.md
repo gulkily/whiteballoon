@@ -97,6 +97,10 @@ The signature file stores the manifest digest plus the signer’s key ID. Keep `
 Instead of syncing via shared folders, you can run the lightweight hub service in this repo (`app/hub/`).
 
 1. Start the hub (once) and configure peers in `.sync/hub_config.json` (see `docs/hub/README.md`).
+   ```bash
+   ./wb hub serve --config .sync/hub_config.json --host 127.0.0.1 --port 9100
+   ```
+   (Use `Ctrl+C` to stop; for production, follow the Ubuntu guide under `docs/hub/`.)
 2. On each instance, register the hub peer:
    ```bash
    ./wb sync peers add --name hub --url https://hub.example --token <secret> --public-key <base64>

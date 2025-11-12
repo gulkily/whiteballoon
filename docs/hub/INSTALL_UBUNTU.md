@@ -49,8 +49,7 @@ Generate a config at `/opt/wb-hub/.sync/hub_config.json` (the service writes a s
 ```bash
 sudo -u wb-hub bash -lc '
   cd /opt/wb-hub && \
-  source .venv/bin/activate && \
-  PYTHONPATH=. WB_HUB_CONFIG=.sync/hub_config.json python tools/hub.py
+  ./wb hub serve --config .sync/hub_config.json --host 0.0.0.0 --port 9100
 '
 ```
 Open another terminal and verify `/api/v1/sync/<peer>/status` responds (use curl with the bearer token).
