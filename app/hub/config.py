@@ -26,6 +26,7 @@ class HubSettings:
     token_index: Dict[str, HubPeer]
     allow_auto_register_push: bool = False
     allow_auto_register_pull: bool = False
+    config_path: Path | None = None
 
     def get_peer(self, name: str) -> HubPeer | None:
         return self.peers.get(name)
@@ -116,4 +117,28 @@ def reset_settings_cache() -> None:
     get_settings.cache_clear()
 
 
-__all__ = ["HubPeer", "HubSettings", "get_settings", "reset_settings_cache", "hash_token"]
+__all__ = ["HubPeer", "HubSettings", "get_settings", "reset_settings_cache", "hash_token", "persist_peer"]
+
+def persist_peer(config_path: Path, peer: HubPeer, *, storage_dir: Path | None = None, allow_push: bool | None = None, allow_pull: bool | None = None) -> None:
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    if config_path.exists():
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    else:
+        data = {"storage_dir": str(storage_dir or DEFAULT_STORAGE_DIR), "peers": []}
+    peers = data.get("peers") or []
+    peers = [entry for entry in peers if entry.get("name") != peer.name]
+    peers.append(
+        {
+            "name": peer.name,
+            "token_hash": peer.token_hash,
+            "public_key": peer.public_key,
+        }
+    )
+    data["peers"] = peers
+    if storage_dir:
+        data["storage_dir"] = str(storage_dir)
+    if allow_push is not None:
+        data["allow_auto_register_push"] = allow_push
+    if allow_pull is not None:
+        data["allow_auto_register_pull"] = allow_pull
+    config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")

@@ -6,6 +6,8 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import logging
+
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from fastapi.responses import StreamingResponse
 
@@ -16,7 +18,7 @@ from app.sync.signing import (
     verify_bundle_signature,
 )
 
-from .config import HubPeer, HubSettings, get_settings
+from .config import HubPeer, HubSettings, get_settings, hash_token, persist_peer, reset_settings_cache
 from .security import AuthContext
 from .storage import (
     build_metadata,
@@ -28,6 +30,25 @@ from .storage import (
 )
 
 router = APIRouter(prefix="/api/v1/sync", tags=["hub"])
+logger = logging.getLogger("whiteballoon.hub")
+PUBLIC_KEY_HEADER = "x-wb-public-key"
+
+
+def _extract_bearer_token(request: Request) -> str:
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.lower().startswith("bearer "):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+    token = auth.split(" ", 1)[1].strip()
+    if not token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid bearer token")
+    return token
+
+
+def _require_public_key(request: Request) -> str:
+    public_key = request.headers.get(PUBLIC_KEY_HEADER)
+    if not public_key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing X-WB-Public-Key header")
+    return public_key.strip()
 
 
 def _extract_bundle(upload: UploadFile, tmp_dir: Path) -> Path:
@@ -74,10 +95,17 @@ async def upload_bundle(
     settings: HubSettings = Depends(get_settings),
 ) -> dict[str, object]:
     peer = settings.get_peer(peer_name)
+    auto_registered = False
     if not peer:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown peer")
-    auth = AuthContext(request, settings)
-    auth.authenticate(peer_name=peer_name)
+        if not settings.allow_auto_register_push:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown peer")
+        token = _extract_bearer_token(request)
+        public_key = _require_public_key(request)
+        peer = HubPeer(name=peer_name, token_hash=hash_token(token), public_key=public_key)
+        auto_registered = True
+    else:
+        auth = AuthContext(request, settings)
+        auth.authenticate(peer_name=peer_name)
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
@@ -86,12 +114,19 @@ async def upload_bundle(
         metadata = build_metadata(peer, digest, signed_at)
         write_bundle(settings, peer, bundle_root, metadata)
         summary = summarize_bundle(bundle_root)
+    if auto_registered:
+        if not settings.config_path:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Hub config path unavailable")
+        persist_peer(settings.config_path, peer, storage_dir=settings.storage_dir, allow_push=settings.allow_auto_register_push, allow_pull=settings.allow_auto_register_pull)
+        reset_settings_cache()
+        logger.info("Auto-registered peer '%s' via push", peer_name)
     return {
         "peer": peer.name,
         "manifest_digest": digest,
         "signed_at": signed_at.isoformat(),
         "stored_bytes": summary["total_bytes"],
         "stored_files": summary["file_count"],
+        "auto_registered": auto_registered,
     }
 
 
@@ -102,9 +137,21 @@ async def download_bundle(
     settings: HubSettings = Depends(get_settings),
 ) -> Response:
     peer = settings.get_peer(peer_name)
+    auto_registered = False
     if not peer:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown peer")
-    AuthContext(request, settings).authenticate(peer_name=peer_name)
+        if not settings.allow_auto_register_pull:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown peer")
+        token = _extract_bearer_token(request)
+        public_key = _require_public_key(request)
+        peer = HubPeer(name=peer_name, token_hash=hash_token(token), public_key=public_key)
+        auto_registered = True
+        if not settings.config_path:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Hub config path unavailable")
+        persist_peer(settings.config_path, peer, storage_dir=settings.storage_dir, allow_push=settings.allow_auto_register_push, allow_pull=settings.allow_auto_register_pull)
+        reset_settings_cache()
+        logger.info("Auto-registered peer '%s' via pull", peer_name)
+    else:
+        AuthContext(request, settings).authenticate(peer_name=peer_name)
 
     bundle_root = get_bundle_path(settings, peer)
     manifest_path = bundle_root / MANIFEST_FILENAME
@@ -117,11 +164,13 @@ async def download_bundle(
             tar.add(file_path, arcname=file_path.relative_to(bundle_root))
     buffer.seek(0)
     filename = f"{peer.name}_public_sync.tar.gz"
-    return StreamingResponse(
+    response = StreamingResponse(
         buffer,
         media_type="application/gzip",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+    response.headers["X-WB-Auto-Registered"] = "true" if auto_registered else "false"
+    return response
 
 
 @router.get("/{peer_name}/status")

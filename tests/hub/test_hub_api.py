@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+import shutil
 
 from app.hub.app import create_hub_app
 from app.hub.config import reset_settings_cache
@@ -66,7 +67,10 @@ def test_upload_and_status_flow(tmp_env: tuple[Path, Path]) -> None:
 
     resp = client.post(
         "/api/v1/sync/alpha/bundle",
-        headers={"Authorization": "Bearer secret-token"},
+        headers={
+            "Authorization": "Bearer secret-token",
+            "X-WB-Public-Key": key.public_key_b64,
+        },
         files={"bundle": ("bundle.tar.gz", _bundle_bytes(bundle_dir), "application/gzip")},
     )
     assert resp.status_code == 202, resp.text
@@ -76,7 +80,7 @@ def test_upload_and_status_flow(tmp_env: tuple[Path, Path]) -> None:
 
     status_resp = client.get(
         "/api/v1/sync/alpha/status",
-        headers={"Authorization": "Bearer secret-token"},
+        headers={"Authorization": "Bearer secret-token", "X-WB-Public-Key": key.public_key_b64},
     )
     assert status_resp.status_code == 200
     status_payload = status_resp.json()
@@ -85,7 +89,7 @@ def test_upload_and_status_flow(tmp_env: tuple[Path, Path]) -> None:
 
     download = client.get(
         "/api/v1/sync/alpha/bundle",
-        headers={"Authorization": "Bearer secret-token"},
+        headers={"Authorization": "Bearer secret-token", "X-WB-Public-Key": key.public_key_b64},
     )
     assert download.status_code == 200
     assert download.headers["content-type"] == "application/gzip"
@@ -106,8 +110,56 @@ def test_upload_rejects_invalid_signature(tmp_env: tuple[Path, Path]) -> None:
 
     resp = client.post(
         "/api/v1/sync/alpha/bundle",
-        headers={"Authorization": "Bearer token"},
+        headers={"Authorization": "Bearer token", "X-WB-Public-Key": "WRONGKEY=="},
         files={"bundle": ("bundle.tar.gz", _bundle_bytes(bundle_dir), "application/gzip")},
     )
     assert resp.status_code == 400
     assert "public key" in resp.json()["detail"].lower()
+
+
+def test_auto_register_push(tmp_env: tuple[Path, Path]) -> None:
+    config_path, storage_dir = tmp_env
+    bundle_dir, key = _create_signed_bundle(config_path.parent)
+    config = {
+        "storage_dir": str(storage_dir),
+        "allow_auto_register_push": True,
+        "peers": [],
+    }
+    config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    reset_settings_cache()
+
+    app = create_hub_app()
+    client = TestClient(app)
+
+    resp = client.post(
+        "/api/v1/sync/beta/bundle",
+        headers={"Authorization": "Bearer beta-token", "X-WB-Public-Key": key.public_key_b64},
+        files={"bundle": ("bundle.tar.gz", _bundle_bytes(bundle_dir), "application/gzip")},
+    )
+    assert resp.status_code == 202
+    assert resp.json()["auto_registered"] is True
+
+
+def test_auto_register_pull(tmp_env: tuple[Path, Path]) -> None:
+    config_path, storage_dir = tmp_env
+    bundle_dir, key = _create_signed_bundle(config_path.parent)
+    # Seed hub store for beta peer
+    beta_store = storage_dir / "beta"
+    shutil.copytree(bundle_dir, beta_store)
+    config = {
+        "storage_dir": str(storage_dir),
+        "allow_auto_register_pull": True,
+        "peers": [],
+    }
+    config_path.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    reset_settings_cache()
+
+    app = create_hub_app()
+    client = TestClient(app)
+
+    download = client.get(
+        "/api/v1/sync/beta/bundle",
+        headers={"Authorization": "Bearer beta-token", "X-WB-Public-Key": key.public_key_b64},
+    )
+    assert download.status_code == 200
+    assert download.headers.get("X-WB-Auto-Registered") == "true"

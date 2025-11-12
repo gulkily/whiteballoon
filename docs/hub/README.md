@@ -51,7 +51,7 @@ On each WhiteBalloon instance:
    ./wb sync push alpha
    ./wb sync pull alpha
    ```
-   The CLI detects `--url` and uses the hub endpoints automatically. Signature verification still runs locally, so leaked bundles remain tamper-evident.
+   The CLI detects `--url` and uses the hub endpoints automatically. It also sends the node's public key header so loose-mode hubs can auto-register peers. Signature verification still runs locally, so leaked bundles remain tamper-evident.
 
 ## Notes
 - Hub never alters bundle contents; it only validates signatures and stores the uploaded files verbatim.

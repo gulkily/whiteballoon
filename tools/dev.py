@@ -107,12 +107,17 @@ def _hub_endpoint(peer: Peer, suffix: str) -> str:
     return f"{base}/api/v1/sync/{peer.name}/{suffix.lstrip('/')}"
 
 
-def _hub_headers(peer: Peer) -> dict[str, str]:
+def _hub_headers(peer: Peer, include_public_key: bool = True) -> dict[str, str]:
     if not peer.token:
         raise click.ClickException(
             f"Peer '{peer.name}' requires a token for hub access. Re-run 'wb sync peers add --token <value>'."
         )
-    return {"Authorization": f"Bearer {peer.token}"}
+    headers = {"Authorization": f"Bearer {peer.token}"}
+    if include_public_key:
+        keypair, _ = ensure_local_keypair(auto_generate=True)
+        if keypair:
+            headers["X-WB-Public-Key"] = keypair.public_key_b64
+    return headers
 
 
 def _push_to_hub(peer: Peer, bundle_dir: Path) -> None:
