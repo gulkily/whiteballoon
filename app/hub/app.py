@@ -3,6 +3,8 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
+from app.sync.signing import load_keypair
+
 from .routes import router
 
 
@@ -11,6 +13,11 @@ def create_hub_app() -> FastAPI:
 
     @app.get("/", response_class=HTMLResponse)
     def home() -> str:
+        try:
+            key = load_keypair()
+            public_key = key.public_key_b64 if key else "Not generated yet"
+        except Exception:
+            public_key = "Unavailable"
         return """
         <!DOCTYPE html>
         <html lang=\"en\">
@@ -83,6 +90,10 @@ def create_hub_app() -> FastAPI:
               <p>
                 Welcome to the bridge between WhiteBalloon communities. This hub ferries the public heartbeat
                 of each node—requests, invites, vouches—so distant clusters can stay in tune with one another.
+              </p>
+              <p>
+                Hub public key:<br />
+                <code>{public_key}</code>
               </p>
               <p>
                 Operators can push fresh stories from their local node and pull the latest from peers, weaving
