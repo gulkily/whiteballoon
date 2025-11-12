@@ -10,15 +10,15 @@
 - Verification: Page lists current peers with expected info; missing metadata handled gracefully.
 - Risks: Blocking calls if hub status is slow; mitigate with timeouts.
 
-## Stage 3 – Add/Edit/Delete Peer Modals
-- Goal: Allow admins to create, edit, and remove peers via forms.
-- Changes: POST endpoints writing to `sync_peers.txt`, CSRF-protected forms (likely modals triggered via HTMX/alpine). Validation for duplicates, required fields.
-- Verification: Create peer, edit token/public key, delete peer; changes reflected both in UI and file.
+## Stage 3 – Inline Peer Management Forms
+- Goal: Allow admins to create, edit, and remove peers via standard server-rendered forms without modals.
+- Changes: POST endpoints writing to `sync_peers.txt`, CSRF-protected forms rendered in dedicated "Add peer" and "Edit peer" sections on the page; reuse existing CSS/JS bundles only. Validation for duplicates, required fields, and immutable peer names when editing.
+- Verification: Create peer, edit token/public key, delete peer; page reload shows updated list and file reflects change.
 - Risks: Race conditions when multiple admins edit simultaneously (acceptable for MVP, but log warnings).
 
 ## Stage 4 – Trigger Push/Pull Actions
 - Goal: UI buttons queue push/pull jobs using existing CLI functionality.
-- Changes: Background tasks/celery-lite (FastAPI `BackgroundTasks`) invoking the same Python helpers used by CLI (export/import). UI shows toast on enqueue and refreshes status on completion.
+- Changes: Background tasks/celery-lite (FastAPI `BackgroundTasks`) invoking the same Python helpers used by CLI (export/import). UI uses existing flash/inline status pattern (no new JS) on enqueue and refreshes status on completion.
 - Verification: Trigger push/pull; watch logs + status chip update; ensure buttons disable while job in flight.
 - Risks: Long-running job blocking request thread; need background task + status polling.
 

@@ -61,7 +61,7 @@ When creating a new module:
 
 ## Tooling Tips
 - Keep dependencies minimal; prefer standard library or existing packages
-- Run `pytest --maxfail=1` during development for quick feedback
+- Do **not** run `pytest` during development; rely on targeted manual checks instead
 - Document any new CLI commands or module hooks as they are added
 
 ## Database integrity

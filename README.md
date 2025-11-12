@@ -21,6 +21,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - JSON API under `/api/requests` for programmatic access to the request feed
 - Invite generation returns share-ready links using the current request origin (fallback to `SITE_URL`)
 - Animated, bubbly theme with gradient background/responsive cards inspired by mutual-aid celebrations (respects `prefers-reduced-motion`)
+- Admin-only Sync Control Center (`/admin/sync-control`) for managing peers, triggering push/pull jobs, and reviewing recent sync activity
 
 ## Typography
 
@@ -59,6 +60,8 @@ Requires Python 3.10+.
 > **Database integrity**: Re-run `./wb init-db` whenever you suspect schema drift. The command now checks tables/columns against SQLModel definitions, auto-creates missing pieces, and reports mismatches that require manual attention.
 
 > **Invite links**: By default invite links use the incoming request origin. Set `SITE_URL` in `.env` to provide a fallback host for CLI usage or non-HTTP contexts.
+>
+> **Sync Control Center**: After logging in as an administrator, open `/admin/sync-control` (also linked from `/sync/public`) to edit peers, run push/pull jobs, and monitor activity without leaving the browser.
 
 ## Manual sync bundles & signatures
 
@@ -112,6 +115,16 @@ Instead of syncing via shared folders, you can run the lightweight hub service i
    ```
    The CLI detects `--url` and uploads/downloads bundles via HTTPS, verifying signatures before import.
 4. Optional: create an admin token with `./wb hub admin-token --config .sync/hub_config.json` and visit `/admin` on the hub to view peer stats.
+
+### Web-based Sync Control Center
+
+Administrators can now operate sync workflows entirely from the browser:
+
+1. Log in as an admin and open `/admin/sync-control` (there’s a shortcut button on `/sync/public`).
+2. Review existing peers, edit tokens/keys, or add new filesystem/hub peers inline.
+3. Use the “Push now” / “Pull now” buttons to queue jobs. Status chips update on refresh, and a rolling activity log records who ran what and whether it succeeded.
+
+Jobs reuse the same signing and verification pipeline as the CLI. You can queue a push, continue browsing, and refresh to see the completion state once the background task finishes.
 
 ## Send Welcome page
 - While signed in, use the “Send Welcome” button (header menu) to generate an invite instantly.
