@@ -68,13 +68,24 @@ def _load_settings(path: Path) -> HubSettings:
             ],
         }
         path.write_text(json.dumps(sample, indent=2) + "\n", encoding="utf-8")
-        raise FileNotFoundError(
-            f"Hub config not found. A sample file was created at {path}. Fill it out and restart."
-        )
+        data = sample
+    else:
+        data = json.loads(path.read_text(encoding="utf-8"))
 
-    data = json.loads(path.read_text(encoding="utf-8"))
     storage_dir = Path(data.get("storage_dir") or DEFAULT_STORAGE_DIR)
     peers_raw = data.get("peers") or []
+    if not peers_raw:
+        default_peer = {
+            "name": "local",
+            "token": "replace-me",
+            "public_key": "BASE64PUB",
+        }
+        peers_raw = [default_peer]
+        data = {
+            "storage_dir": str(storage_dir),
+            "peers": peers_raw,
+        }
+        path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     peers: Dict[str, HubPeer] = {}
     token_index: Dict[str, HubPeer] = {}
     for entry in peers_raw:
