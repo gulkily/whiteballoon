@@ -118,10 +118,11 @@ def dev_invoke(venv_python: Path, *args: str) -> int:
 def cmd_hub(args: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="wb hub", description="Manage the sync hub service")
     parser.add_argument("action", choices=["serve"], nargs="?", default="serve")
-    parser.add_argument("--config", dest="config", default=None, help="Path to hub config (WB_HUB_CONFIG)")
+    parser.add_argument("--config", dest="config", default=str(SCRIPT_DIR / ".sync" / "hub_config.json"), help="Path to hub config (WB_HUB_CONFIG)")
     parser.add_argument("--host", dest="host", default="0.0.0.0", help="Host to bind")
     parser.add_argument("--port", dest="port", type=int, default=9100, help="Port to bind")
-    parser.add_argument("--reload", dest="reload", action="store_true", help="Enable autoreload (dev only)")
+    parser.add_argument("--no-reload", dest="reload", action="store_false", help="Disable autoreload (enabled by default)")
+    parser.set_defaults(reload=True)
     ns = parser.parse_args(args)
 
     vpy = python_in_venv()
@@ -129,8 +130,7 @@ def cmd_hub(args: list[str]) -> int:
         warn("Virtualenv missing. Run './wb setup' first.")
         return 1
     env = os.environ.copy()
-    if ns.config:
-        env["WB_HUB_CONFIG"] = ns.config
+    env.setdefault("WB_HUB_CONFIG", ns.config)
     cmd = [
         str(vpy),
         "-m",

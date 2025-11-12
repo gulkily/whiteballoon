@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
-from app.sync.signing import load_keypair
+from app.sync.signing import ensure_local_keypair
 
 from .routes import router
 
@@ -14,11 +14,11 @@ def create_hub_app() -> FastAPI:
     @app.get("/", response_class=HTMLResponse)
     def home() -> str:
         try:
-            key = load_keypair()
+            key, _ = ensure_local_keypair(auto_generate=True)
             public_key = key.public_key_b64 if key else "Not generated yet"
         except Exception:
             public_key = "Unavailable"
-        return """
+        return f"""
         <!DOCTYPE html>
         <html lang=\"en\">
           <head>
