@@ -18,20 +18,20 @@ def create_hub_app() -> FastAPI:
             public_key = key.public_key_b64 if key else "Not generated yet"
         except Exception:
             public_key = "Unavailable"
-        return f"""
+        return """
         <!DOCTYPE html>
         <html lang=\"en\">
           <head>
             <meta charset=\"utf-8\" />
             <title>WhiteBalloon Sync Hub</title>
             <style>
-              :root {
+              :root {{
                 color-scheme: light dark;
                 --bg-primary: linear-gradient(135deg, #1b62f2 0%, #7b5df5 50%, #fb88ff 100%);
                 --panel-bg: rgba(255, 255, 255, 0.9);
                 --text-color: #1f1f29;
-              }
-              body {
+              }}
+              body {{
                 margin: 0;
                 min-height: 100vh;
                 font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -41,8 +41,8 @@ def create_hub_app() -> FastAPI:
                 justify-content: center;
                 padding: 2rem;
                 color: var(--text-color);
-              }
-              .panel {
+              }}
+              .panel {{
                 background: var(--panel-bg);
                 box-shadow: 0 25px 60px rgba(23, 23, 45, 0.25);
                 border-radius: 32px;
@@ -50,26 +50,26 @@ def create_hub_app() -> FastAPI:
                 max-width: 720px;
                 width: 100%;
                 backdrop-filter: blur(12px);
-              }
-              h1 {
+              }}
+              h1 {{
                 margin-top: 0;
                 font-size: 2.5rem;
                 color: #211547;
-              }
-              p {
+              }}
+              p {{
                 line-height: 1.6;
                 font-size: 1.05rem;
-              }
-              code {
+              }}
+              code {{
                 background: rgba(33, 21, 71, 0.08);
                 padding: 0.15rem 0.35rem;
                 border-radius: 6px;
                 font-size: 0.95rem;
-              }
-              ul {
+              }}
+              ul {{
                 padding-left: 1.25rem;
-              }
-              .tag {
+              }}
+              .tag {{
                 display: inline-block;
                 margin-right: 0.5rem;
                 padding: 0.2rem 0.6rem;
@@ -80,7 +80,7 @@ def create_hub_app() -> FastAPI:
                 letter-spacing: 0.04em;
                 text-transform: uppercase;
                 font-weight: 600;
-              }
+              }}
             </style>
           </head>
           <body>
@@ -113,7 +113,7 @@ def create_hub_app() -> FastAPI:
             </main>
           </body>
         </html>
-        """
+        """.format(public_key=public_key)
 
     app.include_router(router)
     return app
