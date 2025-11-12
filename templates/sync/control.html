@@ -1,0 +1,288 @@
+{% extends "base.html" %}
+
+{% block title %}Sync Control Center · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="sync-control">
+  <header class="stack">
+    <p class="muted small-text">Admin-only</p>
+    <h1>Sync Control Center</h1>
+    <p class="muted">
+      Manage peers, trigger sync jobs, and monitor recent activity from one place. Future steps will
+      populate the sections below.
+    </p>
+  </header>
+
+  <div class="card stack" data-section="peer-overview">
+    <div class="stack">
+      <h2>Peer overview</h2>
+      <p class="muted">Review configured peers, their bundle locations, and latest signed manifests.</p>
+    </div>
+
+    {% if peer_statuses %}
+      <div class="peer-grid">
+        {% for peer in peer_statuses %}
+          <article class="peer-card stack">
+            <header class="peer-card__header">
+              <div>
+                <p class="muted small-text">{{ peer.peer_kind_label }}</p>
+                <h3>{{ peer.name }}</h3>
+              </div>
+              <span class="meta-chip meta-chip--status meta-chip--{{ peer.status_tone }}">
+                <span class="meta-chip__label">Status</span>
+                <span class="meta-chip__value">{{ peer.status_label }}</span>
+              </span>
+            </header>
+
+            {% set peer_jobs = job_statuses.get(peer.name, {}) %}
+            {% set push_job = peer_jobs.get('push') %}
+            {% set pull_job = peer_jobs.get('pull') %}
+
+            <dl class="peer-card__meta">
+              <div>
+                <dt>{{ peer.location_label }}</dt>
+                <dd><code>{{ peer.location }}</code></dd>
+              </div>
+              {% if peer.public_key_hint %}
+                <div>
+                  <dt>Public key</dt>
+                  <dd>{{ peer.public_key_hint }}</dd>
+                </div>
+              {% endif %}
+              <div>
+                <dt>Last signed</dt>
+                <dd>
+                  {% if peer.signed_at %}
+                    <time datetime="{{ peer.signed_at }}">{{ peer.signed_at | friendly_time }}</time>
+                  {% else %}
+                    <span class="muted">No bundle yet</span>
+                  {% endif %}
+                </dd>
+              </div>
+              {% if peer.manifest_digest_short %}
+                <div>
+                  <dt>Manifest digest</dt>
+                  <dd>
+                    <code title="{{ peer.manifest_digest }}">{{ peer.manifest_digest_short }}</code>
+                  </dd>
+                </div>
+              {% endif %}
+              {% if peer.file_count is not none %}
+                <div>
+                  <dt>Files</dt>
+                  <dd>{{ peer.file_count }}</dd>
+                </div>
+              {% endif %}
+              {% if peer.total_bytes is not none %}
+                <div>
+                  <dt>Stored bytes</dt>
+                  <dd>{{ '{:,}'.format(peer.total_bytes) }}</dd>
+                </div>
+              {% endif %}
+            </dl>
+
+            {% if peer.detail %}
+              <p class="peer-card__detail" data-tone="{{ peer.detail_tone }}">{{ peer.detail }}</p>
+            {% endif %}
+
+            <div class="peer-card__actions">
+              <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/push">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button type="submit" class="button button--secondary" {% if push_job and push_job.status == 'running' %}disabled{% endif %}>Push now</button>
+              </form>
+              <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/pull" class="peer-card__pull">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <label class="checkbox">
+                  <input type="checkbox" name="allow_unsigned" value="1" /> Allow unsigned
+                </label>
+                <button type="submit" class="button button--secondary" {% if pull_job and pull_job.status == 'running' %}disabled{% endif %}>Pull now</button>
+              </form>
+            </div>
+
+            {% if push_job %}
+              <p class="job-status job-status--{{ push_job.status }}"><strong>Push:</strong> {{ push_job.message or push_job.status | title }}</p>
+            {% endif %}
+            {% if pull_job %}
+              <p class="job-status job-status--{{ pull_job.status }}"><strong>Pull:</strong> {{ pull_job.message or pull_job.status | title }}</p>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="muted">
+        No peers configured yet. Use the CLI for now (`wb sync peers add`) and they will appear here.
+      </p>
+    {% endif %}
+  </div>
+
+  <div class="card stack" data-section="peer-management">
+    <div class="stack">
+      <h2>Peer management</h2>
+      <p class="muted">Add filesystem peers, connect hubs, or update credentials without leaving the browser.</p>
+    </div>
+
+    {% if peer_banner_message %}
+      <div class="alert {{ 'alert--success' if peer_banner_tone == 'success' else 'alert--error' if peer_banner_tone == 'error' else 'alert' }}">
+        {{ peer_banner_message }}
+      </div>
+    {% endif %}
+
+    <section class="stack peer-form">
+      <h3>Add new peer</h3>
+      <form method="post" action="/admin/sync-control/peers/add" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        {% if add_peer_errors %}
+          <div class="alert alert--error">
+            <ul class="stack">
+              {% for error in add_peer_errors %}
+                <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+        <label class="stack" for="add-peer-name">
+          <span>Peer name</span>
+          <input id="add-peer-name" name="name" type="text" value="{{ add_peer_form.name }}" placeholder="orbit" required />
+        </label>
+
+        <div class="peer-form-grid">
+          <label class="stack" for="add-peer-path">
+            <span>Filesystem path</span>
+            <input id="add-peer-path" name="path" type="text" value="{{ add_peer_form.path }}" placeholder="/srv/sync/orbit" />
+            <p class="muted small-text">Optional for local peers. Leave blank if using a hub URL.</p>
+          </label>
+          <label class="stack" for="add-peer-url">
+            <span>Hub URL</span>
+            <input id="add-peer-url" name="url" type="text" value="{{ add_peer_form.url }}" placeholder="https://hub.example" />
+            <p class="muted small-text">Use https:// for remote hubs. Requires a token.</p>
+          </label>
+        </div>
+
+        <div class="peer-form-grid">
+          <label class="stack" for="add-peer-token">
+            <span>Token</span>
+            <input id="add-peer-token" name="token" type="text" value="{{ add_peer_form.token }}" placeholder="secret-token" />
+            <p class="muted small-text">Required for hub peers; ignored for filesystem entries.</p>
+          </label>
+          <label class="stack" for="add-peer-key">
+            <span>Trusted public key</span>
+            <input id="add-peer-key" name="public_key" type="text" value="{{ add_peer_form.public_key }}" placeholder="Base64 key" />
+            <p class="muted small-text">Optional. Supply the peer's Ed25519 public key for signature verification.</p>
+          </label>
+        </div>
+
+        <div>
+          <button type="submit" class="button button--secondary">Add peer</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="stack">
+      <h3>Existing peers</h3>
+      {% if peer_forms %}
+        <div class="peer-edit-list">
+          {% for peer in peer_forms %}
+            <article class="peer-edit-card stack">
+              <header class="stack">
+                <div>
+                  <p class="muted small-text">Peer</p>
+                  <h4>{{ peer.name }}</h4>
+                </div>
+                <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/delete">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                  <button type="submit" class="button button--ghost">Remove</button>
+                </form>
+              </header>
+
+              {% set peer_errors = edit_peer_errors.get(peer.name) %}
+              {% if peer_errors %}
+                <div class="alert alert--error">
+                  <ul class="stack">
+                    {% for error in peer_errors %}
+                      <li>{{ error }}</li>
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+
+              <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/edit" class="stack">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <div class="peer-form-grid">
+                  <label class="stack">
+                    <span>Filesystem path</span>
+                    <input name="path" type="text" value="{{ peer.path }}" />
+                  </label>
+                  <label class="stack">
+                    <span>Hub URL</span>
+                    <input name="url" type="text" value="{{ peer.url }}" />
+                  </label>
+                </div>
+                <div class="peer-form-grid">
+                  <label class="stack">
+                    <span>Token</span>
+                    <input name="token" type="text" value="{{ peer.token }}" />
+                  </label>
+                  <label class="stack">
+                    <span>Trusted public key</span>
+                    <input name="public_key" type="text" value="{{ peer.public_key }}" />
+                  </label>
+                </div>
+                <div>
+                  <button type="submit" class="button button--secondary">Save changes</button>
+                </div>
+              </form>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">No peers yet. Add one above to begin syncing.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="card stack" data-section="sync-actions">
+    <h2>Sync actions</h2>
+    <p class="muted">Use the controls above to trigger jobs. Latest activity appears below.</p>
+  </div>
+
+  <div class="card stack" data-section="activity-log">
+    <h2>Activity log</h2>
+    {% set latest_error = activity_events|selectattr('status', 'equalto', 'error')|list %}
+    {% if latest_error %}
+      <div class="alert alert--error">
+        Last failure: {{ latest_error[0].action|title }} on {{ latest_error[0].peer }} · {{ latest_error[0].message or 'See details below' }}
+      </div>
+    {% endif %}
+    {% if activity_events %}
+      <ul class="activity-list stack">
+        {% for event in activity_events %}
+          <li class="activity-item activity-item--{{ event.status }}">
+            <div class="activity-item__header">
+              <span class="activity-item__action">{{ event.action | title }}</span>
+              <span class="activity-item__peer">· {{ event.peer }}</span>
+              <span class="activity-item__status">{{ event.status | title }}</span>
+            </div>
+            <p class="muted small-text">
+              {% if event.timestamp %}
+                <time datetime="{{ event.timestamp }}">{{ event.timestamp | friendly_time }}</time>
+              {% endif %}
+              {% if event.triggered_by %}
+                · by {{ event.triggered_by }}
+              {% endif %}
+            </p>
+            {% if event.message %}
+              <p>{{ event.message }}</p>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No sync jobs have been recorded yet.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

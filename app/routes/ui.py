@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 import logging
 from pathlib import Path
 import re
+import sys
+from types import ModuleType
 from typing import Annotated, Optional, Union
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -45,6 +47,7 @@ from app.services import (
 )
 from app.security.csrf import generate_csrf_token, validate_csrf_token
 from app.sync import job_tracker
+from app.sync.activity_log import append_event, read_events
 from app.sync.peer_status import collect_peer_statuses
 from app.sync.peers import Peer, load_peers, save_peers
 from app.sync.signing import (
@@ -261,30 +264,53 @@ def _redirect_to_sync_control(request: Request, message: Optional[str], tone: st
     return RedirectResponse(url=url, status_code=status.HTTP_303_SEE_OTHER)
 
 
-def _run_push_job(peer_name: str) -> None:
+_TOOLS_MODULE: ModuleType | None = None
+
+
+def _load_tools_module() -> ModuleType:
+    global _TOOLS_MODULE
+    if _TOOLS_MODULE is not None:
+        return _TOOLS_MODULE
+
+    project_root = Path(__file__).resolve().parents[2]
+    sys.path.append(str(project_root))
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("wb_tools_dev", project_root / "tools" / "dev.py")
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Unable to load tools.dev module")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    _TOOLS_MODULE = module
+    return module
+
+
+def _run_push_job(peer_name: str, triggered_by: str | None = None) -> None:
     logger.info("Starting push job for peer '%s'", peer_name)
     job_tracker.mark_started(peer_name, "push")
     try:
-        from tools.dev import sync_push  # type: ignore
-
-        sync_push(peer_name)
+        tools_dev = _load_tools_module()
+        tools_dev.sync_push.callback(peer_name)
         job_tracker.mark_finished(peer_name, "push", True, "Push completed successfully")
+        append_event(peer=peer_name, action="push", status="success", triggered_by=triggered_by)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Push job for peer '%s' failed", peer_name)
         job_tracker.mark_finished(peer_name, "push", False, str(exc))
+        append_event(peer=peer_name, action="push", status="error", triggered_by=triggered_by, message=str(exc))
 
 
-def _run_pull_job(peer_name: str, allow_unsigned: bool) -> None:
+def _run_pull_job(peer_name: str, allow_unsigned: bool, triggered_by: str | None = None) -> None:
     logger.info("Starting pull job for peer '%s'", peer_name)
     job_tracker.mark_started(peer_name, "pull")
     try:
-        from tools.dev import sync_pull  # type: ignore
-
-        sync_pull(peer_name, allow_unsigned=allow_unsigned)
+        tools_dev = _load_tools_module()
+        tools_dev.sync_pull.callback(peer_name, allow_unsigned=allow_unsigned)
         job_tracker.mark_finished(peer_name, "pull", True, "Pull completed successfully")
+        append_event(peer=peer_name, action="pull", status="success", triggered_by=triggered_by)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Pull job for peer '%s' failed", peer_name)
         job_tracker.mark_finished(peer_name, "pull", False, str(exc))
+        append_event(peer=peer_name, action="pull", status="error", triggered_by=triggered_by, message=str(exc))
 
 
 def _build_sync_control_context(
@@ -324,6 +350,7 @@ def _build_sync_control_context(
         "peer_banner_tone": banner_tone,
         "csrf_token": csrf_token,
         "job_statuses": job_tracker.snapshot(),
+        "activity_events": read_events(limit=20),
     }
 
 
@@ -488,8 +515,8 @@ def sync_control_push_peer(
     _require_admin_session(session_user)
     _ensure_csrf(session_user.session, csrf_token)
     _load_peer_or_404(peer_name)
-    job_tracker.queue_job(peer_name, "push")
-    background_tasks.add_task(_run_push_job, peer_name)
+    job_tracker.queue_job(peer_name, "push", triggered_by=session_user.user.username)
+    background_tasks.add_task(_run_push_job, peer_name, session_user.user.username)
     return _redirect_to_sync_control(request, f"Push queued for '{peer_name}'.", tone="info")
 
 
@@ -505,8 +532,8 @@ def sync_control_pull_peer(
     _require_admin_session(session_user)
     _ensure_csrf(session_user.session, csrf_token)
     _load_peer_or_404(peer_name)
-    job_tracker.queue_job(peer_name, "pull")
-    background_tasks.add_task(_run_pull_job, peer_name, bool(allow_unsigned))
+    job_tracker.queue_job(peer_name, "pull", triggered_by=session_user.user.username)
+    background_tasks.add_task(_run_pull_job, peer_name, bool(allow_unsigned), session_user.user.username)
     tone = "warning" if allow_unsigned else "info"
     return _redirect_to_sync_control(request, f"Pull queued for '{peer_name}'.", tone=tone)
 
