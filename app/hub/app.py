@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
+from app.hub.config import get_settings
 from app.sync.signing import ensure_local_keypair
 
 from .routes import router
@@ -10,6 +13,17 @@ from .routes import router
 
 def create_hub_app() -> FastAPI:
     app = FastAPI(title="WhiteBalloon Sync Hub", version="0.1.0")
+    logger = logging.getLogger("whiteballoon.hub")
+
+    @app.on_event("startup")
+    async def _log_settings() -> None:
+        settings = get_settings()
+        logger.info(
+            "Hub config: %s | auto-register push=%s pull=%s",
+            settings.config_path,
+            settings.allow_auto_register_push,
+            settings.allow_auto_register_pull,
+        )
 
     @app.get("/", response_class=HTMLResponse)
     def home() -> str:

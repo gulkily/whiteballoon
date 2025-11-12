@@ -104,6 +104,7 @@ def _load_settings(path: Path) -> HubSettings:
         token_index=token_index,
         allow_auto_register_push=allow_push,
         allow_auto_register_pull=allow_pull,
+        config_path=path,
     )
 
 
