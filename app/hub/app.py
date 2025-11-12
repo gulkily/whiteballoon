@@ -10,6 +10,7 @@ from app.hub.config import get_settings
 from app.hub.storage import summarize_bundle, METADATA_FILENAME
 from app.sync.signing import ensure_local_keypair
 
+from .admin import admin_router
 from .routes import router
 
 
@@ -202,6 +203,7 @@ def create_hub_app() -> FastAPI:
         </html>
         """
 
+    app.include_router(admin_router)
     app.include_router(router)
     return app
 

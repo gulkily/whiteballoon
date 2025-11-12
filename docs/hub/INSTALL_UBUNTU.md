@@ -45,6 +45,7 @@ Generate a config at `/opt/wb-hub/.sync/hub_config.json` (the service writes a s
 - `public_key`: base64 output from `./wb sync keygen` on the peer instance.
 - Optional flags: set `"allow_auto_register_push": true` / `"allow_auto_register_pull": true` to let unknown peers self-register during uploads/downloads.
 - Add one object per peer you want to accept uploads from.
+- Admin dashboard (optional): generate a hashed token with `./wb hub admin-token --config .sync/hub_config.json --token-name ops`, restart the service, then sign in at `https://hub.example/admin` using the printed (64-char hex) token.
 
 ## 5. Test run manually
 ```bash

@@ -39,6 +39,23 @@ The sync hub is a lightweight FastAPI service that relays signed `data/public_sy
   - `GET /api/v1/sync/<peer>/bundle` — download the latest bundle (token required).
   - `GET /api/v1/sync/<peer>/status` — retrieve metadata (digest, timestamps, file counts).
 
+## Admin Dashboard
+
+Generate an admin token (hashed into the config) with the CLI:
+
+```bash
+./wb hub admin-token --config .sync/hub_config.json --token-name ops
+```
+
+Restart the hub and visit `/admin`. Enter the printed token to view the dashboard, which surfaces:
+
+- Config + storage locations and loose-mode flags.
+- Per-peer bundle metadata (files, size, digest, last signed).
+- A logout control that clears the admin session cookie.
+
+Tokens are stored as SHA-256 hashes under `admin_tokens` in the config; rerun the command above to rotate them.
+The CLI prints a 64-character hex string so it is easy to copy/paste or transcribe if needed.
+
 ## CLI Integration
 
 On each WhiteBalloon instance:

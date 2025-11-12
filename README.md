@@ -111,6 +111,7 @@ Instead of syncing via shared folders, you can run the lightweight hub service i
    ./wb sync pull hub
    ```
    The CLI detects `--url` and uploads/downloads bundles via HTTPS, verifying signatures before import.
+4. Optional: create an admin token with `./wb hub admin-token --config .sync/hub_config.json` and visit `/admin` on the hub to view peer stats.
 
 ## Send Welcome page
 - While signed in, use the “Send Welcome” button (header menu) to generate an invite instantly.

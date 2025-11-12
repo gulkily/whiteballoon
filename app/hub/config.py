@@ -20,10 +20,18 @@ class HubPeer:
 
 
 @dataclass(frozen=True)
+class AdminToken:
+    name: str
+    token_hash: str
+
+
+@dataclass(frozen=True)
 class HubSettings:
     storage_dir: Path
     peers: Dict[str, HubPeer]
     token_index: Dict[str, HubPeer]
+    admin_tokens: Dict[str, AdminToken]
+    admin_token_index: Dict[str, AdminToken]
     allow_auto_register_push: bool = False
     allow_auto_register_pull: bool = False
     config_path: Path | None = None
@@ -33,6 +41,12 @@ class HubSettings:
 
     def peer_for_token_hash(self, token_hash: str) -> HubPeer | None:
         return self.token_index.get(token_hash)
+
+    def admin_for_hash(self, token_hash: str) -> AdminToken | None:
+        return self.admin_token_index.get(token_hash)
+
+    def has_admin_tokens(self) -> bool:
+        return bool(self.admin_token_index)
 
 
 def hash_token(token: str) -> str:
@@ -98,10 +112,23 @@ def _load_settings(path: Path) -> HubSettings:
     storage_dir.mkdir(parents=True, exist_ok=True)
     allow_push = bool(data.get("allow_auto_register_push", False))
     allow_pull = bool(data.get("allow_auto_register_pull", False))
+    admin_tokens_raw = data.get("admin_tokens") or []
+    admin_tokens: Dict[str, AdminToken] = {}
+    admin_token_index: Dict[str, AdminToken] = {}
+    for entry in admin_tokens_raw:
+        name = entry.get("name") or "default"
+        token_hash = entry.get("token_hash")
+        if not token_hash:
+            raise ValueError(f"Admin token '{name}' missing 'token_hash'")
+        admin = AdminToken(name=str(name), token_hash=str(token_hash))
+        admin_tokens[admin.name] = admin
+        admin_token_index[admin.token_hash] = admin
     return HubSettings(
         storage_dir=storage_dir,
         peers=peers,
         token_index=token_index,
+        admin_tokens=admin_tokens,
+        admin_token_index=admin_token_index,
         allow_auto_register_push=allow_push,
         allow_auto_register_pull=allow_pull,
         config_path=path,
@@ -118,7 +145,15 @@ def reset_settings_cache() -> None:
     get_settings.cache_clear()
 
 
-__all__ = ["HubPeer", "HubSettings", "get_settings", "reset_settings_cache", "hash_token", "persist_peer"]
+__all__ = [
+    "AdminToken",
+    "HubPeer",
+    "HubSettings",
+    "get_settings",
+    "reset_settings_cache",
+    "hash_token",
+    "persist_peer",
+]
 
 def persist_peer(config_path: Path, peer: HubPeer, *, storage_dir: Path | None = None, allow_push: bool | None = None, allow_pull: bool | None = None) -> None:
     config_path.parent.mkdir(parents=True, exist_ok=True)

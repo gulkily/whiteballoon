@@ -2,13 +2,17 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import platform
+import secrets
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 import socket
+
+from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
 
 
 # -------- Logging helpers --------
@@ -117,13 +121,17 @@ def dev_invoke(venv_python: Path, *args: str) -> int:
 
 def cmd_hub(args: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="wb hub", description="Manage the sync hub service")
-    parser.add_argument("action", choices=["serve"], nargs="?", default="serve")
+    parser.add_argument("action", choices=["serve", "admin-token"], nargs="?", default="serve")
     parser.add_argument("--config", dest="config", default=str(SCRIPT_DIR / ".sync" / "hub_config.json"), help="Path to hub config (WB_HUB_CONFIG)")
     parser.add_argument("--host", dest="host", default="0.0.0.0", help="Host to bind")
     parser.add_argument("--port", dest="port", type=int, default=9100, help="Port to bind")
+    parser.add_argument("--token-name", dest="token_name", default="primary", help="Identifier when creating admin tokens")
     parser.add_argument("--no-reload", dest="reload", action="store_false", help="Disable autoreload (enabled by default)")
     parser.set_defaults(reload=True)
     ns = parser.parse_args(args)
+
+    if ns.action == "admin-token":
+        return _create_hub_admin_token(Path(ns.config), ns.token_name)
 
     vpy = python_in_venv()
     if not vpy.exists():
@@ -145,6 +153,24 @@ def cmd_hub(args: list[str]) -> int:
         cmd.append("--reload")
     info(f"Starting hub on {ns.host}:{ns.port}")
     return subprocess.run(cmd, env=env).returncode
+
+
+def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
+    token = secrets.token_hex(32)
+    config_path.parent.mkdir(parents=True, exist_ok=True)
+    if config_path.exists():
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    else:
+        data = {"storage_dir": str(DEFAULT_STORAGE_DIR), "peers": []}
+    admin_tokens = data.get("admin_tokens") or []
+    admin_tokens = [entry for entry in admin_tokens if entry.get("name") != token_name]
+    admin_tokens.append({"name": token_name, "token_hash": hash_token(token)})
+    data["admin_tokens"] = admin_tokens
+    config_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    info(f"Wrote admin token '{token_name}' to {config_path}")
+    print("Share this token securely:")
+    print(f"  {token}")
+    return 0
 
 
 # -------- CLI handlers --------
