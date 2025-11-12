@@ -24,6 +24,8 @@ class HubSettings:
     storage_dir: Path
     peers: Dict[str, HubPeer]
     token_index: Dict[str, HubPeer]
+    allow_auto_register_push: bool = False
+    allow_auto_register_pull: bool = False
 
     def get_peer(self, name: str) -> HubPeer | None:
         return self.peers.get(name)
@@ -93,7 +95,15 @@ def _load_settings(path: Path) -> HubSettings:
         peers[peer.name] = peer
         token_index[peer.token_hash] = peer
     storage_dir.mkdir(parents=True, exist_ok=True)
-    return HubSettings(storage_dir=storage_dir, peers=peers, token_index=token_index)
+    allow_push = bool(data.get("allow_auto_register_push", False))
+    allow_pull = bool(data.get("allow_auto_register_pull", False))
+    return HubSettings(
+        storage_dir=storage_dir,
+        peers=peers,
+        token_index=token_index,
+        allow_auto_register_push=allow_push,
+        allow_auto_register_pull=allow_pull,
+    )
 
 
 @lru_cache()

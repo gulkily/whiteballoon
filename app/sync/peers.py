@@ -45,15 +45,15 @@ def save_peers(peers: Iterable[Peer], peer_file: Path | None = None) -> None:
     lines: list[str] = []
     for peer in peers:
         lines.append("[peer]")
-            lines.append(f"name={peer.name}")
-            if peer.path:
-                lines.append(f"path={peer.path}")
-            if peer.url:
-                lines.append(f"url={peer.url}")
-            if peer.token:
-                lines.append(f"token={peer.token}")
-            if peer.public_key:
-                lines.append(f"public_key={peer.public_key}")
+        lines.append(f"name={peer.name}")
+        if peer.path:
+            lines.append(f"path={peer.path}")
+        if peer.url:
+            lines.append(f"url={peer.url}")
+        if peer.token:
+            lines.append(f"token={peer.token}")
+        if peer.public_key:
+            lines.append(f"public_key={peer.public_key}")
         lines.append("")
     file_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
 

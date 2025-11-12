@@ -8,7 +8,9 @@ The sync hub is a lightweight FastAPI service that relays signed `data/public_sy
    ```bash
    ./wb hub serve --config .sync/hub_config.json --host 127.0.0.1 --port 9100
    ```
-   If `.sync/hub_config.json` is missing, the process writes a stub and exits.
+   If `.sync/hub_config.json` is missing, the process writes a stub and continues with defaults. Flags you can add:
+   - `"allow_auto_register_push": true` — let unknown peers register themselves on upload.
+   - `"allow_auto_register_pull": true` — allow auto-registration during downloads.
 2. Edit `.sync/hub_config.json`:
    ```json
    {
