@@ -1,0 +1,4 @@
+Inline HTML occurrences in Python files (auto-generated).
+----------------------------------------------
+
+No inline HTML strings detected.
