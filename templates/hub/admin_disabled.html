@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Hub Admin Disabled</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: #0f172a;
+        color: #f1f5f9;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        margin: 0;
+      }
+      .panel {
+        background: rgba(15, 23, 42, 0.8);
+        border-radius: 18px;
+        padding: 2rem;
+        max-width: 560px;
+        width: 100%;
+        box-shadow: 0 25px 60px rgba(15, 23, 42, 0.5);
+      }
+      h1 {
+        margin-top: 0;
+        font-size: 1.8rem;
+      }
+      code {
+        background: rgba(15, 23, 42, 0.6);
+        padding: 0.2rem 0.35rem;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <section class="panel">
+      <h1>Admin dashboard locked</h1>
+      <p>
+        This hub has no admin tokens configured. Generate one from the CLI to enable the
+        dashboard:
+      </p>
+      <pre><code>./wb hub admin-token --config {{ config_path }}</code></pre>
+      <p>After restarting the hub, revisit this page.</p>
+    </section>
+  </body>
+</html>

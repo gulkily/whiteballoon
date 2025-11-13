@@ -40,6 +40,11 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - `wb` – Git-style wrapper around the Click CLI
 - `static/js/` (optional) – Minimal progressive-enhancement scripts
 
+## Templating Guidelines
+- Keep all HTML markup (pages, fragments, styled blocks) inside Jinja templates under `templates/`.
+- When a Python handler needs to return HTML, render a template via `Jinja2Templates` instead of building strings inline.
+- If you introduce new views (CLI output, hub pages, etc.), create the template at the same time so we never accumulate inline HTML debt again.
+
 ## Environment Variables
 ```bash
 DATABASE_URL=sqlite:///data/app.db

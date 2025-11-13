@@ -171,14 +171,37 @@ def import_sync_data(session: Session, input_dir: Path) -> int:
 
 def _import_user(session: Session, headers: dict[str, str]) -> None:
     created_at = _parse_datetime(headers.get("Updated-At"))
-    user = User(
-        id=_maybe_int(headers.get("ID")),
-        username=headers.get("Username"),
-        contact_email=headers.get("Contact-Email") or None,
-        created_at=created_at or datetime.utcnow(),
-        sync_scope=headers.get("Sync-Scope", "public"),
-    )
-    session.merge(user)
+    user_id = _maybe_int(headers.get("ID"))
+    username = headers.get("Username")
+    contact_email_present = "Contact-Email" in headers
+    contact_email = headers.get("Contact-Email") or None
+    sync_scope = headers.get("Sync-Scope", "public")
+
+    existing: User | None = None
+    if user_id is not None:
+        existing = session.get(User, user_id)
+    if existing is None and username:
+        existing = session.exec(select(User).where(User.username == username)).first()
+
+    if existing:
+        if username:
+            existing.username = username
+        if contact_email_present:
+            existing.contact_email = contact_email
+        if created_at:
+            existing.created_at = created_at
+        if sync_scope:
+            existing.sync_scope = sync_scope
+        session.add(existing)
+    else:
+        new_user = User(
+            id=user_id,
+            username=username,
+            contact_email=contact_email,
+            created_at=created_at or datetime.utcnow(),
+            sync_scope=sync_scope,
+        )
+        session.add(new_user)
 
 
 def _import_request(session: Session, headers: dict[str, str], body_text: str) -> None:
