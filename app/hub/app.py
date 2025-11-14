@@ -9,11 +9,13 @@ from fastapi.templating import Jinja2Templates
 from app.hub.config import get_settings
 from app.hub.storage import summarize_bundle, METADATA_FILENAME
 from app.sync.signing import ensure_local_keypair
+from app.skins.runtime import register_skin_helpers
 
 from .admin import admin_router
 from .routes import router
 
 templates = Jinja2Templates(directory="templates")
+register_skin_helpers(templates)
 
 
 def create_hub_app() -> FastAPI:

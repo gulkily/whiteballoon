@@ -6,8 +6,10 @@ from typing import Optional, Union
 from fastapi.templating import Jinja2Templates
 
 from app.models import User, UserSession
+from app.skins.runtime import register_skin_helpers
 
 templates = Jinja2Templates(directory="templates")
+register_skin_helpers(templates)
 
 
 def _parse_iso_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:

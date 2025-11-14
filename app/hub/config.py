@@ -8,6 +8,10 @@ import os
 from pathlib import Path
 from typing import Dict
 
+from app.env import ensure_env_loaded
+
+ensure_env_loaded()
+
 DEFAULT_CONFIG_PATH = Path(".sync/hub_config.json")
 DEFAULT_STORAGE_DIR = Path("data/hub_store")
 
