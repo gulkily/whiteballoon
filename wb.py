@@ -15,6 +15,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+from app.env import ensure_env_loaded
+ensure_env_loaded()
+
 from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
 
 

@@ -5,6 +5,10 @@ from dataclasses import dataclass
 from functools import lru_cache
 from typing import Tuple
 
+from app.env import ensure_env_loaded
+
+ensure_env_loaded()
+
 
 def _get_bool(value: str | None, default: bool) -> bool:
     if value is None:
