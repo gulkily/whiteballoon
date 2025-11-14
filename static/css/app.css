@@ -524,6 +524,7 @@ dd + dd {
   height: 2.25rem;
   border-radius: 999px;
   padding: 0;
+  box-sizing: border-box;
   border: 1px solid rgba(124, 58, 237, 0.35);
   background: rgba(124, 58, 237, 0.15);
   color: var(--color-accent);
@@ -532,8 +533,24 @@ dd + dd {
 }
 
 .theme-toggle__icon {
-  font-size: 1rem;
-  line-height: 1;
+  position: relative;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.theme-toggle__glyph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+[data-theme-mode="auto"] .theme-toggle__glyph--auto,
+[data-theme-mode="light"] .theme-toggle__glyph--light,
+[data-theme-mode="dark"] .theme-toggle__glyph--dark {
+  opacity: 1;
 }
 
 .theme-toggle__label {
@@ -546,10 +563,22 @@ dd + dd {
   box-shadow: var(--shadow-sm);
 }
 
+.theme-toggle[data-theme-mode="auto"] {
+  border-width: 2px;
+  border-style: dashed;
+  border-color: rgba(124, 58, 237, 0.75);
+  background: rgba(124, 58, 237, 0.22);
+}
+
 [data-theme="dark"] .theme-toggle {
   background: rgba(96, 165, 250, 0.18);
   color: #bfdbfe;
   border-color: rgba(96, 165, 250, 0.35);
+}
+
+[data-theme="dark"] .theme-toggle[data-theme-mode="auto"] {
+  border-color: rgba(191, 219, 254, 0.85);
+  background: rgba(147, 197, 253, 0.2);
 }
 
 .stack {
