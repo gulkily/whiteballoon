@@ -78,3 +78,7 @@ Future skins override these tokens (and may add new ones). Keeping them grouped 
 - `WB_SKIN_STRICT` (default `false`): when `true`, the app raises an error if the configured skin is missing from the manifest. Otherwise it falls back to `/static/skins/<name>.css` and logs a warning.
 
 Remember to restart the app after changing these values so `get_settings()` reloads the configuration.
+
+## Bundled Skins
+- **default** – current brand palette with gradient background.
+- **terminal** – retro green-on-black terminal aesthetic (monospace fonts, neon accents). Enable via `WB_SKINS_ALLOWED=default,terminal` and `WB_SKIN_DEFAULT=terminal` if desired.
