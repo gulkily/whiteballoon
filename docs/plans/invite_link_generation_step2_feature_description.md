@@ -9,7 +9,7 @@ Invite tokens are shown as raw strings; users must manually combine them with th
 - As a maintainer, I want a safe fallback when the request origin isn’t available so local/dev setups still work.
 
 ## Core Requirements
-- Extend the invite modal/template to display a fully qualified link (e.g., `https://example.com/register?invite_token=XYZ`).
+- Extend the invite modal/template to display a fully qualified link (e.g., `https://example.com/register/XYZ`).
 - Determine base URL from the incoming request (preferred) with fallback to a configured `SITE_URL` setting.
 - Provide copy button / link text within the modal; keep QR functionality intact.
 - Update CLI output to mirror the behavior (optional but low cost).

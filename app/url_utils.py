@@ -21,7 +21,7 @@ def get_base_url(request: Optional[Request] = None) -> str:
 
 def build_invite_link(token: str, request: Optional[Request] = None) -> str:
     base = get_base_url(request)
-    return f"{base}/register?invite_token={token}"
+    return f"{base}/register/{token}"
 
 
 def generate_qr_code_data_url(text: str) -> str:
