@@ -11,3 +11,15 @@ Theme Ideas
 8. Paper Notebook — cream background, dotted grid, ink-style typography, sticky-note tags.
 9. Desert Mirage — warm sandstone palette, geometric shadows, turquoise buttons.
 10. Arctic Minimal — icy whites, pastel blues, subtle glass blur, hairline separators.
+
+Popular Sites Among Builders
+=============================
+
+- Notion — clean, modular workspace UI with neutral palettes.
+- Linear — minimalist project tracker with high-contrast colors.
+- Superhuman — keyboard-driven email with neon accents.
+- Vercel — dark mode heavy, glassmorphism inspiration.
+- Figma — collaborative canvas with playful yet functional styling.
+- Arc Browser — vibrant gradients and unique panel treatments.
+- GitHub — pragmatic design with accessible navigation patterns.
+- Stripe Press — editorial typography and generous whitespace.
