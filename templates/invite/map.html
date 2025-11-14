@@ -22,7 +22,12 @@
         </div>
       </div>
       {% if node.invited_at %}
-        <span class="invite-map__timestamp muted small-text">Invited {{ node.invited_at }}</span>
+        <span class="invite-map__timestamp muted small-text">
+          Invited
+          <time datetime="{{ node.invited_at }}" title="{{ node.invited_at }}">
+            {{ node.invited_at | friendly_time }}
+          </time>
+        </span>
       {% endif %}
     </div>
     {% if node.children %}
@@ -47,7 +52,12 @@
         </div>
       </div>
       {% if ancestor.invited_at %}
-        <span class="invite-map__timestamp muted small-text">Invited {{ ancestor.invited_at }}</span>
+        <span class="invite-map__timestamp muted small-text">
+          Invited
+          <time datetime="{{ ancestor.invited_at }}" title="{{ ancestor.invited_at }}">
+            {{ ancestor.invited_at | friendly_time }}
+          </time>
+        </span>
       {% endif %}
     </div>
     <ul class="invite-map__tree">
