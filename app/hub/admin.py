@@ -6,12 +6,14 @@ from fastapi.templating import Jinja2Templates
 
 from app.hub.config import HubSettings, get_settings, hash_token, reset_settings_cache
 from app.hub.storage import bundle_exists, get_bundle_path, read_metadata, summarize_bundle
+from app.skins.runtime import register_skin_helpers
 
 ADMIN_COOKIE_NAME = "wb_hub_admin"
 ADMIN_SESSION_MAX_AGE = 60 * 60 * 12  # 12 hours
 
 admin_router = APIRouter()
 templates = Jinja2Templates(directory="templates")
+register_skin_helpers(templates)
 
 
 def _load_settings() -> HubSettings:

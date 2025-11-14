@@ -68,3 +68,13 @@ Future skins override these tokens (and may add new ones). Keeping them grouped 
 - Use `./wb skins build --dry-run` to list available skins without writing files.
 - During development, `./wb skins watch` rebuilds on changes (polling every second by default). Stop with `Ctrl-C`.
 - CI/release checklist: execute `./wb skins build` so bundles + manifest are up to date before packaging artifacts.
+
+## Configuring Skins in the App (C3)
+- `WB_SKINS_ENABLED` (default `false`): master switch for manifest-driven skins. When `false`, the app loads `/static/skins/default.css` directly.
+- `WB_SKIN_DEFAULT` (default `default`): slug of the bundle that should load by default.
+- `WB_SKINS_ALLOWED`: comma-separated list of skins operators are willing to expose (default falls back to the default skin). The default skin is automatically added if missing.
+- `WB_SKINS_MANIFEST_PATH` (default `static/build/skins/manifest.json`): filesystem path to the build manifest produced by `./wb skins build`.
+- `WB_SKIN_PREVIEW_ENABLED` (default `false`): when `true`, requests may pass `?skin=<name>` (param configurable via `WB_SKIN_PREVIEW_PARAM`, default `skin`) to preview another allowed skin without changing global config.
+- `WB_SKIN_STRICT` (default `false`): when `true`, the app raises an error if the configured skin is missing from the manifest. Otherwise it falls back to `/static/skins/<name>.css` and logs a warning.
+
+Remember to restart the app after changing these values so `get_settings()` reloads the configuration.
