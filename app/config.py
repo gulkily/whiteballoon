@@ -3,12 +3,24 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from typing import Tuple
 
 
 def _get_bool(value: str | None, default: bool) -> bool:
     if value is None:
         return default
     return value.lower() in {"1", "true", "on", "yes"}
+
+
+def _parse_csv(value: str | None) -> Tuple[str, ...]:
+    if not value:
+        return tuple()
+    parts = []
+    for chunk in value.split(","):
+        item = chunk.strip()
+        if item:
+            parts.append(item)
+    return tuple(parts)
 
 
 @dataclass(frozen=True)
@@ -19,6 +31,13 @@ class Settings:
     cookie_secure: bool = _get_bool(os.getenv("COOKIE_SECURE"), False)
     enable_contact_email: bool = _get_bool(os.getenv("ENABLE_CONTACT_EMAIL"), True)
     site_url: str = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+    skins_enabled: bool = _get_bool(os.getenv("WB_SKINS_ENABLED"), False)
+    skin_default: str = os.getenv("WB_SKIN_DEFAULT", "default")
+    skins_allowed: tuple[str, ...] = _parse_csv(os.getenv("WB_SKINS_ALLOWED", ""))
+    skins_manifest_path: str = os.getenv("WB_SKINS_MANIFEST_PATH", "static/build/skins/manifest.json")
+    skin_preview_enabled: bool = _get_bool(os.getenv("WB_SKIN_PREVIEW_ENABLED"), False)
+    skin_preview_param: str = os.getenv("WB_SKIN_PREVIEW_PARAM", "skin")
+    skin_strict: bool = _get_bool(os.getenv("WB_SKIN_STRICT"), False)
 
 
 @lru_cache(maxsize=1)
