@@ -53,6 +53,19 @@
     linear-gradient(120deg, rgba(236, 72, 153, 0.35), rgba(129, 140, 248, 0.35));
   --skin-bubble-background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(129, 140, 248, 0.55));
   --skin-bubble-shadow: 0 0 25px rgba(124, 58, 237, 0.25);
+  --skin-button-bg: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(192, 132, 252, 0.95));
+  --skin-button-hover-bg: linear-gradient(135deg, rgba(192, 132, 252, 0.95), rgba(124, 58, 237, 0.95));
+  --skin-button-text: #ffffff;
+  --skin-button-hover-shadow: 0 14px 26px rgba(124, 58, 237, 0.25);
+  --skin-button-ghost-bg: rgba(255, 255, 255, 0.08);
+  --skin-button-ghost-color: var(--color-accent);
+  --skin-button-ghost-border: rgba(124, 58, 237, 0.35);
+  --skin-button-secondary-bg: rgba(124, 58, 237, 0.18);
+  --skin-button-secondary-color: var(--color-accent);
+  --skin-button-secondary-border: rgba(124, 58, 237, 0.35);
+  --skin-button-secondary-bg-dark: rgba(148, 163, 184, 0.18);
+  --skin-button-secondary-color-dark: var(--color-text);
+  --skin-button-secondary-border-dark: rgba(148, 163, 184, 0.35);
 }
 
 [data-theme="dark"] {
@@ -94,4 +107,17 @@
     linear-gradient(120deg, rgba(76, 29, 149, 0.45), rgba(129, 140, 248, 0.25));
   --skin-bubble-background: linear-gradient(135deg, rgba(148, 163, 184, 0.35), rgba(129, 140, 248, 0.4));
   --skin-bubble-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+  --skin-button-bg: linear-gradient(135deg, rgba(124, 58, 237, 0.9), rgba(192, 132, 252, 0.95));
+  --skin-button-hover-bg: linear-gradient(135deg, rgba(192, 132, 252, 0.95), rgba(124, 58, 237, 0.95));
+  --skin-button-text: #ffffff;
+  --skin-button-hover-shadow: 0 14px 26px rgba(124, 58, 237, 0.35);
+  --skin-button-ghost-bg: rgba(255, 255, 255, 0.08);
+  --skin-button-ghost-color: var(--color-accent);
+  --skin-button-ghost-border: rgba(124, 58, 237, 0.35);
+  --skin-button-secondary-bg: rgba(124, 58, 237, 0.18);
+  --skin-button-secondary-color: var(--color-accent);
+  --skin-button-secondary-border: rgba(124, 58, 237, 0.35);
+  --skin-button-secondary-bg-dark: rgba(148, 163, 184, 0.18);
+  --skin-button-secondary-color-dark: var(--color-text);
+  --skin-button-secondary-border-dark: rgba(148, 163, 184, 0.35);
 }

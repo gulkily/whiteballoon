@@ -1,6 +1,62 @@
 @import url("./base.css");
 
 :root {
+  color-scheme: light;
+  --color-surface: #edfef0;
+  --color-card: rgba(255, 255, 255, 0.96);
+  --color-input: #ffffff;
+  --color-text: #0a2f16;
+  --color-muted: #2f6a3b;
+  --color-accent: #1f8a3a;
+  --color-accent-strong: #15702b;
+  --color-border: rgba(31, 138, 58, 0.25);
+  --color-success: #1f8a3a;
+  --color-warning: #b38a00;
+  --color-danger: #c7253e;
+  --color-info: #1e7c73;
+  --color-warm: #d87d1c;
+  --color-bubble-highlight: rgba(31, 138, 58, 0.15);
+  --color-bubble-cool: rgba(13, 97, 48, 0.15);
+  --color-hero-glow: rgba(31, 138, 58, 0.12);
+  --shadow-sm: 0 0 8px rgba(31, 138, 58, 0.18);
+  --shadow-md: 0 20px 45px rgba(31, 138, 58, 0.18);
+  --font-heading: "Share Tech Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-body: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  --color-on-accent: #f5fff4;
+  --skin-account-role-bg: rgba(31, 138, 58, 0.12);
+  --skin-account-role-text: var(--color-muted);
+  --skin-account-admin-bg: rgba(31, 138, 58, 0.12);
+  --skin-account-admin-text: var(--color-accent);
+  --skin-account-half-bg: rgba(179, 138, 0, 0.12);
+  --skin-account-half-text: #8a6200;
+  --skin-account-ok-bg: rgba(31, 138, 58, 0.12);
+  --skin-account-muted-bg: rgba(31, 138, 58, 0.08);
+  --skin-theme-toggle-border: rgba(31, 138, 58, 0.35);
+  --skin-theme-toggle-bg: rgba(255, 255, 255, 0.75);
+  --skin-theme-toggle-foreground: var(--color-accent);
+  --skin-theme-toggle-auto-border: rgba(31, 138, 58, 0.6);
+  --skin-theme-toggle-auto-bg: rgba(255, 255, 255, 0.9);
+  --skin-background-gradient: radial-gradient(circle at 0% 100%, rgba(146, 239, 169, 0.4), transparent 60%),
+    radial-gradient(circle at 100% 0%, rgba(138, 228, 195, 0.35), transparent 55%),
+    linear-gradient(120deg, rgba(221, 255, 229, 0.8), rgba(218, 255, 225, 0.85));
+  --skin-bubble-background: linear-gradient(135deg, rgba(39, 119, 59, 0.15), rgba(12, 96, 46, 0.12));
+  --skin-bubble-shadow: 0 0 18px rgba(31, 138, 58, 0.2);
+  --skin-button-bg: linear-gradient(135deg, rgba(44, 160, 83, 0.95), rgba(121, 255, 77, 0.85));
+  --skin-button-hover-bg: linear-gradient(135deg, rgba(121, 255, 77, 0.9), rgba(44, 160, 83, 0.95));
+  --skin-button-text: #071406;
+  --skin-button-hover-shadow: 0 12px 25px rgba(44, 160, 83, 0.25);
+  --skin-button-ghost-bg: rgba(32, 70, 41, 0.08);
+  --skin-button-ghost-color: var(--color-accent);
+  --skin-button-ghost-border: rgba(31, 138, 58, 0.35);
+  --skin-button-secondary-bg: rgba(32, 70, 41, 0.12);
+  --skin-button-secondary-color: var(--color-accent);
+  --skin-button-secondary-border: rgba(31, 138, 58, 0.35);
+  --skin-button-secondary-bg-dark: rgba(13, 45, 24, 0.4);
+  --skin-button-secondary-color-dark: #b7ffb2;
+  --skin-button-secondary-border-dark: rgba(121, 255, 77, 0.35);
+}
+
+[data-theme="dark"] {
   color-scheme: dark;
   --color-surface: #050c07;
   --color-card: rgba(5, 12, 7, 0.92);
@@ -20,8 +76,6 @@
   --color-hero-glow: rgba(121, 255, 77, 0.2);
   --shadow-sm: 0 0 12px rgba(63, 255, 120, 0.25);
   --shadow-md: 0 0 35px rgba(63, 255, 120, 0.35);
-  --font-heading: "Share Tech Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  --font-body: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
   --color-on-accent: #041503;
   --skin-account-role-bg: rgba(55, 120, 70, 0.35);
   --skin-account-role-text: var(--color-muted);
@@ -41,47 +95,19 @@
     linear-gradient(120deg, rgba(14, 51, 28, 0.9), rgba(7, 26, 14, 0.9));
   --skin-bubble-background: linear-gradient(135deg, rgba(121, 255, 77, 0.15), rgba(63, 255, 120, 0.1));
   --skin-bubble-shadow: 0 0 25px rgba(63, 255, 120, 0.15);
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-  --color-surface: #050f08;
-  --color-card: rgba(9, 20, 13, 0.95);
-  --color-input: rgba(10, 26, 15, 0.95);
-  --color-text: #c9ffba;
-  --color-muted: #7ee883;
-  --color-accent: #79ff4d;
-  --color-accent-strong: #35e04c;
-  --color-border: rgba(77, 255, 90, 0.45);
-  --color-success: #79ff4d;
-  --color-warning: #f9f871;
-  --color-danger: #ff6767;
-  --color-info: #64f9ff;
-  --color-warm: #ffad5c;
-  --color-bubble-highlight: rgba(77, 255, 90, 0.35);
-  --color-bubble-cool: rgba(61, 214, 138, 0.35);
-  --color-hero-glow: rgba(121, 255, 77, 0.2);
-  --shadow-sm: 0 0 12px rgba(63, 255, 120, 0.35);
-  --shadow-md: 0 0 40px rgba(63, 255, 120, 0.45);
-  --color-on-accent: #041503;
-  --skin-account-role-bg: rgba(55, 120, 70, 0.35);
-  --skin-account-role-text: var(--color-muted);
-  --skin-account-admin-bg: rgba(121, 255, 77, 0.12);
-  --skin-account-admin-text: var(--color-accent);
-  --skin-account-half-bg: rgba(249, 248, 113, 0.15);
-  --skin-account-half-text: #f9f871;
-  --skin-account-ok-bg: rgba(121, 255, 77, 0.18);
-  --skin-account-muted-bg: rgba(55, 120, 70, 0.3);
-  --skin-theme-toggle-border: rgba(121, 255, 77, 0.55);
-  --skin-theme-toggle-bg: rgba(8, 20, 12, 0.95);
-  --skin-theme-toggle-foreground: var(--color-accent);
-  --skin-theme-toggle-auto-border: rgba(121, 255, 77, 0.8);
-  --skin-theme-toggle-auto-bg: rgba(9, 26, 15, 0.97);
-  --skin-background-gradient: radial-gradient(circle at 0% 100%, rgba(29, 122, 69, 0.45), transparent 60%),
-    radial-gradient(circle at 100% 0%, rgba(16, 83, 50, 0.5), transparent 55%),
-    linear-gradient(120deg, rgba(7, 26, 14, 0.95), rgba(5, 16, 9, 0.95));
-  --skin-bubble-background: linear-gradient(135deg, rgba(121, 255, 77, 0.2), rgba(63, 255, 120, 0.15));
-  --skin-bubble-shadow: 0 0 25px rgba(63, 255, 120, 0.2);
+  --skin-button-bg: linear-gradient(135deg, rgba(14, 96, 29, 0.95), rgba(77, 255, 90, 0.85));
+  --skin-button-hover-bg: linear-gradient(135deg, rgba(77, 255, 90, 0.85), rgba(14, 96, 29, 0.95));
+  --skin-button-text: #041503;
+  --skin-button-hover-shadow: 0 16px 30px rgba(77, 255, 90, 0.2);
+  --skin-button-ghost-bg: rgba(7, 26, 14, 0.45);
+  --skin-button-ghost-color: var(--color-accent);
+  --skin-button-ghost-border: rgba(77, 255, 90, 0.35);
+  --skin-button-secondary-bg: rgba(7, 26, 14, 0.5);
+  --skin-button-secondary-color: var(--color-accent);
+  --skin-button-secondary-border: rgba(77, 255, 90, 0.25);
+  --skin-button-secondary-bg-dark: rgba(7, 26, 14, 0.5);
+  --skin-button-secondary-color-dark: #b7ffb2;
+  --skin-button-secondary-border-dark: rgba(77, 255, 90, 0.35);
 }
 
 /* Terminal-specific flourishes */
