@@ -856,6 +856,32 @@ textarea::placeholder {
   text-decoration: none;
 }
 
+.meta-chip--action {
+  border: none;
+  cursor: pointer;
+  background: rgba(124, 58, 237, 0.16);
+  color: var(--color-accent);
+  font: inherit;
+  text-align: left;
+}
+
+.meta-chip--action:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.meta-chip__value--stacked {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.meta-chip__hint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
 [data-theme="dark"] .meta-chip {
   background: rgba(148, 163, 184, 0.14);
 }
