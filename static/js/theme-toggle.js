@@ -57,12 +57,22 @@
     return 'Auto';
   }
 
+  function descriptionFor(mode) {
+    var label = labelFor(mode);
+    if (mode === 'auto') {
+      return 'Theme mode: ' + label + ' (follows system preference)';
+    }
+    return 'Theme mode: ' + label;
+  }
+
   function apply(mode, persist) {
     var resolved = resolve(mode);
     document.documentElement.setAttribute('data-theme', resolved);
     document.documentElement.setAttribute('data-theme-preference', mode);
     toggle.setAttribute('data-theme-mode', mode);
-    toggle.setAttribute('aria-label', 'Theme mode: ' + labelFor(mode));
+    var description = descriptionFor(mode);
+    toggle.setAttribute('aria-label', description);
+    toggle.setAttribute('title', description);
     if (label) {
       label.textContent = labelFor(mode);
     }
