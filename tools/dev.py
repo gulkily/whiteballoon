@@ -6,6 +6,11 @@ import shutil
 import io
 import tarfile
 import tempfile
+import sys
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import click
 import httpx
@@ -30,6 +35,16 @@ from app.sync.signing import (
     generate_keypair,
     sign_bundle,
     verify_bundle_signature,
+)
+from tools.skins_build import (
+    BASE_FILENAME,
+    BUILD_DIR,
+    MANIFEST_FILENAME,
+    SKINS_DIR,
+    SkinBuildError,
+    build_skins,
+    discover_skins,
+    watch_skins,
 )
 
 
@@ -567,6 +582,84 @@ def session_deny(request_id: str) -> None:  # pragma: no cover
 
         session.commit()
         click.secho(f"Denied request {request_id}.", fg="yellow")
+
+
+@cli.group(name="skins", help="Skin bundle utilities")
+def skins_group() -> None:
+    """Commands for building and watching skin CSS bundles."""
+
+
+@skins_group.command(name="build")
+@click.option(
+    "--output-dir",
+    default=str(BUILD_DIR),
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Directory where compiled skin bundles are written",
+)
+@click.option(
+    "--manifest",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Optional manifest path (defaults to <output-dir>/manifest.json)",
+)
+@click.option("--dry-run", is_flag=True, help="List discovered skins without writing bundles")
+def skins_build_cli(output_dir: Path, manifest: Path | None, dry_run: bool) -> None:
+    try:
+        entries = discover_skins()
+    except SkinBuildError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    if dry_run:
+        click.secho(f"Discovered {len(entries)} skin(s) in {SKINS_DIR}:", fg="cyan")
+        for entry in entries:
+            click.echo(f"  - {entry.name} ({entry.path})")
+        return
+
+    manifest_path = manifest or (output_dir / MANIFEST_FILENAME)
+    try:
+        manifest_data = build_skins(skins=entries, output_dir=output_dir, manifest_path=manifest_path)
+    except SkinBuildError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.secho(f"Built {len(manifest_data)} skin bundle(s) in {output_dir}", fg="green")
+    for name, meta in manifest_data.items():
+        click.echo(f"  - {name}: {meta['filename']}")
+    click.echo(f"Manifest: {manifest_path}")
+
+
+@skins_group.command(name="watch")
+@click.option(
+    "--output-dir",
+    default=str(BUILD_DIR),
+    show_default=True,
+    type=click.Path(path_type=Path),
+    help="Directory where compiled skin bundles are written",
+)
+@click.option(
+    "--manifest",
+    default=None,
+    type=click.Path(path_type=Path),
+    help="Optional manifest path (defaults to <output-dir>/manifest.json)",
+)
+@click.option("--interval", default=1.0, show_default=True, type=float, help="Polling interval in seconds")
+def skins_watch_cli(output_dir: Path, manifest: Path | None, interval: float) -> None:
+    manifest_path = manifest or (output_dir / MANIFEST_FILENAME)
+
+    def _log(message: str) -> None:
+        click.echo(f"[skins] {message}")
+
+    click.secho(f"Watching {SKINS_DIR} for changes (interval {interval}s)...", fg="cyan")
+    try:
+        watch_skins(
+            interval=interval,
+            base_css_path=SKINS_DIR / BASE_FILENAME,
+            output_dir=output_dir,
+            manifest_path=manifest_path,
+            log=_log,
+        )
+    except SkinBuildError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @cli.command(name="create-invite")

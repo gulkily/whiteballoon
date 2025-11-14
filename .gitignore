@@ -26,3 +26,4 @@ data/
 *.egg-info/
 fonts-raw/
 static/uploads/
+static/build/
