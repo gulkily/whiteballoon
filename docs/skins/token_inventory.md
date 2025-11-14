@@ -82,3 +82,4 @@ Remember to restart the app after changing these values so `get_settings()` relo
 ## Bundled Skins
 - **default** – current brand palette with gradient background.
 - **terminal** – retro green-on-black terminal aesthetic (monospace fonts, neon accents). Enable via `WB_SKINS_ALLOWED=default,terminal` and `WB_SKIN_DEFAULT=terminal` if desired.
+- **paper** – notebook-inspired cream palette with handwritten fonts and dotted-grid background. Enable via `WB_SKINS_ALLOWED=default,paper`.
