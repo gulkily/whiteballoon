@@ -24,3 +24,4 @@ enable users/operators to skin their own instance
 idea: entry page with a door opening
 	invite could be an image instead of text
 
+put each route in its own file

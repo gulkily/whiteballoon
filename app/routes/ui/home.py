@@ -1,0 +1,5 @@
+"""Home and feed routes."""
+
+from fastapi import APIRouter
+
+router = APIRouter()
