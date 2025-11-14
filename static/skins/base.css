@@ -757,6 +757,13 @@ dd + dd {
   opacity: 1;
 }
 
+.button--disabled,
+.button[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .input-group {
   display: flex;
   flex-direction: column;
@@ -880,6 +887,101 @@ textarea::placeholder {
   font-size: 0.7rem;
   font-weight: 500;
   color: var(--color-muted);
+}
+
+.profiles-filter {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.profiles-filter__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.profiles-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.profiles-table th,
+.profiles-table td {
+  padding: 0.85rem 0.5rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  text-align: left;
+}
+
+.profiles-table th {
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.08em;
+  color: var(--color-muted);
+}
+
+.profiles-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.profile-contact {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.profile-contact:hover,
+.profile-contact:focus-visible {
+  text-decoration: underline;
+}
+
+.profiles-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.profiles-pagination__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.profiles-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.profile-action {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+}
+
+.profile-action:hover,
+.profile-action:focus-visible {
+  text-decoration: underline;
+}
+
+.profile-action--placeholder {
+  color: var(--color-muted);
+  font-weight: 500;
+  text-decoration: none;
+  cursor: default;
+}
+
+.profile-action--placeholder:hover,
+.profile-action--placeholder:focus-visible {
+  text-decoration: none;
 }
 
 [data-theme="dark"] .meta-chip {
