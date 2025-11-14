@@ -85,7 +85,6 @@
   function showInviteSuccess(data, fallbackFields) {
     const personalization = data.personalization || fallbackFields;
     const link = data.link || '';
-    const message = buildShareMessage(personalization, link);
 
     statusEl.classList.remove('muted');
     statusEl.innerHTML = '';
@@ -111,61 +110,7 @@
       container.appendChild(linkRow);
     }
 
-    if (message) {
-      const messageLabel = document.createElement('p');
-      messageLabel.className = 'muted small-text';
-      messageLabel.textContent = 'Suggested message';
-      container.appendChild(messageLabel);
-
-      const shareTextarea = document.createElement('textarea');
-      shareTextarea.readOnly = true;
-      shareTextarea.rows = 8;
-      shareTextarea.value = message;
-      container.appendChild(shareTextarea);
-
-      const copyButton = document.createElement('button');
-      copyButton.type = 'button';
-      copyButton.className = 'button button--ghost';
-      copyButton.textContent = 'Copy message';
-      copyButton.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(message);
-          copyButton.textContent = 'Copied!';
-          copyButton.disabled = true;
-          setTimeout(() => {
-            copyButton.textContent = 'Copy message';
-            copyButton.disabled = false;
-          }, 2000);
-        } catch (copyError) {
-          console.error(copyError);
-          alert('Unable to copy automatically. Please copy the message manually.');
-        }
-      });
-      container.appendChild(copyButton);
-    }
-
     form.reset();
-  }
-
-  function buildShareMessage(fields, link) {
-    const username = (fields.suggested_username || '').trim();
-    const gratitude = (fields.gratitude_note || '').trim();
-    const support = (fields.support_message || '').trim();
-
-    let message = `Hi! ${inviter} has welcomed you into WhiteBalloon.`;
-    if (username) {
-      message += ` Suggested username: ${username}.`;
-    }
-    if (gratitude) {
-      message += `\n\nWhy you're appreciated: ${gratitude}`;
-    }
-    if (support) {
-      message += `\n\nHow they'll support you: ${support}`;
-    }
-    if (link) {
-      message += `\n\nJoin here: ${link}`;
-    }
-    return message.trim();
   }
 
   function buildPayload(formData) {
