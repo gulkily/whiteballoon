@@ -333,6 +333,7 @@ def print_help() -> None:
     print("  create-admin USER     Promote a user to admin")
     print("  create-invite [opts]  Generate invite tokens")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
+    print("  skins <command>       Build or watch skin CSS bundles")
     print("  hub serve [opts]      Run the sync hub (uvicorn)")
     print("  version               Display CLI version info")
     print("  help                  Show this help message")
@@ -353,6 +354,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("create-admin")
     subparsers.add_parser("create-invite")
     subparsers.add_parser("sync")
+    subparsers.add_parser("skins")
     subparsers.add_parser("hub")
 
     # Parse only the command; leave the rest as passthrough
@@ -374,12 +376,14 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_hub(passthrough)
 
     # Known commands path
-    if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "sync"}:
+    if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "sync", "skins"}:
         if ns.command == "sync":
             if not passthrough:
                 passthrough = ["--help"]
             elif passthrough[0] == "help":
                 passthrough = ["--help", *passthrough[1:]]
+        if ns.command == "skins" and not passthrough:
+            passthrough = ["--help"]
         if ns.command == "runserver" and not preflight_runserver(passthrough):
             return 1
         graceful_interrupt = ns.command == "runserver"

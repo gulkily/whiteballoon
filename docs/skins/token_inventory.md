@@ -62,3 +62,9 @@ Future skins override these tokens (and may add new ones). Keeping them grouped 
 1. When adding a new component, pull layout styles into `base.css` but keep colors referencing tokens.
 2. Update `docs/skins/token_inventory.md` with any new token names/semantics.
 3. For experimental skins, copy `static/skins/default.css` → `static/skins/<variant>.css`, tweak token values, and add overrides beneath the import.
+
+## Building Skin Bundles (C2)
+- Run `./wb skins build` to compile every `static/skins/*.css` (excluding `base.css`) into hashed bundles under `static/build/skins/` and emit `manifest.json`.
+- Use `./wb skins build --dry-run` to list available skins without writing files.
+- During development, `./wb skins watch` rebuilds on changes (polling every second by default). Stop with `Ctrl-C`.
+- CI/release checklist: execute `./wb skins build` so bundles + manifest are up to date before packaging artifacts.
