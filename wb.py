@@ -2,15 +2,18 @@
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import platform
 import secrets
 import shutil
+import signal
+import socket
 import subprocess
 import sys
 from pathlib import Path
-import socket
 
 from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
 
@@ -114,9 +117,75 @@ def ensure_cli_ready(python_exe: Path) -> bool:
     return result.returncode == 0
 
 
-def dev_invoke(venv_python: Path, *args: str) -> int:
-    proc = subprocess.run([str(venv_python), str(DEV_TOOL), *args])
-    return proc.returncode
+@contextlib.contextmanager
+def _suppress_ctrl_c_echo(enabled: bool):
+    if not enabled:
+        yield
+        return
+    stream = getattr(sys, "stdin", None)
+    if stream is None:
+        yield
+        return
+    try:
+        fd = stream.fileno()
+        is_tty = stream.isatty()
+    except (io.UnsupportedOperation, AttributeError, ValueError):
+        yield
+        return
+    if not is_tty:
+        yield
+        return
+    try:
+        import termios  # type: ignore
+    except ImportError:
+        yield
+        return
+    try:
+        original = termios.tcgetattr(fd)
+    except termios.error:
+        yield
+        return
+    updated = original.copy()
+    updated[3] &= ~termios.ECHOCTL
+    try:
+        termios.tcsetattr(fd, termios.TCSANOW, updated)
+    except termios.error:
+        yield
+        return
+    try:
+        yield
+    finally:
+        with contextlib.suppress(termios.error):
+            termios.tcsetattr(fd, termios.TCSANOW, original)
+
+
+def _run_process(
+    cmd: list[str], *, env: dict[str, str] | None = None, graceful_interrupt: bool = False, interrupt_message: str | None = None
+) -> int:
+    with _suppress_ctrl_c_echo(graceful_interrupt):
+        proc = subprocess.Popen(cmd, env=env)
+        try:
+            return proc.wait()
+        except KeyboardInterrupt:
+            with contextlib.suppress(ProcessLookupError):
+                proc.send_signal(signal.SIGINT)
+            if not graceful_interrupt:
+                raise
+            try:
+                proc.wait()
+            except KeyboardInterrupt:
+                proc.kill()
+                raise
+            if interrupt_message:
+                info(interrupt_message)
+            return 0
+
+
+def dev_invoke(venv_python: Path, *args: str, graceful_interrupt: bool = False, interrupt_message: str | None = None) -> int:
+    """Invoke the dev tool inside the venv, optionally suppressing Ctrl-C tracebacks."""
+
+    cmd = [str(venv_python), str(DEV_TOOL), *args]
+    return _run_process(cmd, graceful_interrupt=graceful_interrupt, interrupt_message=interrupt_message)
 
 
 def cmd_hub(args: list[str]) -> int:
@@ -152,7 +221,7 @@ def cmd_hub(args: list[str]) -> int:
     if ns.reload:
         cmd.append("--reload")
     info(f"Starting hub on {ns.host}:{ns.port}")
-    return subprocess.run(cmd, env=env).returncode
+    return _run_process(cmd, env=env, graceful_interrupt=True, interrupt_message="Hub stopped")
 
 
 def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
@@ -192,14 +261,14 @@ def cmd_setup(_args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_known(known_cmd: str, passthrough: list[str]) -> int:
+def cmd_known(known_cmd: str, passthrough: list[str], *, graceful_interrupt: bool = False, interrupt_message: str | None = None) -> int:
     vpy = python_in_venv()
     if not ensure_cli_ready(vpy):
         warn("Dependencies missing. Run './wb setup' first.")
         print()
         print_help()
         return 1
-    return dev_invoke(vpy, known_cmd, *passthrough)
+    return dev_invoke(vpy, known_cmd, *passthrough, graceful_interrupt=graceful_interrupt, interrupt_message=interrupt_message)
 
 
 def _parse_host_port(args: list[str]) -> tuple[str, int]:
@@ -313,7 +382,14 @@ def main(argv: list[str] | None = None) -> int:
                 passthrough = ["--help", *passthrough[1:]]
         if ns.command == "runserver" and not preflight_runserver(passthrough):
             return 1
-        rc = cmd_known(ns.command, passthrough)
+        graceful_interrupt = ns.command == "runserver"
+        interrupt_message = "Server stopped" if graceful_interrupt else None
+        rc = cmd_known(
+            ns.command,
+            passthrough,
+            graceful_interrupt=graceful_interrupt,
+            interrupt_message=interrupt_message,
+        )
         if rc != 0 and ns.command not in {"runserver", "sync"}:
             warn("Command failed. Run './wb setup' first if not done.")
             print()
