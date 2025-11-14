@@ -1,0 +1,97 @@
+@import url("./base.css");
+
+:root {
+  color-scheme: light;
+  --color-surface: #f8f5ff;
+  --color-card: rgba(255, 255, 255, 0.85);
+  --color-input: #ffffff;
+  --color-text: #10172a;
+  --color-muted: #707a95;
+  --color-accent: #7c3aed;
+  --color-accent-strong: #6d28d9;
+  --color-border: rgba(124, 58, 237, 0.25);
+  --color-success: #22c55e;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-info: #38bdf8;
+  --color-warm: #fb7185;
+  --color-bubble-highlight: rgba(244, 114, 182, 0.4);
+  --color-bubble-cool: rgba(129, 140, 248, 0.45);
+  --color-hero-glow: rgba(192, 132, 252, 0.25);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 14px 40px rgba(124, 58, 237, 0.2);
+  --gap-sm: 0.5rem;
+  --radius-md: 12px;
+  --radius-sm: 6px;
+  --space-section: clamp(2rem, 1.5rem + 2vw, 3.5rem);
+  --space-card-gap: clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
+  --font-size-base: clamp(1rem, 0.96rem + 0.45vw, 1.08rem);
+  --font-size-lg: clamp(1.2rem, 1.1rem + 0.6vw, 1.5rem);
+  --font-size-sm: 0.9rem;
+  --font-size-xs: 0.8rem;
+  --line-height-base: 1.65;
+  --line-height-tight: 1.35;
+  --line-height-heading: 1.2;
+  --font-heading: "Sora", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-on-accent: #ffffff;
+  --skin-account-role-bg: rgba(100, 116, 139, 0.18);
+  --skin-account-role-text: var(--color-muted);
+  --skin-account-admin-bg: rgba(37, 99, 235, 0.12);
+  --skin-account-admin-text: var(--color-accent);
+  --skin-account-half-bg: rgba(217, 119, 6, 0.14);
+  --skin-account-half-text: #b45309;
+  --skin-account-ok-bg: rgba(21, 128, 61, 0.14);
+  --skin-account-muted-bg: rgba(100, 116, 139, 0.16);
+  --skin-theme-toggle-border: rgba(124, 58, 237, 0.35);
+  --skin-theme-toggle-bg: rgba(124, 58, 237, 0.15);
+  --skin-theme-toggle-foreground: var(--color-accent);
+  --skin-theme-toggle-auto-border: rgba(124, 58, 237, 0.75);
+  --skin-theme-toggle-auto-bg: rgba(124, 58, 237, 0.22);
+  --skin-background-gradient: radial-gradient(circle at 0% 100%, var(--color-bubble-highlight), transparent 55%),
+    radial-gradient(circle at 100% 0%, var(--color-bubble-cool), transparent 50%),
+    linear-gradient(120deg, rgba(236, 72, 153, 0.35), rgba(129, 140, 248, 0.35));
+  --skin-bubble-background: linear-gradient(135deg, rgba(255, 255, 255, 0.6), rgba(129, 140, 248, 0.55));
+  --skin-bubble-shadow: 0 0 25px rgba(124, 58, 237, 0.25);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-surface: #0f172a;
+  --color-card: rgba(17, 24, 39, 0.85);
+  --color-input: #1f2937;
+  --color-text: #e2e8f0;
+  --color-muted: #c3d0ff;
+  --color-accent: #c084fc;
+  --color-accent-strong: #a855f7;
+  --color-border: rgba(192, 132, 252, 0.35);
+  --color-success: #4ade80;
+  --color-warning: #facc15;
+  --color-danger: #f87171;
+  --color-info: #38bdf8;
+  --color-warm: #fb7185;
+  --color-bubble-highlight: rgba(236, 72, 153, 0.35);
+  --color-bubble-cool: rgba(129, 140, 248, 0.4);
+  --color-hero-glow: rgba(76, 29, 149, 0.35);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.4);
+  --shadow-md: 0 14px 40px rgba(76, 29, 149, 0.45);
+  --color-on-accent: #ffffff;
+  --skin-account-role-bg: rgba(100, 116, 139, 0.18);
+  --skin-account-role-text: var(--color-muted);
+  --skin-account-admin-bg: rgba(37, 99, 235, 0.12);
+  --skin-account-admin-text: var(--color-accent);
+  --skin-account-half-bg: rgba(217, 119, 6, 0.14);
+  --skin-account-half-text: #b45309;
+  --skin-account-ok-bg: rgba(21, 128, 61, 0.14);
+  --skin-account-muted-bg: rgba(100, 116, 139, 0.16);
+  --skin-theme-toggle-border: rgba(96, 165, 250, 0.35);
+  --skin-theme-toggle-bg: rgba(96, 165, 250, 0.18);
+  --skin-theme-toggle-foreground: #bfdbfe;
+  --skin-theme-toggle-auto-border: rgba(191, 219, 254, 0.85);
+  --skin-theme-toggle-auto-bg: rgba(147, 197, 253, 0.2);
+  --skin-background-gradient: radial-gradient(circle at 0% 100%, rgba(244, 114, 182, 0.25), transparent 55%),
+    radial-gradient(circle at 100% 0%, rgba(79, 70, 229, 0.35), transparent 50%),
+    linear-gradient(120deg, rgba(76, 29, 149, 0.45), rgba(129, 140, 248, 0.25));
+  --skin-bubble-background: linear-gradient(135deg, rgba(148, 163, 184, 0.35), rgba(129, 140, 248, 0.4));
+  --skin-bubble-shadow: 0 0 25px rgba(99, 102, 241, 0.2);
+}
