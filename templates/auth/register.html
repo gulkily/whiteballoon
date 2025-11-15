@@ -51,7 +51,7 @@
         {{ suggested_bio }}
       </div>
     {% endif %}
-    <form method="post" class="form-grid">
+    <form method="post" action="/register" class="form-grid">
       <div class="input-group">
         <label for="username">Username</label>
         <input id="username" name="username" type="text" value="{{ invite_personalization.suggested_username | default(suggested_username | default('')) }}" required />
@@ -70,12 +70,11 @@
         />
       </div>
       <div class="input-group">
-        <label for="initial_request">Share your first request</label>
+        <label for="initial_request">Share your first request <span class="muted">(optional)</span></label>
         <textarea
           id="initial_request"
           name="initial_request"
           placeholder="E.g., need groceries this week, ride to clinic, help with child care on Friday"
-          required
         ></textarea>
       </div>
       <button type="submit" class="button">Register</button>

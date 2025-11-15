@@ -5,7 +5,13 @@
 {% set show_half_auth = session and (not session.is_fully_authenticated) %}
 <div class="account-nav">
   {% if session_role %}
-    <span class="account-status__tag account-status__tag--role" data-session-role>{{ session_role.label }}</span>
+    {% if show_admin %}
+      <a class="account-status__tag account-status__tag--role account-status__tag--link" href="/admin" data-session-role>
+        {{ session_role.label }}
+      </a>
+    {% else %}
+      <span class="account-status__tag account-status__tag--role" data-session-role>{{ session_role.label }}</span>
+    {% endif %}
   {% endif %}
   <a class="account-nav__user" href="/profile">
     <span class="account-nav__avatar" aria-hidden="true">
@@ -30,7 +36,4 @@
   <form action="/logout" method="post" class="inline">
     <button type="submit" class="button button--ghost">Sign out</button>
   </form>
-  {% if show_admin %}
-    <a class="button button--ghost" href="/sync/public">Sync dashboard</a>
-  {% endif %}
 </div>

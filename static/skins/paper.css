@@ -1,0 +1,157 @@
+@import url("./base.css");
+
+:root {
+  color-scheme: light;
+  --color-surface: #fdf8ec;
+  --color-card: rgba(255, 255, 255, 0.95);
+  --color-input: #fff9ec;
+  --color-text: #2b210d;
+  --color-muted: #6b5a38;
+  --color-accent: #c66833;
+  --color-accent-strong: #a94f1e;
+  --color-border: rgba(198, 104, 51, 0.25);
+  --color-success: #3f8c47;
+  --color-warning: #d69012;
+  --color-danger: #ba3a2c;
+  --color-info: #2b6f9d;
+  --color-warm: #cc8d5d;
+  --color-bubble-highlight: rgba(255, 193, 111, 0.25);
+  --color-bubble-cool: rgba(179, 209, 255, 0.25);
+  --color-hero-glow: rgba(198, 104, 51, 0.12);
+  --shadow-sm: 0 6px 18px rgba(113, 78, 42, 0.12);
+  --shadow-md: 0 30px 60px rgba(113, 78, 42, 0.16);
+  --font-heading: "Cormorant Garamond", "Georgia", "Times New Roman", serif;
+  --font-body: "Kalam", "Patrick Hand", "Segoe Print", "Comic Sans MS", cursive;
+  --color-on-accent: #fef7ed;
+  --skin-account-role-bg: rgba(210, 182, 142, 0.25);
+  --skin-account-role-text: #7a5d33;
+  --skin-account-admin-bg: rgba(45, 97, 60, 0.12);
+  --skin-account-admin-text: #2f6a3b;
+  --skin-account-half-bg: rgba(214, 144, 18, 0.15);
+  --skin-account-half-text: #8b550a;
+  --skin-account-ok-bg: rgba(63, 140, 71, 0.14);
+  --skin-account-muted-bg: rgba(122, 109, 85, 0.18);
+  --skin-theme-toggle-border: rgba(113, 78, 42, 0.35);
+  --skin-theme-toggle-bg: rgba(255, 248, 234, 0.92);
+  --skin-theme-toggle-foreground: #8a5629;
+  --skin-theme-toggle-auto-border: rgba(198, 104, 51, 0.55);
+  --skin-theme-toggle-auto-bg: rgba(255, 248, 234, 0.98);
+  --skin-background-gradient: linear-gradient(180deg, rgba(255, 255, 255, 0.4), rgba(255, 248, 234, 0.9));
+  --skin-bubble-background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 238, 196, 0.4));
+  --skin-bubble-shadow: 0 0 25px rgba(198, 104, 51, 0.08);
+  --skin-button-bg: linear-gradient(135deg, #f4d8a6, #f0c17e);
+  --skin-button-hover-bg: linear-gradient(135deg, #f0c17e, #d58c42);
+  --skin-button-text: #3a2305;
+  --skin-button-hover-shadow: 0 12px 22px rgba(150, 96, 41, 0.25);
+  --skin-button-ghost-bg: rgba(0, 0, 0, 0.04);
+  --skin-button-ghost-color: #a54e1c;
+  --skin-button-ghost-border: rgba(165, 78, 28, 0.35);
+  --skin-button-secondary-bg: rgba(255, 248, 234, 0.7);
+  --skin-button-secondary-color: #a54e1c;
+  --skin-button-secondary-border: rgba(165, 78, 28, 0.3);
+  --skin-button-secondary-bg-dark: rgba(82, 59, 34, 0.4);
+  --skin-button-secondary-color-dark: #f8e9cd;
+  --skin-button-secondary-border-dark: rgba(248, 233, 205, 0.3);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --color-surface: #1b140c;
+  --color-card: rgba(28, 20, 12, 0.95);
+  --color-input: rgba(34, 24, 14, 0.88);
+  --color-text: #fdf3df;
+  --color-muted: #cdb38f;
+  --color-accent: #f2c280;
+  --color-accent-strong: #f0a452;
+  --color-border: rgba(242, 194, 128, 0.25);
+  --color-success: #91d79a;
+  --color-warning: #f0c45c;
+  --color-danger: #f27d6b;
+  --color-info: #79b6d4;
+  --color-warm: #f0b38c;
+  --color-bubble-highlight: rgba(242, 194, 128, 0.2);
+  --color-bubble-cool: rgba(121, 154, 196, 0.18);
+  --color-hero-glow: rgba(242, 194, 128, 0.12);
+  --shadow-sm: 0 0 16px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 40px 60px rgba(0, 0, 0, 0.45);
+  --color-on-accent: #2b1906;
+  --skin-account-role-bg: rgba(122, 96, 66, 0.35);
+  --skin-account-role-text: #f0d5ad;
+  --skin-account-admin-bg: rgba(94, 138, 104, 0.25);
+  --skin-account-admin-text: #b1f4ba;
+  --skin-account-half-bg: rgba(240, 196, 92, 0.25);
+  --skin-account-half-text: #f5dea7;
+  --skin-account-ok-bg: rgba(121, 174, 132, 0.25);
+  --skin-account-muted-bg: rgba(96, 79, 55, 0.35);
+  --skin-theme-toggle-border: rgba(242, 194, 128, 0.4);
+  --skin-theme-toggle-bg: rgba(34, 24, 14, 0.9);
+  --skin-theme-toggle-foreground: #f8e4cc;
+  --skin-theme-toggle-auto-border: rgba(242, 194, 128, 0.55);
+  --skin-theme-toggle-auto-bg: rgba(34, 24, 14, 0.95);
+  --skin-background-gradient: linear-gradient(180deg, rgba(24, 16, 9, 0.9), rgba(34, 24, 14, 0.95));
+  --skin-bubble-background: linear-gradient(135deg, rgba(60, 44, 28, 0.6), rgba(43, 32, 20, 0.4));
+  --skin-bubble-shadow: 0 0 25px rgba(0, 0, 0, 0.45);
+  --skin-button-bg: linear-gradient(135deg, #7d5a32, #d5a365);
+  --skin-button-hover-bg: linear-gradient(135deg, #d5a365, #7d5a32);
+  --skin-button-text: #2b1906;
+  --skin-button-hover-shadow: 0 20px 35px rgba(0, 0, 0, 0.35);
+  --skin-button-ghost-bg: rgba(255, 255, 255, 0.08);
+  --skin-button-ghost-color: #f7d4ae;
+  --skin-button-ghost-border: rgba(247, 212, 174, 0.35);
+  --skin-button-secondary-bg: rgba(63, 46, 29, 0.6);
+  --skin-button-secondary-color: #f7d4ae;
+  --skin-button-secondary-border: rgba(247, 212, 174, 0.35);
+  --skin-button-secondary-bg-dark: rgba(63, 46, 29, 0.6);
+  --skin-button-secondary-color-dark: #f7d4ae;
+  --skin-button-secondary-border-dark: rgba(247, 212, 174, 0.35);
+}
+
+/* Paper-specific styling */
+body.page {
+  background-color: var(--color-surface);
+  background-image: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 34px,
+      rgba(40, 93, 150, 0.12) 35px
+    ),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(155, 129, 96, 0.12) 40px),
+    var(--skin-background-gradient);
+  background-attachment: fixed;
+}
+
+.card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 12px 30px rgba(113, 78, 42, 0.1);
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px dashed rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .card::after {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.top-nav .brand-icon svg path {
+  fill: currentColor;
+}
+
+.theme-toggle {
+  border-radius: 8px;
+}
+
+.button {
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.button::before,
+.button::after {
+  display: none;
+}

@@ -370,7 +370,18 @@ def peers_remove(name: str) -> None:
 def runserver(host: str, port: int, reload: bool) -> None:
     """Start the FastAPI application using uvicorn."""
 
-    uvicorn.run("app.main:app", host=host, port=port, reload=reload, factory=False)
+    reload_includes = None
+    if reload:
+        reload_includes = ["*.py", ".env", ".env.*"]
+
+    uvicorn.run(
+        "app.main:app",
+        host=host,
+        port=port,
+        reload=reload,
+        reload_includes=reload_includes,
+        factory=False,
+    )
 
 
 @cli.command(name="init-db")

@@ -106,8 +106,9 @@ def verify_login(
 
 
 @router.get("/register")
-def register_form(request: Request, db: SessionDep) -> Response:
-    prefilled_token = request.query_params.get("invite_token")
+@router.get("/register/{invite_token}")
+def register_form(request: Request, db: SessionDep, invite_token: Optional[str] = None) -> Response:
+    prefilled_token = invite_token or request.query_params.get("invite_token")
     suggested_username = ""
     suggested_bio = ""
     invite_personalization = None

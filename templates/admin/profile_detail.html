@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · {{ profile.username }} · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="admin-profile-detail">
+  <a class="button button--ghost" href="{{ directory_url }}">← Back to directory</a>
+
+  <header class="stack">
+    <p class="muted small-text">Admin-only</p>
+    <h1>{{ profile.username }}</h1>
+    <p class="muted">Review requests and invite activity for this account.</p>
+  </header>
+
+  <div class="card stack profile-detail__summary">
+    <div class="profile-detail__meta">
+      <p class="muted small-text">User ID #{{ profile.id }}</p>
+      <p>
+        {% if profile.contact_email %}
+          <a href="mailto:{{ profile.contact_email }}">{{ profile.contact_email }}</a>
+        {% else %}
+          <span class="muted">No contact email on file.</span>
+        {% endif %}
+      </p>
+      <p class="muted small-text">
+        Joined
+        {% if profile.created_at %}
+          <time datetime="{{ profile.created_at }}">{{ profile.created_at | friendly_time }}</time>
+        {% else %}
+          Unknown
+        {% endif %}
+        · {{ 'Admin' if profile.is_admin else 'Member' }}
+      </p>
+      {% if invited_by_user %}
+        <p class="muted small-text">Invited by <a href="/admin/profiles/{{ invited_by_user.id }}">@{{ invited_by_user.username }}</a></p>
+      {% elif invite_token_used %}
+        <p class="muted small-text">Invite token {{ invite_token_used }}</p>
+      {% endif %}
+    </div>
+    <div class="profile-detail__scope">
+      <form class="sync-scope-toggle" method="post" action="/sync/scope">
+        <input type="hidden" name="entity_type" value="user" />
+        <input type="hidden" name="entity_id" value="{{ profile.id }}" />
+        <input type="hidden" name="next" value="{{ request.url.path }}" />
+        <input type="hidden" name="scope" value="{{ 'public' if profile.sync_scope == 'private' else 'private' }}" />
+        {% set is_public = profile.sync_scope == 'public' %}
+        <button
+          type="submit"
+          class="meta-chip meta-chip--action meta-chip--status meta-chip--{{ 'success' if is_public else 'muted' }}"
+          aria-pressed="{{ 'true' if is_public else 'false' }}"
+        >
+          <span class="meta-chip__label">Sharing scope</span>
+          <span class="meta-chip__value meta-chip__value--stacked">
+            {{ 'Public' if is_public else 'Private' }}
+            <span class="meta-chip__hint">{{ 'Tap to keep private' if is_public else 'Tap to share publicly' }}</span>
+          </span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <section id="requests" class="card stack">
+    <header class="stack">
+      <h2>Help requests</h2>
+      <p class="muted small-text">{{ help_requests|length }} total</p>
+    </header>
+    {% if help_requests %}
+      <div class="table-scroll">
+        <table class="profiles-table">
+          <thead>
+            <tr>
+              <th scope="col">ID</th>
+              <th scope="col">Title</th>
+              <th scope="col">Status</th>
+              <th scope="col">Scope</th>
+              <th scope="col">Created</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in help_requests %}
+              <tr>
+                <td data-label="ID">#{{ item.id }}</td>
+                <td data-label="Title">{{ item.title or 'Untitled request' }}</td>
+                <td data-label="Status">
+                  <span class="meta-chip meta-chip--status meta-chip--{{ 'success' if item.status == 'completed' else 'muted' }}">
+                    <span class="meta-chip__label">Status</span>
+                    <span class="meta-chip__value">{{ item.status|title }}</span>
+                  </span>
+                </td>
+                <td data-label="Scope">
+                  <span class="meta-chip meta-chip--status meta-chip--{{ 'success' if item.sync_scope == 'public' else 'muted' }}">
+                    <span class="meta-chip__label">Sharing</span>
+                    <span class="meta-chip__value">{{ 'Public' if item.sync_scope == 'public' else 'Private' }}</span>
+                  </span>
+                </td>
+                <td data-label="Created">
+                  {% if item.created_at %}
+                    <time datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+                  {% else %}
+                    <span class="muted">Unknown</span>
+                  {% endif %}
+                </td>
+                <td data-label="Actions">
+                  <a class="profile-action" href="/requests/{{ item.id }}">Open</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No help requests created by this user.</p>
+    {% endif %}
+  </section>
+
+  <section id="invites" class="card stack">
+    <header class="stack">
+      <h2>Invite history</h2>
+      <p class="muted small-text">{{ invite_tokens|length }} total</p>
+    </header>
+    {% if invite_tokens %}
+      <div class="table-scroll">
+        <table class="profiles-table">
+          <thead>
+            <tr>
+              <th scope="col">Token</th>
+              <th scope="col">Created</th>
+              <th scope="col">Expires</th>
+              <th scope="col">Uses</th>
+              <th scope="col">Auto-approve</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for invite in invite_tokens %}
+              {% set invite_expired = invite.expires_at and now_utc and invite.expires_at < now_utc %}
+              <tr>
+                <td data-label="Token"><code>{{ invite.token }}</code></td>
+                <td data-label="Created">
+                  {% if invite.created_at %}
+                    <time datetime="{{ invite.created_at }}">{{ invite.created_at | friendly_time }}</time>
+                  {% else %}
+                    <span class="muted">Unknown</span>
+                  {% endif %}
+                </td>
+                <td data-label="Expires">
+                  {% if invite.expires_at %}
+                    <time datetime="{{ invite.expires_at }}">{{ invite.expires_at | friendly_time }}</time>
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+                <td data-label="Uses">{{ invite.use_count }} / {{ invite.max_uses }}</td>
+                <td data-label="Auto-approve">{{ 'Yes' if invite.auto_approve else 'No' }}</td>
+                <td data-label="Status">
+                  {% if invite.disabled %}
+                    <span class="meta-chip meta-chip--status meta-chip--muted">Disabled</span>
+                  {% elif invite_expired %}
+                    <span class="meta-chip meta-chip--status meta-chip--muted">Expired</span>
+                  {% elif invite.use_count >= invite.max_uses %}
+                    <span class="meta-chip meta-chip--status meta-chip--muted">Fully used</span>
+                  {% else %}
+                    <span class="meta-chip meta-chip--status meta-chip--success">Active</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No invites issued yet.</p>
+    {% endif %}
+  </section>
+</section>
+{% endblock %}
