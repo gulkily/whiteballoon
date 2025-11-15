@@ -54,14 +54,13 @@
               <th scope="col">Contact</th>
               <th scope="col">Joined</th>
               <th scope="col">Scope</th>
-              <th scope="col">Actions</th>
             </tr>
           </thead>
           <tbody>
             {% for profile in profiles %}
               <tr>
                 <td data-label="Username">
-                  <strong>@{{ profile.username }}</strong>
+                  <a class="profile-name-link" href="/admin/profiles/{{ profile.id }}">@{{ profile.username }}</a>
                   <p class="muted small-text">ID #{{ profile.id }}</p>
                 </td>
                 <td data-label="Contact">
@@ -83,12 +82,6 @@
                     <span class="meta-chip__label">Sharing</span>
                     <span class="meta-chip__value">{{ 'Public' if profile.sync_scope == 'public' else 'Private' }}</span>
                   </span>
-                </td>
-                <td data-label="Actions">
-                  <div class="profiles-actions">
-                    <a href="/people/{{ profile.username }}" class="profile-action">View profile</a>
-                    <span class="profile-action profile-action--placeholder">Invite history (coming soon)</span>
-                  </div>
                 </td>
               </tr>
             {% endfor %}

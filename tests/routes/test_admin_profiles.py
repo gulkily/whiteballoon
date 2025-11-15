@@ -56,6 +56,21 @@ def test_admin_profiles_requires_admin_access() -> None:
     app.dependency_overrides.clear()
 
 
+def test_admin_panel_links_render() -> None:
+    app, engine = _build_test_app()
+    client = TestClient(app)
+    _, admin_session_id = _create_user_with_session(engine, username="admin", is_admin=True)
+
+    client.cookies.set(SESSION_COOKIE_NAME, admin_session_id)
+    response = client.get("/admin")
+
+    assert response.status_code == 200
+    assert "/admin/profiles" in response.text
+    assert "/sync/public" in response.text
+
+    app.dependency_overrides.clear()
+
+
 def test_admin_profiles_lists_users_with_filters() -> None:
     app, engine = _build_test_app()
     client = TestClient(app)
@@ -71,7 +86,8 @@ def test_admin_profiles_lists_users_with_filters() -> None:
 
     assert response.status_code == 200
     assert "delta@example.org" in response.text
-    assert "Invite history (coming soon)" in response.text
+    assert "profile-name-link" in response.text
+    assert "/admin/profiles/" in response.text
     assert "echo@example.org" not in response.text
 
     app.dependency_overrides.clear()

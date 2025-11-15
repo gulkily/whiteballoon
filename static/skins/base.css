@@ -432,6 +432,17 @@ dd + dd {
   color: var(--skin-account-role-text);
 }
 
+.account-status__tag--link {
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.account-status__tag--link:focus-visible,
+.account-status__tag--link:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
 .account-status__tag--admin {
   background: var(--skin-account-admin-bg);
   color: var(--skin-account-admin-text);
@@ -967,6 +978,18 @@ textarea::placeholder {
   font-size: var(--font-size-sm);
 }
 
+.profile-name-link {
+  font-weight: 600;
+  color: var(--color-foreground);
+  text-decoration: none;
+}
+
+.profile-name-link:hover,
+.profile-name-link:focus-visible {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+
 .profile-action:hover,
 .profile-action:focus-visible {
   text-decoration: underline;
@@ -982,6 +1005,52 @@ textarea::placeholder {
 .profile-action--placeholder:hover,
 .profile-action--placeholder:focus-visible {
   text-decoration: none;
+}
+
+[data-page="admin-panel"] .admin-panel__intro {
+  max-width: 48ch;
+}
+
+[data-page="admin-panel"] .admin-panel__grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.admin-panel__card {
+  display: block;
+  padding: 1.75rem;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--color-border);
+  border-radius: 1.75rem;
+  min-height: 140px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  transition: border-color 120ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.admin-panel__card:hover,
+.admin-panel__card:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
+  transform: translateY(-4px);
+}
+
+.admin-panel__copy {
+  flex: 1;
+}
+
+.admin-panel__copy h2 {
+  margin: 0 0 0.35rem;
+}
+
+.admin-panel__icon,
+.admin-panel__chevron {
+  display: none;
 }
 
 [data-theme="dark"] .meta-chip {
@@ -1995,4 +2064,12 @@ form.inline {
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
+}
+[data-page="admin-panel"] .admin-panel__shell {
+  padding: 2.5rem;
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
 }

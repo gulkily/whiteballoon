@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Control Panel · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="admin-panel">
+  <div class="card stack admin-panel__shell">
+    <header class="stack">
+      <p class="muted small-text">Administrator tools</p>
+      <h1>Admin control panel</h1>
+      <p class="muted">Jump to the operational tools available on this instance.</p>
+    </header>
+
+    <p class="muted admin-panel__intro">Choose a panel to jump directly into the tooling you need.</p>
+
+    <ul class="admin-panel__grid" role="list">
+      {% for link in admin_links %}
+        <li>
+          <a class="admin-panel__card" href="{{ link.href }}">
+            <div class="admin-panel__copy">
+              <h2>{{ link.title }}</h2>
+              <p class="muted">{{ link.description }}</p>
+            </div>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

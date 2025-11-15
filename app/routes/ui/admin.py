@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from math import ceil
 from typing import Optional
 
@@ -8,7 +9,7 @@ from sqlalchemy import func
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
-from app.models import User
+from app.models import HelpRequest, InviteToken, User
 from app.routes.ui.helpers import describe_session_role, templates
 from app.services import user_attribute_service
 from starlette.datastructures import URL
@@ -45,6 +46,43 @@ def _apply_filters(statement, username_query: Optional[str], contact_query: Opti
         lowered = contact_query.lower()
         statement = statement.where(func.lower(User.contact_email).like(f"%{lowered}%"))
     return statement
+
+
+@router.get("/admin")
+def admin_panel(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    viewer = session_user.user
+    session = session_user.session
+
+    admin_links = [
+        {
+            "title": "Profile directory",
+            "description": "Audit every local account, review contact info, and drill into individual activity.",
+            "href": "/admin/profiles",
+            "icon": "👥",
+        },
+        {
+            "title": "Sync dashboard",
+            "description": "Review public sharing scope, bundle signatures, and trigger manual exports.",
+            "href": "/sync/public",
+            "icon": "🔁",
+        },
+    ]
+
+    context = {
+        "request": request,
+        "user": viewer,
+        "session": session,
+        "session_role": describe_session_role(viewer, session),
+        "session_username": viewer.username,
+        "session_avatar_url": _get_account_avatar(db, viewer.id),
+        "admin_links": admin_links,
+    }
+    return templates.TemplateResponse("admin/panel.html", context)
 
 
 @router.get("/admin/profiles")
@@ -114,3 +152,71 @@ def admin_profile_directory(
         "clear_filters_url": request.url.path,
     }
     return templates.TemplateResponse("admin/profiles.html", context)
+
+
+@router.get("/admin/profiles/{user_id}")
+def admin_profile_detail(
+    request: Request,
+    user_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    viewer = session_user.user
+    session = session_user.session
+
+    profile = db.get(User, user_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    request_statement = (
+        select(HelpRequest)
+        .where(HelpRequest.created_by_user_id == profile.id)
+        .order_by(HelpRequest.created_at.desc())
+    )
+    help_requests = db.exec(request_statement).all()
+
+    invite_statement = (
+        select(InviteToken)
+        .where(InviteToken.created_by_user_id == profile.id)
+        .order_by(InviteToken.created_at.desc())
+    )
+    invite_tokens = db.exec(invite_statement).all()
+
+    invited_by_value = user_attribute_service.get_attribute(
+        db,
+        user_id=profile.id,
+        key=user_attribute_service.INVITED_BY_USER_ID_KEY,
+    )
+    invited_by_user = None
+    if invited_by_value:
+        try:
+            invited_by_user_id = int(invited_by_value)
+        except ValueError:
+            invited_by_user_id = None
+        if invited_by_user_id:
+            invited_by_user = db.get(User, invited_by_user_id)
+
+    invite_token_value = user_attribute_service.get_attribute(
+        db,
+        user_id=profile.id,
+        key=user_attribute_service.INVITE_TOKEN_USED_KEY,
+    )
+
+    context = {
+        "request": request,
+        "user": viewer,
+        "session": session,
+        "session_role": describe_session_role(viewer, session),
+        "session_username": viewer.username,
+        "session_avatar_url": _get_account_avatar(db, viewer.id),
+        "profile": profile,
+        "profile_avatar_url": _get_account_avatar(db, profile.id),
+        "help_requests": help_requests,
+        "invite_tokens": invite_tokens,
+        "directory_url": "/admin/profiles",
+        "invited_by_user": invited_by_user,
+        "invite_token_used": invite_token_value,
+        "now_utc": datetime.utcnow(),
+    }
+    return templates.TemplateResponse("admin/profile_detail.html", context)
