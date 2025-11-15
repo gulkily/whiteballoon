@@ -10,7 +10,7 @@ from typing import Annotated, Optional
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Request, Response, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
@@ -446,7 +446,17 @@ def update_sync_scope(
         db.add(record)
         db.commit()
 
+    wants_json = "application/json" in (request.headers.get("accept") or "").lower()
+
     redirect_to = next_url or request.headers.get("referer") or "/"
+    if wants_json:
+        return JSONResponse(
+            {
+                "entity_id": entity_id,
+                "entity_type": entity_type,
+                "scope": getattr(record, "sync_scope", cleaned_scope),
+            }
+        )
     return RedirectResponse(url=redirect_to, status_code=status.HTTP_303_SEE_OTHER)
 
 
