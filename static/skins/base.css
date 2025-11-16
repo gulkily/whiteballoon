@@ -1007,11 +1007,11 @@ textarea::placeholder {
   text-decoration: none;
 }
 
-[data-page="admin-panel"] .admin-panel__intro {
+.control-panel__intro {
   max-width: 48ch;
 }
 
-[data-page="admin-panel"] .admin-panel__grid {
+.control-panel__grid {
   list-style: none;
   padding: 0;
   margin: 0;
@@ -1020,7 +1020,7 @@ textarea::placeholder {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
-.admin-panel__card {
+.control-panel__card {
   display: block;
   padding: 1.75rem;
   text-decoration: none;
@@ -1033,24 +1033,15 @@ textarea::placeholder {
   transition: border-color 120ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
-.admin-panel__card:hover,
-.admin-panel__card:focus-visible {
+.control-panel__card:hover,
+.control-panel__card:focus-visible {
   border-color: var(--color-accent);
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
   transform: translateY(-4px);
 }
 
-.admin-panel__copy {
-  flex: 1;
-}
-
-.admin-panel__copy h2 {
+.control-panel__card h2 {
   margin: 0 0 0.35rem;
-}
-
-.admin-panel__icon,
-.admin-panel__chevron {
-  display: none;
 }
 
 [data-theme="dark"] .meta-chip {
@@ -2065,7 +2056,7 @@ form.inline {
   font-style: normal;
   font-display: swap;
 }
-[data-page="admin-panel"] .admin-panel__shell {
+.control-panel__shell {
   padding: 2.5rem;
   gap: 1.5rem;
   background: rgba(255, 255, 255, 0.8);

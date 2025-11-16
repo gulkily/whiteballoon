@@ -150,6 +150,7 @@ def admin_profile_directory(
         "pagination": pagination,
         "filters_active": bool(username_query or contact_query),
         "clear_filters_url": request.url.path,
+        "current_url": str(request.url),
     }
     return templates.TemplateResponse("admin/profiles.html", context)
 

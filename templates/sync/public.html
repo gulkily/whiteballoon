@@ -7,132 +7,296 @@
 {% endblock %}
 
 {% block content %}
-<section class="section stack">
-  <header class="stack">
-    <h1>Shared Data</h1>
-    <p class="muted">Everything below is marked for public sync. Review before exporting bundles.</p>
-    <a class="button button--ghost" href="/admin/sync-control">Open Sync Control Center</a>
-  </header>
+<section class="section stack control-panel" data-page="sync-dashboard">
+  <div class="card stack control-panel__shell">
+    <header class="stack">
+      <p class="muted small-text">Sync tools</p>
+      <h1>Shared data overview</h1>
+      <p class="muted">Review everything currently marked public before exporting bundles.</p>
+      <a class="button button--ghost" href="/admin/sync-control">Open Sync Control Center</a>
+    </header>
 
-  <div class="card stack">
-    <h2>Signing & Bootstrap</h2>
-    <p>
-      Bundles export to <code>{{ bundle_dir }}</code>. Run
-      <code>./wb sync export</code> (or <code>./wb sync push &lt;peer&gt;</code>) after reviewing changes.
+    <p class="muted control-panel__intro">
+      Bundles export to <code>{{ bundle_dir }}</code>. Run <code>./wb sync export</code> (or
+      <code>./wb sync push &lt;peer&gt;</code>) after reviewing changes.
     </p>
 
-    {% if local_signing_key %}
-      <p>
-        Local signing key: <code>{{ local_signing_key.key_id }}</code> stored under
-        <code>{{ keys_dir }}</code>. Share the base64 string printed by
-        <code>./wb sync keygen</code> with peers.
-      </p>
-    {% else %}
-      <p class="muted">No signing key detected. Run <code>./wb sync keygen</code> before exporting.</p>
-    {% endif %}
+    <div class="control-panel__grid">
+      <article class="control-panel__card stack">
+        <h2>Signing & Bootstrap</h2>
+        <p>
+          Local signing key: <code>{{ local_signing_key.key_id if local_signing_key else 'n/a' }}</code>
+          stored under <code>{{ keys_dir }}</code>.
+        </p>
 
-    {% if signature_info %}
-      <p>
-        Latest manifest signed {{ signature_info.signed_at | friendly_time }} using key
-        <code>{{ signature_info.key_id }}</code>.
-      </p>
-    {% elif signature_error %}
-      <p class="muted">Signature check failed: {{ signature_error }}.</p>
-    {% else %}
-      <p class="muted">No <code>bundle.sig</code> or manifest yet. Export once to create them.</p>
-    {% endif %}
+        {% if not local_signing_key %}
+          <p class="muted">No signing key detected. Run <code>./wb sync keygen</code> before exporting.</p>
+        {% endif %}
 
-    {% if public_key_files %}
-      <div class="stack">
-        <h3>Published public keys</h3>
-        <ul class="stack">
-          {% for pk in public_key_files %}
+        {% if signature_info %}
+          <p>
+            Latest manifest signed {{ signature_info.signed_at | friendly_time }} using key
+            <code>{{ signature_info.key_id }}</code>.
+          </p>
+        {% elif signature_error %}
+          <p class="muted">Signature check failed: {{ signature_error }}.</p>
+        {% else %}
+          <p class="muted">No <code>bundle.sig</code> or manifest yet. Export once to create them.</p>
+        {% endif %}
+
+        {% if public_key_files %}
+          <div class="stack">
+            <h3>Published public keys</h3>
+            <ul class="stack">
+              {% for pk in public_key_files %}
+                <li>
+                  <code>{{ pk.key_id }}</code>
+                  <span class="muted"> · {{ pk.rel_path }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% else %}
+          <p class="muted">Exports will write your key to <code>public_keys/&lt;key-id&gt;.pub</code>.</p>
+        {% endif %}
+
+        <div class="stack">
+          <h3>Bootstrap another node</h3>
+          <ol>
+            <li>Share the exported folder (including <code>public_keys/</code>) via git or shared storage.</li>
             <li>
-              <code>{{ pk.key_id }}</code>
-              <span class="muted"> · {{ pk.rel_path }}</span>
+              On the peer, register this bundle as a trusted source:
+              <code>./wb sync peers add --name origin --path {{ bundle_dir }} --public-key &lt;base64&gt;</code>
             </li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% else %}
-      <p class="muted">Exports will write your key to <code>public_keys/&lt;key-id&gt;.pub</code>.</p>
-    {% endif %}
+            <li>Import data with verification: <code>./wb sync import {{ bundle_dir }} --peer origin</code>.</li>
+          </ol>
+          <p class="muted">Use <code>--allow-unsigned</code> only for historical bundles without signatures.</p>
+        </div>
+      </article>
 
-    <div class="stack">
-      <h3>Bootstrap another node</h3>
-      <ol>
-        <li>Share the exported folder (including <code>public_keys/</code>) via git or shared storage.</li>
-        <li>
-          On the peer, register this bundle as a trusted source:
-          <code>./wb sync peers add --name origin --path {{ bundle_dir }} --public-key &lt;base64&gt;</code>
-        </li>
-        <li>Import data with verification: <code>./wb sync import {{ bundle_dir }} --peer origin</code>.</li>
-      </ol>
-      <p class="muted">Use <code>--allow-unsigned</code> only for historical bundles without signatures.</p>
+      <article class="control-panel__card stack">
+        <h2>Requests ({{ public_requests|length }})</h2>
+        {% if public_requests %}
+          <div class="table-scroll">
+            <table class="profiles-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Status</th>
+                  <th>Creator</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in public_requests %}
+                  {% set scope_public = item.sync_scope == 'public' %}
+                  <tr>
+                    <td><a href="/requests/{{ item.id }}">#{{ item.id }}</a></td>
+                    <td>{{ item.status | title }}</td>
+                    <td>@{{ item.created_by_username or 'unknown' }}</td>
+                    <td>
+                      <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
+                        <input type="hidden" name="entity_type" value="request" />
+                        <input type="hidden" name="entity_id" value="{{ item.id }}" />
+                        <input type="hidden" name="next" value="{{ request.url.path }}" />
+                        <input type="hidden" name="scope" value="{{ 'public' if item.sync_scope == 'private' else 'private' }}" />
+                        <button type="submit" class="meta-chip meta-chip--action meta-chip--status meta-chip--{{ 'success' if scope_public else 'muted' }}" aria-pressed="{{ 'true' if scope_public else 'false' }}" data-sync-button>
+                          <span class="meta-chip__label">Sharing</span>
+                          <span class="meta-chip__value meta-chip__value--stacked">
+                            <span data-scope-label>{{ 'Public' if scope_public else 'Private' }}</span>
+                            <span class="meta-chip__hint" data-scope-hint>{{ 'Tap to keep private' if scope_public else 'Tap to share publicly' }}</span>
+                          </span>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted">No requests marked for sharing.</p>
+        {% endif %}
+      </article>
+
+      <article class="control-panel__card stack">
+        <h2>Comments ({{ public_comments|length }})</h2>
+        {% if public_comments %}
+          <div class="table-scroll">
+            <table class="profiles-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Request</th>
+                  <th>Author</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for comment in public_comments %}
+                  {% set comment_public = comment.sync_scope == 'public' %}
+                  <tr>
+                    <td>
+                      <a href="/requests/{{ comment.help_request_id }}#comment-{{ comment.id }}">
+                        #{{ comment.id }}
+                      </a>
+                    </td>
+                    <td>#{{ comment.help_request_id }}</td>
+                    <td>@{{ comment.created_by_username or 'unknown' }}</td>
+                    <td>
+                      <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
+                        <input type="hidden" name="entity_type" value="comment" />
+                        <input type="hidden" name="entity_id" value="{{ comment.id }}" />
+                        <input type="hidden" name="next" value="{{ request.url.path }}" />
+                        <input type="hidden" name="scope" value="{{ 'public' if comment.sync_scope == 'private' else 'private' }}" />
+                        <button type="submit" class="meta-chip meta-chip--action meta-chip--status meta-chip--{{ 'success' if comment_public else 'muted' }}" aria-pressed="{{ 'true' if comment_public else 'false' }}" data-sync-button>
+                          <span class="meta-chip__label">Sharing</span>
+                          <span class="meta-chip__value meta-chip__value--stacked">
+                            <span data-scope-label>{{ 'Public' if comment_public else 'Private' }}</span>
+                            <span class="meta-chip__hint" data-scope-hint>{{ 'Tap to keep private' if comment_public else 'Tap to share publicly' }}</span>
+                          </span>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted">No comments marked for sharing.</p>
+        {% endif %}
+      </article>
+
+      <article class="control-panel__card stack">
+        <h2>Users ({{ public_users|length }})</h2>
+        {% if public_users %}
+          <div class="table-scroll">
+            <table class="profiles-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Created</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for u in public_users %}
+                  {% set user_public = u.sync_scope == 'public' %}
+                  <tr>
+                    <td><a href="/people/{{ u.username }}">@{{ u.username }}</a></td>
+                    <td><time datetime="{{ u.created_at }}">{{ u.created_at | friendly_time }}</time></td>
+                    <td>
+                      <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
+                        <input type="hidden" name="entity_type" value="user" />
+                        <input type="hidden" name="entity_id" value="{{ u.id }}" />
+                        <input type="hidden" name="next" value="{{ request.url.path }}" />
+                        <input type="hidden" name="scope" value="{{ 'public' if u.sync_scope == 'private' else 'private' }}" />
+                        <button type="submit" class="meta-chip meta-chip--action meta-chip--status meta-chip--{{ 'success' if user_public else 'muted' }}" aria-pressed="{{ 'true' if user_public else 'false' }}" data-sync-button>
+                          <span class="meta-chip__label">Sharing</span>
+                          <span class="meta-chip__value meta-chip__value--stacked">
+                            <span data-scope-label>{{ 'Public' if user_public else 'Private' }}</span>
+                            <span class="meta-chip__hint" data-scope-hint>{{ 'Tap to keep private' if user_public else 'Tap to share publicly' }}</span>
+                          </span>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted">No profiles marked for sharing.</p>
+        {% endif %}
+      </article>
+
+      <article class="control-panel__card stack">
+        <h2>Invites ({{ public_invites|length }})</h2>
+        {% if public_invites %}
+          <div class="table-scroll">
+            <table class="profiles-table">
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>Suggested user</th>
+                  <th>Scope</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for invite in public_invites %}
+                  {% set invite_public = invite.sync_scope == 'public' %}
+                  <tr>
+                    <td><a href="/invite/{{ invite.token }}">{{ invite.token }}</a></td>
+                    <td>{{ invite.suggested_username or '—' }}</td>
+                    <td>
+                      <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
+                        <input type="hidden" name="entity_type" value="invite" />
+                        <input type="hidden" name="entity_id" value="{{ invite.token }}" />
+                        <input type="hidden" name="next" value="{{ request.url.path }}" />
+                        <input type="hidden" name="scope" value="{{ 'public' if invite.sync_scope == 'private' else 'private' }}" />
+                        <button type="submit" class="meta-chip meta-chip--action meta-chip--status meta-chip--{{ 'success' if invite_public else 'muted' }}" aria-pressed="{{ 'true' if invite_public else 'false' }}" data-sync-button>
+                          <span class="meta-chip__label">Sharing</span>
+                          <span class="meta-chip__value meta-chip__value--stacked">
+                            <span data-scope-label>{{ 'Public' if invite_public else 'Private' }}</span>
+                            <span class="meta-chip__hint" data-scope-hint>{{ 'Tap to keep private' if invite_public else 'Tap to share publicly' }}</span>
+                          </span>
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="muted">No invites marked public.</p>
+        {% endif %}
+      </article>
     </div>
   </div>
-
-  <div class="card stack">
-    <h2>Requests ({{ public_requests|length }})</h2>
-    {% if public_requests %}
-      <ul class="stack">
-        {% for item in public_requests %}
-          <li>
-            <a href="/requests/{{ item.id }}">Request #{{ item.id }}</a>
-            <span class="muted"> · {{ item.status | title }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted">No requests marked for sharing.</p>
-    {% endif %}
-  </div>
-
-  <div class="card stack">
-    <h2>Comments ({{ public_comments|length }})</h2>
-    {% if public_comments %}
-      <ul class="stack">
-        {% for comment in public_comments %}
-          <li>
-            <a href="/requests/{{ comment.help_request_id }}#comment-{{ comment.id }}">
-              Comment {{ comment.id }} on Request #{{ comment.help_request_id }}
-            </a>
-            <span class="muted"> · {{ comment.created_at | friendly_time }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted">No comments marked for sharing.</p>
-    {% endif %}
-  </div>
-
-  <div class="card stack">
-    <h2>Users ({{ public_users|length }})</h2>
-    {% if public_users %}
-      <ul class="stack">
-        {% for u in public_users %}
-          <li><a href="/people/{{ u.username }}">@{{ u.username }}</a></li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted">No profiles marked for sharing.</p>
-    {% endif %}
-  </div>
-
-  <div class="card stack">
-    <h2>Invites ({{ public_invites|length }})</h2>
-    {% if public_invites %}
-      <ul class="stack">
-        {% for invite in public_invites %}
-          <li>
-            <a href="/invite/{{ invite.token }}">Token {{ invite.token }}</a>
-            <span class="muted"> · suggested user {{ invite.suggested_username or 'n/a' }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted">No invites marked public.</p>
-    {% endif %}
-  </div>
 </section>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const forms = document.querySelectorAll('[data-sync-toggle]');
+    forms.forEach((form) => {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const button = form.querySelector('[data-sync-button]');
+        const scopeInput = form.querySelector('input[name="scope"]');
+        const labelEl = form.querySelector('[data-scope-label]');
+        const hintEl = form.querySelector('[data-scope-hint]');
+        const formData = new FormData(form);
+        button.disabled = true;
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            headers: { Accept: 'application/json' },
+            body: formData,
+          });
+          if (!response.ok) {
+            throw new Error('Scope update failed');
+          }
+          const payload = await response.json();
+          const isPublic = payload.scope === 'public';
+          button.classList.toggle('meta-chip--success', isPublic);
+          button.classList.toggle('meta-chip--muted', !isPublic);
+          button.setAttribute('aria-pressed', isPublic ? 'true' : 'false');
+          if (labelEl) {
+            labelEl.textContent = isPublic ? 'Public' : 'Private';
+          }
+          if (hintEl) {
+            hintEl.textContent = isPublic ? 'Tap to keep private' : 'Tap to share publicly';
+          }
+          scopeInput.value = isPublic ? 'private' : 'public';
+        } catch (error) {
+          console.error(error);
+          button.setAttribute('title', 'Unable to update sharing scope. Try again.');
+        } finally {
+          button.disabled = false;
+        }
+      });
+    });
+  });
+</script>
 {% endblock %}

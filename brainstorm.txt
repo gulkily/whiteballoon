@@ -54,3 +54,7 @@ reference letters & recommendations (quality control)
 - vouch for someone
 - high barrier to entry
 - highly vetted communities only
+
+bulk-onboarding of an entire community!
+- make it easy to just dump a list of emails or phone numbers
+- everyone is auto-vouched as "member of community"
