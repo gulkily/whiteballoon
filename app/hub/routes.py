@@ -14,12 +14,14 @@ from fastapi.responses import StreamingResponse
 from app.sync.signing import (
     MANIFEST_FILENAME,
     SIGNATURE_FILENAME,
+    SignatureMetadata,
     SignatureVerificationError,
     verify_bundle_signature,
 )
 
 from .config import HubPeer, HubSettings, get_settings, hash_token, persist_peer, reset_settings_cache
 from .feed import ingest_bundle
+from .pending import queue_pending_key
 from .security import AuthContext
 from .storage import (
     build_metadata,
@@ -52,7 +54,7 @@ def _require_public_key(request: Request) -> str:
     return public_key.strip()
 
 
-def _extract_bundle(upload: UploadFile, tmp_dir: Path) -> Path:
+def _extract_bundle(upload: UploadFile, tmp_dir: Path) -> tuple[Path, Path]:
     bundle_path = tmp_dir / "bundle.tar.gz"
     with bundle_path.open("wb") as fh:
         for chunk in iter(lambda: upload.file.read(1024 * 1024), b""):
@@ -77,15 +79,14 @@ def _extract_bundle(upload: UploadFile, tmp_dir: Path) -> Path:
     manifest = next(extraction_root.rglob(MANIFEST_FILENAME), None)
     if not manifest:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Manifest missing from bundle")
-    return manifest.parent
+    return manifest.parent, bundle_path
 
 
-def _verify_bundle(bundle_root: Path, peer: HubPeer) -> tuple[str, datetime]:
+def _verify_bundle(bundle_root: Path) -> SignatureMetadata:
     try:
-        metadata = verify_bundle_signature(bundle_root, expected_public_key=peer.public_key)
+        return verify_bundle_signature(bundle_root, expected_public_key=None)
     except SignatureVerificationError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return metadata.manifest_digest, metadata.signed_at
 
 
 @router.post("/{peer_name}/bundle", status_code=status.HTTP_202_ACCEPTED)
@@ -102,7 +103,7 @@ async def upload_bundle(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown peer")
         token = _extract_bearer_token(request)
         public_key = _require_public_key(request)
-        peer = HubPeer(name=peer_name, token_hash=hash_token(token), public_key=public_key)
+        peer = HubPeer(name=peer_name, token_hash=hash_token(token), public_keys=(public_key,))
         auto_registered = True
     else:
         auth = AuthContext(request, settings)
@@ -110,8 +111,27 @@ async def upload_bundle(
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
-        bundle_root = _extract_bundle(bundle, tmp_path)
-        digest, signed_at = _verify_bundle(bundle_root, peer)
+        bundle_root, bundle_archive = _extract_bundle(bundle, tmp_path)
+        signature_meta = _verify_bundle(bundle_root)
+        if not peer.allows_public_key(signature_meta.public_key_b64):
+            pending = queue_pending_key(
+                peer_name=peer.name,
+                presented_key=signature_meta.public_key_b64,
+                bundle_source=bundle_archive,
+                manifest_digest=signature_meta.manifest_digest,
+                signed_at=signature_meta.signed_at,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={
+                    "error": "peer_key_mismatch",
+                    "message": "Signature public key does not match stored keys; approval required",
+                    "peer": peer.name,
+                    "pending_id": pending.id,
+                },
+            )
+        digest = signature_meta.manifest_digest
+        signed_at = signature_meta.signed_at
         metadata = build_metadata(peer, digest, signed_at)
         write_bundle(settings, peer, bundle_root, metadata)
         summary = summarize_bundle(bundle_root)
@@ -158,7 +178,7 @@ async def download_bundle(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown peer")
         token = _extract_bearer_token(request)
         public_key = _require_public_key(request)
-        peer = HubPeer(name=peer_name, token_hash=hash_token(token), public_key=public_key)
+        peer = HubPeer(name=peer_name, token_hash=hash_token(token), public_keys=(public_key,))
         auto_registered = True
         if not settings.config_path:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Hub config path unavailable")

@@ -21,6 +21,7 @@ from app.sync import job_tracker
 from app.sync.activity_log import append_event, read_events
 from app.sync.peer_status import collect_peer_statuses
 from app.sync.peers import Peer, load_peers, save_peers
+from app.sync.pending_pull import list_pending_pulls, get_pending_pull, remove_pending_pull, approve_pending_pull
 from app.sync.signing import (
     MANIFEST_FILENAME,
     PUBLIC_KEYS_DIRNAME,
@@ -165,29 +166,43 @@ def _load_tools_module() -> ModuleType:
 def _run_push_job(peer_name: str, triggered_by: str | None = None) -> None:
     logger.info("Starting push job for peer '%s'", peer_name)
     job_tracker.mark_started(peer_name, "push")
+    tools_dev = _load_tools_module()
+    PendingApprovalError = getattr(tools_dev, "PendingApprovalError", None)
     try:
-        tools_dev = _load_tools_module()
         tools_dev.sync_push.callback(peer_name)
         job_tracker.mark_finished(peer_name, "push", True, "Push completed successfully")
         append_event(peer=peer_name, action="push", status="success", triggered_by=triggered_by)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("Push job for peer '%s' failed", peer_name)
-        job_tracker.mark_finished(peer_name, "push", False, str(exc))
-        append_event(peer=peer_name, action="push", status="error", triggered_by=triggered_by, message=str(exc))
+        if PendingApprovalError and isinstance(exc, PendingApprovalError):
+            message = str(exc)
+            logger.info("Push job for peer '%s' pending approval: %s", peer_name, message)
+            job_tracker.mark_finished(peer_name, "push", False, message)
+            append_event(peer=peer_name, action="push", status="pending", triggered_by=triggered_by, message=message)
+        else:
+            logger.exception("Push job for peer '%s' failed", peer_name)
+            job_tracker.mark_finished(peer_name, "push", False, str(exc))
+            append_event(peer=peer_name, action="push", status="error", triggered_by=triggered_by, message=str(exc))
 
 
 def _run_pull_job(peer_name: str, allow_unsigned: bool, triggered_by: str | None = None) -> None:
     logger.info("Starting pull job for peer '%s'", peer_name)
     job_tracker.mark_started(peer_name, "pull")
+    tools_dev = _load_tools_module()
+    PendingPullApprovalError = getattr(tools_dev, "PendingPullApprovalError", None)
     try:
-        tools_dev = _load_tools_module()
         tools_dev.sync_pull.callback(peer_name, allow_unsigned=allow_unsigned)
         job_tracker.mark_finished(peer_name, "pull", True, "Pull completed successfully")
         append_event(peer=peer_name, action="pull", status="success", triggered_by=triggered_by)
     except Exception as exc:  # noqa: BLE001
-        logger.exception("Pull job for peer '%s' failed", peer_name)
-        job_tracker.mark_finished(peer_name, "pull", False, str(exc))
-        append_event(peer=peer_name, action="pull", status="error", triggered_by=triggered_by, message=str(exc))
+        if PendingPullApprovalError and isinstance(exc, PendingPullApprovalError):
+            message = str(exc)
+            logger.info("Pull job for peer '%s' pending approval: %s", peer_name, message)
+            job_tracker.mark_finished(peer_name, "pull", False, message)
+            append_event(peer=peer_name, action="pull", status="pending", triggered_by=triggered_by, message=message)
+        else:
+            logger.exception("Pull job for peer '%s' failed", peer_name)
+            job_tracker.mark_finished(peer_name, "pull", False, str(exc))
+            append_event(peer=peer_name, action="pull", status="error", triggered_by=triggered_by, message=str(exc))
 
 
 def _build_sync_control_context(
@@ -228,6 +243,7 @@ def _build_sync_control_context(
         "csrf_token": csrf_token,
         "job_statuses": job_tracker.snapshot(),
         "activity_events": read_events(limit=20),
+        "pending_pull_entries": list_pending_pulls(),
     }
 
 
@@ -413,6 +429,61 @@ def sync_control_pull_peer(
     background_tasks.add_task(_run_pull_job, peer_name, bool(allow_unsigned), session_user.user.username)
     tone = "warning" if allow_unsigned else "info"
     return _redirect_to_sync_control(request, f"Pull queued for '{peer_name}'.", tone=tone)
+
+
+@router.post("/admin/sync-control/pending-pull/{pending_id}/approve")
+def sync_control_approve_pending_pull(
+    pending_id: str,
+    request: Request,
+    csrf_token: Annotated[str, Form(...)],
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    _ensure_csrf(session_user.session, csrf_token)
+    entry = get_pending_pull(pending_id)
+    if not entry:
+        return _redirect_to_sync_control(request, f"Pending pull '{pending_id}' not found.", tone="error")
+    try:
+        peer_name, count, key_updated = approve_pending_pull(entry)
+    except ValueError as exc:
+        return _redirect_to_sync_control(request, str(exc), tone="error")
+    message = f"Approved pending pull for '{peer_name}' and imported {count} record(s)."
+    if key_updated:
+        message += " Trusted key updated."
+    logger.info(
+        "Admin %s approved pending pull %s for peer '%s'",
+        session_user.user.username,
+        pending_id,
+        peer_name,
+    )
+    append_event(peer=peer_name, action="pull-approve", status="success", triggered_by=session_user.user.username, message=message)
+    return _redirect_to_sync_control(request, message, tone="success")
+
+
+@router.post("/admin/sync-control/pending-pull/{pending_id}/discard")
+def sync_control_discard_pending_pull(
+    pending_id: str,
+    request: Request,
+    csrf_token: Annotated[str, Form(...)],
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    _require_admin_session(session_user)
+    _ensure_csrf(session_user.session, csrf_token)
+    entry = get_pending_pull(pending_id)
+    if entry:
+        remove_pending_pull(entry)
+        logger.info(
+            "Admin %s discarded pending pull %s for peer '%s'",
+            session_user.user.username,
+            pending_id,
+            entry.peer_name,
+        )
+        message = f"Discarded pending pull '{pending_id}'."
+        tone = "success"
+    else:
+        message = f"Pending pull '{pending_id}' not found."
+        tone = "error"
+    return _redirect_to_sync_control(request, message, tone=tone)
 
 
 @router.post("/sync/scope")

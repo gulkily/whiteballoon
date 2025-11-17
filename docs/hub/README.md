@@ -67,9 +67,9 @@ If a peer uploads a bundle signed by a public key that is not yet stored in the 
 
 This flow lets operators confirm a single dialog without editing JSON files or asking peers to retry uploads manually.
 
-### CLI Pull Key Approvals
+### Pull Key Approvals (CLI + UI)
 
-When a local instance pulls from a hub and the remote rotated signing keys, `wb sync pull <peer>` now caches the downloaded bundle and prints a pending approval message instead of crashing. Run `wb sync pull --approve <pending-id>` to trust the presented key (updates `sync_peers.txt`), import the cached bundle, and clean up. The `/admin/sync-control` pull log shows the same guidance so job reviewers know which pending ID to approve.
+When a local instance pulls from a hub and the remote rotated signing keys, `wb sync pull <peer>` now caches the downloaded bundle and prints a pending approval message instead of crashing. Run `wb sync pull --pending` to list entries and `wb sync pull --approve <pending-id>` to trust the presented key (updates `sync_peers.txt`), import the cached bundle, and clean up. The `/admin/sync-control` page shows the same queue with Approve/Discard buttons so admins can resolve the mismatch without leaving the browser.
 
 ## Public Feed & Structured Store
 
