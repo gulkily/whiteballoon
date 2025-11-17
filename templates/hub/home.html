@@ -4,215 +4,286 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>WhiteBalloon Sync Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <style>
       :root {
-        --primary-blue: #4169e1;
-        --primary-purple: #9370db;
-        --accent-purple: #a855f7;
-        --success-green: #10b981;
-        --bg-navy: rgba(30, 27, 75, 0.95);
-        --text-primary: #ffffff;
-        --text-secondary: #e5e7eb;
-        --code-bg: rgba(0, 0, 0, 0.35);
+        --navy: #081229;
+        --midnight: #040916;
+        --card-bg: #0f1e3d;
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #f9fafb;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --status-open: #38bdf8;
+        --status-completed: #22c55e;
+        --status-pending: #facc15;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-        color: var(--text-primary);
-        background: radial-gradient(circle at 20% 20%, rgba(65, 105, 225, 0.25), transparent 40%),
-          radial-gradient(circle at 80% 0%, rgba(147, 112, 219, 0.25), transparent 35%),
-          radial-gradient(circle at 50% 80%, rgba(168, 85, 247, 0.15), transparent 45%),
-          #050318;
-        overflow-x: hidden;
-      }
-      .orb {
-        position: fixed;
-        width: 240px;
-        height: 240px;
-        border-radius: 50%;
-        filter: blur(40px);
-        opacity: 0.35;
-        animation: float 14s ease-in-out infinite alternate;
-        background: radial-gradient(circle, rgba(147, 112, 219, 0.6), rgba(65, 105, 225, 0.1));
-      }
-      .orb--1 { top: 5%; left: 10%; }
-      .orb--2 { bottom: 8%; right: 15%; animation-delay: 6s; width: 320px; height: 320px; }
-      .layer { position: relative; padding: 4rem 2rem 5rem; display: flex; justify-content: center; }
-      .panel {
-        width: min(1100px, 100%);
-        background: rgba(255, 255, 255, 0.08);
-        border-radius: 32px;
-        padding: clamp(2rem, 3vw, 3.5rem);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 20px 60px rgba(15, 12, 41, 0.6), inset 0 0 40px rgba(255, 255, 255, 0.05);
-        animation: fadeInUp 0.8s ease forwards;
+        background: radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.12), transparent 40%),
+          radial-gradient(circle at 80% 0%, rgba(110, 231, 183, 0.18), transparent 35%),
+          var(--midnight);
+        color: var(--text);
       }
       header.hero {
+        padding: 3rem min(6vw, 4rem) 1rem;
+      }
+      header.hero h1 {
+        margin: 0;
+        font-size: clamp(2rem, 5vw, 3rem);
+      }
+      header.hero p {
+        color: var(--muted);
+        margin: 0.75rem 0 0;
+        max-width: 50ch;
+      }
+      .stats-grid {
+        padding: 0 min(6vw, 4rem) 2rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+      }
+      .stat-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        padding: 1.5rem;
+        border-radius: 20px;
+      }
+      .stat-card span {
+        display: block;
+      }
+      .stat-card .label {
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      .stat-card .value {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-top: 0.5rem;
+      }
+      .hub-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 3fr) minmax(280px, 1fr);
+        gap: 2rem;
+        padding: 0 min(6vw, 4rem) 4rem;
+      }
+      @media (max-width: 980px) {
+        .hub-layout { grid-template-columns: 1fr; }
+      }
+      .feed-panel {
+        background: rgba(10, 16, 31, 0.8);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 2rem;
+      }
+      .feed-panel h2 {
+        margin: 0 0 1rem;
+      }
+      .feed-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+      .feed-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.5rem;
+      }
+      .feed-card__meta {
         display: flex;
         flex-wrap: wrap;
-        gap: 1rem;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .tag {
+        gap: 0.5rem;
         font-size: 0.85rem;
-        letter-spacing: 0.2em;
+        color: var(--muted);
         text-transform: uppercase;
-        color: var(--text-secondary);
-        text-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
+        letter-spacing: 0.08em;
       }
-      h1 {
-        font-size: clamp(2.2rem, 5vw, 3.3rem);
-        margin: 0;
-        display: flex;
+      .status {
+        padding: 0.2rem 0.75rem;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+      .status--open { background: rgba(56, 189, 248, 0.15); color: var(--status-open); }
+      .status--completed { background: rgba(34, 197, 94, 0.15); color: var(--status-completed); }
+      .status--pending { background: rgba(250, 204, 21, 0.15); color: var(--status-pending); }
+      .meta-pill {
+        display: inline-flex;
         align-items: center;
-        gap: 0.75rem;
-        background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple));
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        gap: 0.35rem;
+        background: rgba(255, 255, 255, 0.05);
+        padding: 0.2rem 0.75rem;
+        border-radius: 999px;
       }
-      .badge {
+      .meta-pill svg { width: 14px; height: 14px; fill: currentColor; }
+      .feed-card__body h2 { margin: 1rem 0 0.5rem; }
+      .feed-card__body p { margin: 0; color: #d2d6dc; white-space: pre-wrap; }
+      .feed-card__details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0 0;
+        padding: 1.25rem 1rem;
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 16px;
+      }
+      .feed-card__details dt {
+        font-size: 0.75rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.2rem;
+      }
+      .feed-card__details dd {
+        margin: 0;
+        font-weight: 600;
+      }
+      .feed-card__comments {
+        margin-top: 1.25rem;
+        border-top: 1px solid var(--border);
+        padding-top: 1rem;
+      }
+      .feed-card__comments h3 {
+        margin: 0 0 0.5rem;
+        font-size: 1rem;
+      }
+      .feed-card__comments ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .feed-card__comments li {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+      }
+      .comment-meta {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .load-more {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        padding: 0.25rem 0.75rem;
+        background: var(--accent);
+        color: #02152b;
+        border: none;
+        padding: 0.75rem 1.5rem;
         border-radius: 999px;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 1.5rem;
       }
-      .badge--success { color: var(--success-green); box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
-      .badge--neutral { color: var(--text-secondary); }
-      .live-indicator { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.9rem; color: var(--text-secondary); }
-      .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success-green); animation: pulse 1.5s ease-in-out infinite; }
-      .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin: 2.5rem 0; }
-      .stat-card {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 1.25rem;
+      .peer-panel {
+        background: rgba(10, 16, 31, 0.8);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 2rem;
+      }
+      .peer-panel h3 { margin-top: 0; }
+      .peer-list {
+        list-style: none;
+        margin: 1rem 0 0;
+        padding: 0;
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
+        gap: 0.5rem;
       }
-      .stat-label { font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary); }
-      .stat-value { font-size: 2rem; font-weight: 600; }
-      .connection-strip { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 2rem; }
-      .connection-card { border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 999px; padding: 0.45rem 1rem; font-size: 0.9rem; color: var(--text-secondary); }
-      table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-      th, td { padding: 0.85rem; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
-      th { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.8rem; color: var(--text-secondary); }
-      .peer-icon { display: inline-flex; align-items: center; gap: 0.5rem; }
-      .relative-time { color: var(--text-secondary); }
-      .code-block {
-        background: var(--code-bg);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 16px;
-        padding: 1rem 1.5rem;
-        font-family: 'JetBrains Mono', SFMono-Regular, 'Cascadia Code', 'Courier New', monospace;
-        margin-top: 2rem;
-        overflow-x: auto;
+      .peer-chip {
+        padding: 0.5rem 0.85rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        display: flex;
+        justify-content: space-between;
+        color: var(--muted);
       }
-      @keyframes float {
-        from { transform: translateY(0); }
-        to { transform: translateY(-40px); }
-      }
-      @keyframes pulse {
-        0% { opacity: 0.4; }
-        50% { opacity: 1; }
-        100% { opacity: 0.4; }
+      code {
+        background: rgba(15, 23, 42, 0.8);
+        padding: 0.35rem 0.5rem;
+        border-radius: 6px;
       }
     </style>
+    <script defer src="/static/js/hub-feed.js"></script>
   </head>
   <body>
-    <div class="orb orb--1"></div>
-    <div class="orb orb--2"></div>
-    <div class="layer">
-      <section class="panel">
-        <header class="hero">
-          <div class="tag">WhiteBalloon · Sync Hub</div>
-          <div class="live-indicator"><span class="live-dot"></span> live cluster status</div>
-        </header>
-        <h1>Sync Control Hub</h1>
+    <header class="hero">
+      <p class="tagline">WhiteBalloon Hub</p>
+      <h1>Public request feed</h1>
+      <p>Browse the latest public requests synced to this hub. Data refreshes as peers upload new bundles so you can reskin the same feed without rebuilding plumbing.</p>
+    </header>
 
-        <div class="stats-grid">
-          <article class="stat-card">
-            <span class="stat-label">Tracked files</span>
-            <span class="stat-value">{{ total_files }}</span>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">Stored data (KB)</span>
-            <span class="stat-value">{{ total_kilobytes }}</span>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">Ready peers</span>
-            <span class="stat-value">{{ ready_count }}</span>
-          </article>
-          <article class="stat-card">
-            <span class="stat-label">Public key</span>
-            <span class="stat-value" style="font-size: 1rem; word-break: break-all;">{{ truncated_key }}</span>
-          </article>
+    <section class="stats-grid">
+      <article class="stat-card">
+        <span class="label">Requests stored</span>
+        <span class="value">{{ feed_page.total }}</span>
+      </article>
+      <article class="stat-card">
+        <span class="label">Tracked files</span>
+        <span class="value">{{ total_files }}</span>
+      </article>
+      <article class="stat-card">
+        <span class="label">Stored data (KB)</span>
+        <span class="value">{{ total_kilobytes }}</span>
+      </article>
+      <article class="stat-card">
+        <span class="label">Ready peers</span>
+        <span class="value">{{ ready_count }}</span>
+      </article>
+    </section>
+
+    <div class="hub-layout">
+      <section class="feed-panel">
+        <div class="feed-panel__header">
+          <h2>Latest activity</h2>
+          <p>{{ 'No public requests yet' if not has_feed else 'Showing the freshest public requests—load more to dig deeper.' }}</p>
         </div>
-
-        <div class="connection-strip">
-          {% if has_peers %}
-            {% for peer in peer_stats %}
-              <div class="connection-card">{{ peer.name }}</div>
+        <div class="feed-list" data-feed-list>
+          {% if has_feed %}
+            {% for entry in feed_page.items %}
+              {% include 'hub/partials/feed_card.html' %}
             {% endfor %}
           {% else %}
-            <p>No peers yet—register one via <code>./wb sync peers add</code>.</p>
+            <p>No public requests available. Push a bundle with public data to populate this feed.</p>
           {% endif %}
         </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Peer</th>
-              <th>Status</th>
-              <th>Files</th>
-              <th>Size (KB)</th>
-              <th>Signed</th>
-              <th>Digest</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% if peer_stats %}
-              {% for peer in peer_stats %}
-                <tr>
-                  <td>
-                    <span class="peer-icon">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .69.4 1.31 1.01 1.59.61.28 1.31.16 1.79-.29l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V15a2 2 0 0 1-2.83 1.83 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06c.45-.48.57-1.18.29-1.79A1.65 1.65 0 0 0 19.4 15z" />
-                      </svg>
-                      <span class="peer-name">{{ peer.name }}</span>
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge {{ 'badge--success' if peer.has_bundle else 'badge--neutral' }}">{{ 'Ready' if peer.has_bundle else 'Waiting' }}</span>
-                  </td>
-                  <td>{{ peer.file_count }}</td>
-                  <td>{{ peer.total_bytes // 1024 }}</td>
-                  <td><span class="relative-time">{{ peer.signed_at }}</span></td>
-                  <td><span class="digest" title="{{ peer.digest }}">{{ peer.digest }}</span></td>
-                </tr>
-              {% endfor %}
-            {% else %}
-              <tr><td colspan="6">No bundles stored yet.</td></tr>
-            {% endif %}
-          </tbody>
-        </table>
-
-        <div class="code-block">
-          <p>Share this hub's public key with trusted peers:</p>
-          <code>{{ public_key }}</code>
-        </div>
+        {% if feed_page.next_offset is not none %}
+          <button class="load-more" data-feed-load data-next-offset="{{ feed_page.next_offset }}" data-page-size="{{ feed_page_size }}">Load more</button>
+        {% endif %}
       </section>
+
+      <aside class="peer-panel">
+        <h3>Peer status</h3>
+        {% if has_peers %}
+          <ul class="peer-list">
+            {% for peer in peer_stats %}
+              <li class="peer-chip">
+                <span>{{ peer.name }}</span>
+                <span>{{ 'Ready' if peer.has_bundle else 'Waiting' }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p>No peers registered yet. Use <code>./wb sync peers add</code> to connect one.</p>
+        {% endif %}
+        <h4 style="margin-top: 2rem;">Hub public key</h4>
+        <code style="display: block; margin-top: 0.5rem; word-break: break-all;">{{ public_key }}</code>
+      </aside>
     </div>
   </body>
 </html>

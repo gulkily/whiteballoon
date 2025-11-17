@@ -19,6 +19,7 @@ from app.sync.signing import (
 )
 
 from .config import HubPeer, HubSettings, get_settings, hash_token, persist_peer, reset_settings_cache
+from .feed import ingest_bundle
 from .security import AuthContext
 from .storage import (
     build_metadata,
@@ -114,6 +115,20 @@ async def upload_bundle(
         metadata = build_metadata(peer, digest, signed_at)
         write_bundle(settings, peer, bundle_root, metadata)
         summary = summarize_bundle(bundle_root)
+        stored_bundle = get_bundle_path(settings, peer)
+        try:
+            ingest_bundle(
+                stored_bundle,
+                peer_name=peer.name,
+                manifest_digest=digest,
+                signed_at=signed_at,
+            )
+        except Exception as exc:  # pragma: no cover - defensive
+            logger.exception("Feed ingest failed for peer '%s'", peer.name)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Bundle stored but feed ingest failed",
+            ) from exc
     if auto_registered:
         if not settings.config_path:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Hub config path unavailable")
