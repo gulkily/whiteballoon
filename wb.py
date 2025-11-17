@@ -264,6 +264,24 @@ def cmd_setup(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_update_env(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="wb update-env", description="Sync .env with .env.example defaults")
+    parser.add_argument("--env-path", default=str(SCRIPT_DIR / ".env"), help="Path to the .env file")
+    parser.add_argument("--example-path", default=str(SCRIPT_DIR / ".env.example"), help="Path to .env.example")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would change without writing")
+    ns = parser.parse_args(args)
+
+    script = SCRIPT_DIR / "tools" / "update_env_defaults.py"
+    if not script.exists():
+        error(f"Missing helper script: {script}")
+        return 1
+
+    cmd = [sys.executable, str(script), "--env-path", ns.env_path, "--example-path", ns.example_path]
+    if ns.dry_run:
+        cmd.append("--dry-run")
+    return subprocess.call(cmd)
+
+
 def cmd_known(known_cmd: str, passthrough: list[str], *, graceful_interrupt: bool = False, interrupt_message: str | None = None) -> int:
     vpy = python_in_venv()
     if not ensure_cli_ready(vpy):
@@ -338,6 +356,7 @@ def print_help() -> None:
     print("  sync <command> [opts] Manual sync utilities (export/import)")
     print("  skins <command>       Build or watch skin CSS bundles")
     print("  hub serve [opts]      Run the sync hub (uvicorn)")
+    print("  update-env [opts]     Add missing values from .env.example")
     print("  version               Display CLI version info")
     print("  help                  Show this help message")
     print()
@@ -359,6 +378,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
+    subparsers.add_parser("update-env")
 
     # Parse only the command; leave the rest as passthrough
     known, passthrough = (argv[:1], argv[1:]) if argv else ([], [])
@@ -377,6 +397,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.command == "hub":
         return cmd_hub(passthrough)
+
+    if ns.command == "update-env":
+        return cmd_update_env(passthrough)
 
     # Known commands path
     if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "sync", "skins"}:

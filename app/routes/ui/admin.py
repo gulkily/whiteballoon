@@ -1,21 +1,27 @@
 from __future__ import annotations
 
 from datetime import datetime
+import os
 from math import ceil
+from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from sqlalchemy import func
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.models import HelpRequest, InviteToken, User
+from app import config
 from app.routes.ui.helpers import describe_session_role, templates
 from app.services import user_attribute_service
 from starlette.datastructures import URL
 
 router = APIRouter(tags=["ui"])
 PAGE_SIZE = 25
+ENV_PATH = Path(".env")
+ENV_EXAMPLE_PATH = Path(".env.example")
+DEDALUS_ENV_KEY = "DEDALUS_API_KEY"
 
 
 def _require_admin(session_user: SessionUser) -> None:
@@ -63,13 +69,16 @@ def admin_panel(
             "title": "Profile directory",
             "description": "Audit every local account, review contact info, and drill into individual activity.",
             "href": "/admin/profiles",
-            "icon": "👥",
         },
         {
             "title": "Sync dashboard",
             "description": "Review public sharing scope, bundle signatures, and trigger manual exports.",
             "href": "/sync/public",
-            "icon": "🔁",
+        },
+        {
+            "title": "Dedalus integration",
+            "description": "Manage the API key that powers the Mutual Aid Copilot.",
+            "href": "/admin/dedalus",
         },
     ]
 
@@ -83,6 +92,32 @@ def admin_panel(
         "admin_links": admin_links,
     }
     return templates.TemplateResponse("admin/panel.html", context)
+
+def _ensure_env_file() -> None:
+    if ENV_PATH.exists():
+        return
+    if ENV_EXAMPLE_PATH.exists():
+        ENV_PATH.write_text(ENV_EXAMPLE_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    else:
+        ENV_PATH.touch()
+
+
+def _write_env_value(key: str, value: str) -> None:
+    _ensure_env_file()
+    lines = ENV_PATH.read_text(encoding="utf-8").splitlines()
+    updated: list[str] = []
+    found = False
+    for line in lines:
+        if line.strip().startswith(f"{key}="):
+            updated.append(f"{key}={value}")
+            found = True
+        else:
+            updated.append(line)
+    if not found:
+        if updated and updated[-1].strip() != "":
+            updated.append("")
+        updated.append(f"{key}={value}")
+    ENV_PATH.write_text("\n".join(updated) + "\n", encoding="utf-8")
 
 
 @router.get("/admin/profiles")
@@ -221,3 +256,55 @@ def admin_profile_detail(
         "now_utc": datetime.utcnow(),
     }
     return templates.TemplateResponse("admin/profile_detail.html", context)
+
+
+@router.get("/admin/dedalus")
+def admin_dedalus_settings(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    settings = config.get_settings()
+    context = {
+        "request": request,
+        "user": session_user.user,
+        "session": session_user.session,
+        "session_role": describe_session_role(session_user.user, session_user.session),
+        "session_username": session_user.user.username,
+        "current_key": settings.dedalus_api_key,
+        "message": None,
+        "status": None,
+    }
+    return templates.TemplateResponse("admin/dedalus_settings.html", context)
+
+
+@router.post("/admin/dedalus")
+def admin_dedalus_settings_submit(
+    request: Request,
+    dedalus_api_key: str = Form(""),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    trimmed = dedalus_api_key.strip()
+    try:
+        _write_env_value(DEDALUS_ENV_KEY, trimmed)
+        os.environ[DEDALUS_ENV_KEY] = trimmed
+        config.reset_settings_cache()
+        message = "Dedalus API key updated."
+        status = "success"
+    except OSError as exc:
+        message = f"Unable to update .env file: {exc}"
+        status = "error"
+    settings = config.get_settings()
+    context = {
+        "request": request,
+        "user": session_user.user,
+        "session": session_user.session,
+        "session_role": describe_session_role(session_user.user, session_user.session),
+        "session_username": session_user.user.username,
+        "current_key": settings.dedalus_api_key,
+        "message": message,
+        "status": status,
+    }
+    status_code = 500 if status == "error" else 200
+    return templates.TemplateResponse("admin/dedalus_settings.html", context, status_code=status_code)
