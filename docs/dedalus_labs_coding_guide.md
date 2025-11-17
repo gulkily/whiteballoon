@@ -79,3 +79,10 @@ async def verify(api_key: str) -> tuple[bool, str]:
 - Log every Dedalus invocation with success/failure + duration; add daily summary alerts if error rate >5%.
 - Context packaging must only include data explicitly marked shareable; enforce via tests.
 - Feature-flag the Mutual Aid Copilot per instance (`MUTUAL_AID_COPILOT_ENABLED`) for controlled rollout.
+
+## Option A – CLI verification script
+- Run `./wb dedalus test` (or `python tools/dedalus_cli_verification.py`) to let Dedalus drive the real `wb` CLI (implemented for Step 1 of the POC).
+- The script exposes an `audit_auth_requests` tool that shells out to `wb session list`, so the agent exercises actual database + Click flows.
+- Prereqs: `./wb setup`, `DEDALUS_API_KEY` in `.env`, and (optionally) `DEDALUS_POC_MODEL` to override the default `openai/gpt-5-mini` model.
+- Flags: `--limit N` (default 5) and `--include-processed` scope the CLI run, `--model` overrides the Dedalus model, and `--prompt` lets you customize the final instructions.
+- Example: `python tools/dedalus_cli_verification.py --limit 10 --include-processed` prints a Dedalus-generated summary plus the raw CLI output from the MCP-triggered tool call.
