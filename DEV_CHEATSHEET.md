@@ -75,3 +75,9 @@ When creating a new module:
 ## Invite links
 - `./wb create-invite` prints a shareable `/register` link using `SITE_URL` as a fallback base. Set `SITE_URL` in `.env` for non-local environments to ensure links point to the correct host.
 - The in-app “Send Welcome” page (`/invite/new`) generates invites with link + QR and optional invitee details; ensure appropriate permissions before exposing it.
+
+## Ctrl-C handling pattern
+- Use `wb.py`'s `_run_process([...], graceful_interrupt=True, interrupt_message="...")` helper when spawning subprocesses that should stop cleanly on `Ctrl-C`. It forwards SIGINT to the child, suppresses stack traces, and prints the optional friendly message (see `cmd_known` / `runserver`).
+- For interactive terminal work (raw input, REPLs), wrap the invocation with `_suppress_ctrl_c_echo(True)` so the terminal does not echo `^C` characters while still letting the parent handle interrupts later.
+- When writing a pure-Python loop (no subprocess), wrap the body in `try: ... except KeyboardInterrupt: log("<message>"); return 0` so we always exit gracefully.
+- Always log a short status update (e.g., "Server stopped" or "Dedalus verification stopped") after cancelling work so callers know the shutdown was intentional.

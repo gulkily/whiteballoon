@@ -50,6 +50,7 @@ def error(msg: str) -> None:
 SCRIPT_DIR = Path(__file__).resolve().parent
 VENV_DIR = SCRIPT_DIR / ".venv"
 DEV_TOOL = SCRIPT_DIR / "tools" / "dev.py"
+DEDALUS_POC = SCRIPT_DIR / "tools" / "dedalus_cli_verification.py"
 
 
 def python_in_venv() -> Path:
@@ -227,6 +228,31 @@ def cmd_hub(args: list[str]) -> int:
     return _run_process(cmd, env=env, graceful_interrupt=True, interrupt_message="Hub stopped")
 
 
+def cmd_dedalus(args: list[str]) -> int:
+    if not DEDALUS_POC.exists():
+        error("Missing Dedalus verification script. Expected tools/dedalus_cli_verification.py")
+        return 1
+    if not args or args[0] in {"-h", "--help", "help"}:
+        print("Usage: wb dedalus test [options]")
+        print("  test   Run the Step 1 verification script (passes remaining args through)")
+        return 0
+    subcommand, *passthrough = args
+    if subcommand != "test":
+        error(f"Unknown dedalus subcommand: {subcommand}")
+        return 1
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    info("Launching Dedalus CLI verification script")
+    cmd = [str(vpy), str(DEDALUS_POC), *passthrough]
+    return _run_process(
+        cmd,
+        graceful_interrupt=True,
+        interrupt_message="Dedalus verification stopped",
+    )
+
+
 def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
     token = secrets.token_hex(32)
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -353,6 +379,8 @@ def print_help() -> None:
     print("  init-db               Initialize the SQLite database")
     print("  create-admin USER     Promote a user to admin")
     print("  create-invite [opts]  Generate invite tokens")
+    print("  session <command>     Inspect or manage authentication sessions")
+    print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
     print("  skins <command>       Build or watch skin CSS bundles")
     print("  hub serve [opts]      Run the sync hub (uvicorn)")
@@ -375,6 +403,8 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("init-db")
     subparsers.add_parser("create-admin")
     subparsers.add_parser("create-invite")
+    subparsers.add_parser("session")
+    subparsers.add_parser("dedalus")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
@@ -398,12 +428,15 @@ def main(argv: list[str] | None = None) -> int:
     if ns.command == "hub":
         return cmd_hub(passthrough)
 
+    if ns.command == "dedalus":
+        return cmd_dedalus(passthrough)
+
     if ns.command == "update-env":
         return cmd_update_env(passthrough)
 
     # Known commands path
-    if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "sync", "skins"}:
-        if ns.command == "sync":
+    if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "sync", "skins"}:
+        if ns.command in {"session", "sync"}:
             if not passthrough:
                 passthrough = ["--help"]
             elif passthrough[0] == "help":
