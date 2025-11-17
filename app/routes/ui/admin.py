@@ -13,6 +13,13 @@ from sqlmodel import select
 from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.models import HelpRequest, InviteToken, User
 from app import config
+from app.routes.ui.helpers import friendly_time
+
+try:
+    from dedalus_labs import AsyncDedalus, DedalusRunner
+except ImportError:  # pragma: no cover - optional dependency
+    AsyncDedalus = None  # type: ignore
+    DedalusRunner = None  # type: ignore
 from app.routes.ui.helpers import describe_session_role, templates
 from app.services import user_attribute_service
 from starlette.datastructures import URL
@@ -22,6 +29,7 @@ PAGE_SIZE = 25
 ENV_PATH = Path(".env")
 ENV_EXAMPLE_PATH = Path(".env.example")
 DEDALUS_ENV_KEY = "DEDALUS_API_KEY"
+DEDALUS_ENV_VERIFIED = "DEDALUS_API_KEY_VERIFIED_AT"
 
 
 def _require_admin(session_user: SessionUser) -> None:
@@ -102,22 +110,53 @@ def _ensure_env_file() -> None:
         ENV_PATH.touch()
 
 
-def _write_env_value(key: str, value: str) -> None:
+def _write_env_value(key: str, value: Optional[str]) -> None:
     _ensure_env_file()
     lines = ENV_PATH.read_text(encoding="utf-8").splitlines()
     updated: list[str] = []
     found = False
     for line in lines:
         if line.strip().startswith(f"{key}="):
-            updated.append(f"{key}={value}")
             found = True
-        else:
-            updated.append(line)
-    if not found:
+            if value is not None:
+                updated.append(f"{key}={value}")
+            continue
+        updated.append(line)
+    if value is not None and not found:
         if updated and updated[-1].strip() != "":
             updated.append("")
         updated.append(f"{key}={value}")
-    ENV_PATH.write_text("\n".join(updated) + "\n", encoding="utf-8")
+    # Remove trailing blank lines
+    while updated and updated[-1] == "":
+        updated.pop()
+    content = "\n".join(updated)
+    if content:
+        content += "\n"
+    ENV_PATH.write_text(content, encoding="utf-8")
+
+
+async def _verify_dedalus_api_key(value: str) -> tuple[bool, str]:
+    if not value:
+        return False, "No API key configured."
+    if AsyncDedalus is None or DedalusRunner is None:
+        return False, "Install the 'dedalus-labs' SDK to enable verification."
+    try:
+        client = AsyncDedalus(api_key=value)  # type: ignore[arg-type]
+    except TypeError:  # pragma: no cover - backwards compatibility
+        os.environ[DEDALUS_ENV_KEY] = value
+        client = AsyncDedalus()  # type: ignore[call-arg]
+    runner = DedalusRunner(client)  # type: ignore[call-arg]
+    try:
+        response = await runner.run(
+            input="WhiteBalloon connectivity check",
+            model="openai/gpt-5-mini",
+        )
+    except Exception as exc:  # pragma: no cover - external dependency
+        return False, str(exc)
+    summary = getattr(response, "final_output", None)
+    if not summary and hasattr(response, "outputs"):
+        summary = str(response.outputs)
+    return True, summary or "Verified successfully."
 
 
 @router.get("/admin/profiles")
@@ -259,12 +298,28 @@ def admin_profile_detail(
 
 
 @router.get("/admin/dedalus")
-def admin_dedalus_settings(
+async def admin_dedalus_settings(
     request: Request,
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
     settings = config.get_settings()
+    has_key = bool(settings.dedalus_api_key)
+    verification_message: Optional[str] = None
+    verification_ok: Optional[bool] = None
+    if has_key and request.query_params.get("verify") == "1":
+        verification_ok, verification_message = await _verify_dedalus_api_key(settings.dedalus_api_key)
+        if verification_ok:
+            timestamp = datetime.utcnow().isoformat()
+            _write_env_value(DEDALUS_ENV_VERIFIED, timestamp)
+            os.environ[DEDALUS_ENV_VERIFIED] = timestamp
+            config.reset_settings_cache()
+            settings = config.get_settings()
+    formatted_verified = (
+        friendly_time(settings.dedalus_api_key_verified_at)
+        if settings.dedalus_api_key_verified_at
+        else None
+    )
     context = {
         "request": request,
         "user": session_user.user,
@@ -272,30 +327,79 @@ def admin_dedalus_settings(
         "session_role": describe_session_role(session_user.user, session_user.session),
         "session_username": session_user.user.username,
         "current_key": settings.dedalus_api_key,
+        "has_key": has_key,
+        "last_verified": formatted_verified,
+        "last_verified_raw": settings.dedalus_api_key_verified_at,
         "message": None,
         "status": None,
+        "verification_message": verification_message,
+        "verification_ok": verification_ok,
     }
     return templates.TemplateResponse("admin/dedalus_settings.html", context)
 
 
 @router.post("/admin/dedalus")
-def admin_dedalus_settings_submit(
+async def admin_dedalus_settings_submit(
     request: Request,
     dedalus_api_key: str = Form(""),
+    clear_key: Optional[str] = Form(None),
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
     trimmed = dedalus_api_key.strip()
-    try:
-        _write_env_value(DEDALUS_ENV_KEY, trimmed)
-        os.environ[DEDALUS_ENV_KEY] = trimmed
-        config.reset_settings_cache()
-        message = "Dedalus API key updated."
-        status = "success"
-    except OSError as exc:
-        message = f"Unable to update .env file: {exc}"
-        status = "error"
+    message: Optional[str] = None
+    status: Optional[str] = None
+    verification_message: Optional[str] = None
+    verification_ok: Optional[bool] = None
+
+    new_value: Optional[str]
+    if clear_key:
+        new_value = ""
+    elif trimmed:
+        new_value = trimmed
+    else:
+        new_value = None
+
+    if new_value is None:
+        message = "No changes submitted."
+        status = "info"
+    else:
+        try:
+            _write_env_value(DEDALUS_ENV_KEY, new_value)
+            os.environ[DEDALUS_ENV_KEY] = new_value
+            config.reset_settings_cache()
+            if new_value:
+                verification_ok, verification_message = await _verify_dedalus_api_key(new_value)
+                if verification_ok:
+                    timestamp = datetime.utcnow().isoformat()
+                    _write_env_value(DEDALUS_ENV_VERIFIED, timestamp)
+                    os.environ[DEDALUS_ENV_VERIFIED] = timestamp
+                    config.reset_settings_cache()
+                    message = "Dedalus API key updated and verified."
+                    status = "success"
+                else:
+                    _write_env_value(DEDALUS_ENV_VERIFIED, None)
+                    os.environ.pop(DEDALUS_ENV_VERIFIED, None)
+                    config.reset_settings_cache()
+                    message = "Dedalus API key saved, but verification failed."
+                    status = "error"
+            else:
+                _write_env_value(DEDALUS_ENV_VERIFIED, None)
+                os.environ.pop(DEDALUS_ENV_VERIFIED, None)
+                config.reset_settings_cache()
+                message = "Dedalus API key removed."
+                status = "success"
+        except OSError as exc:
+            message = f"Unable to update .env file: {exc}"
+            status = "error"
+
     settings = config.get_settings()
+    has_key = bool(settings.dedalus_api_key)
+    formatted_verified = (
+        friendly_time(settings.dedalus_api_key_verified_at)
+        if settings.dedalus_api_key_verified_at
+        else None
+    )
     context = {
         "request": request,
         "user": session_user.user,
@@ -303,8 +407,13 @@ def admin_dedalus_settings_submit(
         "session_role": describe_session_role(session_user.user, session_user.session),
         "session_username": session_user.user.username,
         "current_key": settings.dedalus_api_key,
+        "has_key": has_key,
+        "last_verified": formatted_verified,
+        "last_verified_raw": settings.dedalus_api_key_verified_at,
         "message": message,
         "status": status,
+        "verification_message": verification_message,
+        "verification_ok": verification_ok,
     }
     status_code = 500 if status == "error" else 200
     return templates.TemplateResponse("admin/dedalus_settings.html", context, status_code=status_code)

@@ -15,11 +15,26 @@
   </header>
 
   {% if message %}
-    <div class="alert {{ 'alert--success' if status == 'success' else 'alert--error' }}">{{ message }}</div>
+    <div class="alert {{ 'alert--success' if status == 'success' else 'alert--info' if status == 'info' else 'alert--error' }}">{{ message }}</div>
   {% endif %}
 
   <div class="card stack">
     <p class="muted small-text">Paste the API key provided by Dedalus Labs. It will be stored in <code>.env</code> under <code>DEDALUS_API_KEY</code>.</p>
+    <div class="stack">
+      <p><strong>{{ 'A Dedalus API key is stored.' if has_key else 'No API key stored yet.' }}</strong></p>
+      {% if has_key and last_verified %}
+        <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
+      {% endif %}
+      {% if verification_message is not none %}
+        <div class="alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
+      {% endif %}
+      {% if has_key %}
+        <form method="get">
+          <input type="hidden" name="verify" value="1" />
+          <button type="submit" class="button button--secondary">Verify connection</button>
+        </form>
+      {% endif %}
+    </div>
     <form class="stack" method="post">
       <label class="stack" for="dedalus-api-key">
         <span>Dedalus API key</span>
@@ -27,12 +42,16 @@
           id="dedalus-api-key"
           type="password"
           name="dedalus_api_key"
-          value="{{ current_key }}"
+          value=""
           placeholder="sk_live_..."
           autocomplete="off"
         />
       </label>
-      <p class="muted small-text">This key is required for connecting the Mutual Aid Copilot to Dedalus Labs. Leave blank to clear the current key.</p>
+      <p class="muted small-text">This key is required for connecting the Mutual Aid Copilot to Dedalus Labs. Leave blank to keep the current key.</p>
+      <label class="checkbox">
+        <input type="checkbox" name="clear_key" value="1" />
+        Remove stored key
+      </label>
       <div>
         <button type="submit" class="button">Save API key</button>
       </div>
