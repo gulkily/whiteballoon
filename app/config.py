@@ -42,6 +42,7 @@ class Settings:
     skin_preview_enabled: bool = _get_bool(os.getenv("WB_SKIN_PREVIEW_ENABLED"), False)
     skin_preview_param: str = os.getenv("WB_SKIN_PREVIEW_PARAM", "skin")
     skin_strict: bool = _get_bool(os.getenv("WB_SKIN_STRICT"), False)
+    dedalus_api_key: str = os.getenv("DEDALUS_API_KEY", "")
 
 
 @lru_cache(maxsize=1)

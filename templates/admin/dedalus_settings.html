@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Dedalus Integration · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="admin-dedalus">
+  <header class="stack">
+    <p class="muted small-text">Admin-only</p>
+    <h1>Dedalus Labs integration</h1>
+    <p class="muted">Store the API key that powers the Mutual Aid Copilot.</p>
+  </header>
+
+  {% if message %}
+    <div class="alert {{ 'alert--success' if status == 'success' else 'alert--error' }}">{{ message }}</div>
+  {% endif %}
+
+  <div class="card stack">
+    <p class="muted small-text">Paste the API key provided by Dedalus Labs. It will be stored in <code>.env</code> under <code>DEDALUS_API_KEY</code>.</p>
+    <form class="stack" method="post">
+      <label class="stack" for="dedalus-api-key">
+        <span>Dedalus API key</span>
+        <input
+          id="dedalus-api-key"
+          type="password"
+          name="dedalus_api_key"
+          value="{{ current_key }}"
+          placeholder="sk_live_..."
+          autocomplete="off"
+        />
+      </label>
+      <p class="muted small-text">This key is required for connecting the Mutual Aid Copilot to Dedalus Labs. Leave blank to clear the current key.</p>
+      <div>
+        <button type="submit" class="button">Save API key</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
