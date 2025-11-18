@@ -4,6 +4,7 @@ import json
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.hub.config import get_settings
@@ -22,6 +23,8 @@ register_skin_helpers(templates)
 def create_hub_app() -> FastAPI:
     app = FastAPI(title="WhiteBalloon Sync Hub", version="0.1.0")
     logger = logging.getLogger("whiteballoon.hub")
+
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
     @app.on_event("startup")
     async def _log_settings() -> None:
