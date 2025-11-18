@@ -1,0 +1,30 @@
+# Dedalus Labs
+
+## Docs
+
+- [Use the llms.txt file](https://docs.dedaluslabs.ai/ai-optimizations/llms-txt.md): Give your AI assistant instant access to Dedalus documentation.
+- [Hello World](https://docs.dedaluslabs.ai/examples/01-hello-world.md): Basic chat completion with Dedalus
+- [Basic Tools](https://docs.dedaluslabs.ai/examples/02-basic-tools.md): Clean tool execution with the new Runner
+- [Streaming](https://docs.dedaluslabs.ai/examples/03-streaming.md): Streaming responses with Agent system
+- [MCP Integration](https://docs.dedaluslabs.ai/examples/04-mcp-integration.md): Basic remote MCP server usage with the Dedalus SDK
+- [Structured Outputs](https://docs.dedaluslabs.ai/examples/05-structured-outputs.md): Type-safe JSON responses with Pydantic models
+- [Model Handoffs](https://docs.dedaluslabs.ai/examples/06-handoffs.md): Multi-model routing where the agent intelligently selects the best model based on task complexity
+- [Tool Chaining](https://docs.dedaluslabs.ai/examples/07-tool-chaining.md): Advanced tool chaining workflow with async execution
+- [Image Generation & Vision](https://docs.dedaluslabs.ai/examples/08-images.md): Generate, edit, and analyze images with AI models
+- [Concert Planner](https://docs.dedaluslabs.ai/examples/use-case/concert-planner.md): Create a concert planner agent using the Ticketmaster MCP to search for concerts and venue information.
+- [Data Analyst](https://docs.dedaluslabs.ai/examples/use-case/data-analyst.md): Create a data analyst agent that can search for real-time data, write and execute Python code to analyze it, and generate insights.
+- [Travel Agent](https://docs.dedaluslabs.ai/examples/use-case/travel-agent.md): Creating a travel planning agent that can search for flights, hotels, and provide travel recommendations.
+- [Weather Forecaster](https://docs.dedaluslabs.ai/examples/use-case/weather-forecaster.md): Create a weather forecasting agent using the Open Meteo MCP to provide detailed weather information and forecasts.
+- [Web Search Agent](https://docs.dedaluslabs.ai/examples/use-case/web-search-agent.md): Create a web search agent using multiple search MCPs to find and analyze information from the web.
+- [FAQ](https://docs.dedaluslabs.ai/faq.md): Frequently Asked Questions
+- [Quickstart](https://docs.dedaluslabs.ai/index.md): Get started with the Dedalus SDK.
+- [Introduction](https://docs.dedaluslabs.ai/introduction.md): Dedalus Labs is building the MCP gateway for next-gen AI applications by unifying the fragmented AI-agent ecosystem with a **single drop-in API endpoint**. 
+- [Model Providers](https://docs.dedaluslabs.ai/providers.md): Mix and match models from supported providers.
+- [MCP Server Guidelines](https://docs.dedaluslabs.ai/server-guidelines.md): Ensure your server works with the Dedalus platform.
+
+
+## Optional
+
+- [Join Our Community](https://discord.gg/K3SjuFXZJw)
+- [Website](https://dedaluslabs.ai)
+- [Support](mailto:support@dedaluslabs.ai)
