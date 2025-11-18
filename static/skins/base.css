@@ -1007,8 +1007,37 @@ textarea::placeholder {
   text-decoration: none;
 }
 
+
+.control-panel__shell {
+  padding: 3rem;
+  gap: 2rem;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 1.25rem;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.15);
+}
+
+[data-theme="dark"] .control-panel__shell {
+  background: rgba(9, 11, 23, 0.9);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 40px 90px rgba(3, 4, 16, 0.6);
+}
+
+.control-panel__shell h1 {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.control-panel__intro,
+.control-panel__shell p {
+  line-height: 1.6;
+  max-width: 52ch;
+}
+
 .control-panel__intro {
-  max-width: 48ch;
+  margin-bottom: 2rem;
 }
 
 .control-panel__grid {
@@ -1016,8 +1045,17 @@ textarea::placeholder {
   padding: 0;
   margin: 0;
   display: grid;
-  gap: 1.25rem;
+  gap: 1.5rem;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.control-panel__grid li {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.control-panel__grid li:last-child {
+  border-bottom: none;
 }
 
 .control-panel__card {
@@ -1030,7 +1068,7 @@ textarea::placeholder {
   min-height: 140px;
   background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-  transition: border-color 120ms ease, transform 160ms ease, box-shadow 160ms ease;
+  transition: border-color 120ms ease, transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
 .control-panel__card:hover,
@@ -1038,6 +1076,19 @@ textarea::placeholder {
   border-color: var(--color-accent);
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.15);
   transform: translateY(-4px);
+}
+
+[data-theme="dark"] .control-panel__card {
+  background: rgba(11, 16, 31, 0.92);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 12px 30px rgba(1, 2, 8, 0.55);
+}
+
+[data-theme="dark"] .control-panel__card:hover,
+[data-theme="dark"] .control-panel__card:focus-visible {
+  border-color: var(--color-accent);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+  background: rgba(14, 19, 36, 0.98);
 }
 
 .control-panel__card h2 {
@@ -2055,12 +2106,4 @@ form.inline {
   font-weight: 400 700;
   font-style: normal;
   font-display: swap;
-}
-.control-panel__shell {
-  padding: 2.5rem;
-  gap: 1.5rem;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.15);
 }
