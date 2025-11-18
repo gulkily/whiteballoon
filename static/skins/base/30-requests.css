@@ -1,0 +1,235 @@
+.requests-grid {
+  display: grid;
+  gap: var(--space-card-gap, 1.5rem);
+}
+
+.request-item {
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(124, 58, 237, 0.15);
+  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.12), transparent 60%),
+    var(--color-card);
+  padding: 1.1rem;
+  box-shadow: 0 16px 36px rgba(124, 58, 237, 0.18);
+  display: grid;
+  gap: 0.85rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.request-item::before {
+  content: "";
+  position: absolute;
+  inset: -60% 50% 60% -30%;
+  background: radial-gradient(circle at 0 50%, rgba(255, 255, 255, 0.25), transparent 65%);
+  opacity: 0.35;
+}
+
+.request-item:hover,
+.request-item:focus-within {
+  border-color: rgba(124, 58, 237, 0.3);
+  box-shadow: 0 24px 48px rgba(124, 58, 237, 0.22);
+}
+
+.request-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.request-meta__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.request-detail-page {
+  gap: 1.5rem;
+}
+
+.request-detail-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+[data-theme="dark"] .request-detail-card {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(148, 163, 184, 0.25);
+}
+
+.request-detail-header__top {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.request-detail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--font-size-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(124, 58, 237, 0.12);
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.request-detail-back:hover,
+.request-detail-back:focus-visible {
+  background: rgba(124, 58, 237, 0.22);
+  transform: translateY(-1px);
+}
+
+.request-detail-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.request-detail-header__title h1 {
+  margin: 0;
+  font-size: clamp(2rem, 1.8rem + 0.8vw, 2.6rem);
+}
+
+.request-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.request-detail {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.request-detail .request-item {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  box-shadow: 0 30px 60px rgba(15, 23, 42, 0.35);
+}
+
+[data-theme="light"] .request-detail .request-item {
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
+}
+
+.request-detail-footer {
+  margin-top: 1.5rem;
+  padding: 1.2rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--color-text);
+  backdrop-filter: blur(12px);
+  display: grid;
+  gap: 0.35rem;
+}
+
+[data-theme="dark"] .request-detail-footer {
+  background: rgba(148, 163, 184, 0.14);
+  color: var(--color-text);
+}
+
+.request-detail-footer h2 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.3rem, 1.2rem + 0.4vw, 1.6rem);
+}
+
+.request-detail-footer p {
+  margin: 0;
+}
+
+.request-detail-footer a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.request-detail-footer a:hover,
+.request-detail-footer a:focus-visible {
+  text-decoration: underline;
+}
+
+.request-comments-section {
+  margin-top: 2rem;
+}
+
+.request-comments {
+  gap: 1rem;
+}
+
+.request-comments__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.request-comment {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  background: var(--color-card);
+}
+
+.request-comment__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--color-muted);
+}
+
+.request-comment__meta-right {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.request-comment__author {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.request-comment__body {
+  margin: 0.5rem 0 0;
+  white-space: pre-wrap;
+}
+
+.request-comment__delete {
+  padding: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.request-comments__form textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.request-comments__form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.request-comment__scope {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sync-scope-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sync-scope-toggle .button {
+  padding: 0.35rem 0.75rem;
+}

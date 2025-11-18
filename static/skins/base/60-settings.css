@@ -1,0 +1,60 @@
+.account-settings__form {
+  gap: 1.5rem;
+}
+
+.settings-fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+}
+
+.settings-fieldset legend {
+  font-weight: 600;
+}
+
+.settings-avatar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.settings-avatar__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.settings-avatar__preview {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background: var(--color-card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-avatar__preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.settings-avatar__preview--empty {
+  border-style: dashed;
+}
+
+.settings-avatar__initials {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.settings-submit {
+  display: flex;
+  justify-content: flex-start;
+}
