@@ -7,6 +7,8 @@ import io
 import tarfile
 import tempfile
 import sys
+import json
+from datetime import timezone
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -32,6 +34,12 @@ from app.services import auth_service, vouch_service
 from app.url_utils import build_invite_link
 from app.sync.export_import import export_sync_data, import_sync_data
 from app.sync.peers import Peer, get_peer, load_peers, save_peers
+from app.sync.pending_pull import (
+    cache_pending_pull,
+    list_pending_pulls,
+    get_pending_pull,
+    approve_pending_pull,
+)
 from app.sync.signing import (
     SignatureVerificationError,
     SigningKey,
@@ -50,6 +58,31 @@ from tools.skins_build import (
     discover_skins,
     watch_skins,
 )
+
+
+class PendingApprovalError(click.ClickException):
+    def __init__(self, peer_name: str, pending_id: str, message: str | None = None) -> None:
+        self.peer_name = peer_name
+        self.pending_id = pending_id
+        detail = message or "Hub queued a pending approval"
+        guidance = (
+            f"{detail} for peer '{peer_name}'. Pending ID: {pending_id}. "
+            "Approve the key via the hub /admin dashboard and retry the push."
+        )
+        super().__init__(guidance)
+
+
+class PendingPullApprovalError(click.ClickException):
+    def __init__(self, peer_name: str, presented_key: str, pending_id: str) -> None:
+        self.peer_name = peer_name
+        self.presented_key = presented_key
+        self.pending_id = pending_id
+        guidance = (
+            f"Peer '{peer_name}' presented a new key during pull. Pending ID: {pending_id}. "
+            "Visit /admin/sync-control or run 'wb sync pull --approve "
+            f"{pending_id}' to trust the key and import the cached bundle."
+        )
+        super().__init__(guidance)
 
 
 @click.group(help="Developer utilities for the WhiteBalloon project.")
@@ -96,6 +129,19 @@ def _verify_bundle_dir(bundle_dir: Path, peer: Peer | None, allow_unsigned: bool
             f"Verified bundle signature (key {metadata.key_id}) but no trusted peer key registered.",
             fg="yellow",
         )
+
+
+def _print_pending_pull_entries() -> None:
+    entries = list_pending_pulls()
+    if not entries:
+        click.echo("No pending pull approvals.")
+        return
+    click.secho("Pending pull approvals:", fg="yellow")
+    for entry in entries:
+        created = entry.created_at.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M UTC") if entry.created_at else "unknown"
+        key_hint = entry.presented_key[:16] + "…" if entry.presented_key else "unknown"
+        click.echo(f"  ID: {entry.id} | Peer: {entry.peer_name} | Key: {key_hint} | Created: {created}")
+    click.echo("Approve with 'wb sync pull --approve <pending-id>' or via the admin UI.")
 
 
 def _peer_uses_hub(peer: Peer) -> bool:
@@ -150,12 +196,22 @@ def _push_to_hub(peer: Peer, bundle_dir: Path) -> None:
     except httpx.HTTPError as exc:
         raise click.ClickException(f"Hub upload failed: {exc}") from exc
     if response.status_code >= 400:
-        detail = response.text
+        detail_text = response.text
+        payload_obj: dict | None = None
+        pending_detail: dict | None = None
         try:
-            detail = response.json().get("detail", detail)
+            payload_obj = response.json()
+            detail_obj = payload_obj.get("detail") if isinstance(payload_obj, dict) else None
+            if isinstance(detail_obj, dict) and detail_obj.get("error") == "peer_key_mismatch":
+                pending_detail = detail_obj
+            elif isinstance(detail_obj, str):
+                detail_text = detail_obj
         except Exception:
             pass
-        raise click.ClickException(f"Hub upload failed ({response.status_code}): {detail}")
+        if pending_detail:
+            pending_id = pending_detail.get("pending_id") or "unknown"
+            raise PendingApprovalError(peer.name, str(pending_id), pending_detail.get("message"))
+        raise click.ClickException(f"Hub upload failed ({response.status_code}): {detail_text}")
     data = response.json()
     click.secho(
         f"Hub accepted bundle (digest {data.get('manifest_digest')}, files {data.get('stored_files')}).",
@@ -185,8 +241,51 @@ def _pull_from_hub(peer: Peer, temp_root: Path, allow_unsigned: bool) -> Path:
     extract_dir.mkdir(parents=True, exist_ok=True)
     with tarfile.open(tar_path, "r:gz") as tar:
         tar.extractall(path=extract_dir)
-    _verify_bundle_dir(extract_dir, peer=peer, allow_unsigned=allow_unsigned)
+    metadata = verify_bundle_signature(extract_dir)
+    expected_key = peer.public_key if peer else None
+    if expected_key and metadata.public_key_b64 != expected_key:
+        if allow_unsigned:
+            click.secho(
+                "Warning: Pull bundle signed with unexpected key but continuing due to --allow-unsigned.",
+                fg="yellow",
+            )
+        else:
+            entry = cache_pending_pull(
+                peer_name=peer.name,
+                bundle_bytes=response.content,
+                presented_key=metadata.public_key_b64,
+                manifest_digest=metadata.manifest_digest,
+                signed_at=metadata.signed_at,
+            )
+            raise PendingPullApprovalError(peer.name, metadata.public_key_b64, entry.id)
+    if expected_key:
+        click.secho(
+            f"Verified bundle signature for peer '{peer.name}' (key {metadata.key_id}).",
+            fg="green",
+        )
+    else:
+        click.secho(
+            f"Verified bundle signature (key {metadata.key_id}) but no trusted peer key registered.",
+            fg="yellow",
+        )
     return extract_dir
+
+
+def _update_peer_public_key(peer_name: str, new_key: str) -> Peer:
+    peers = load_peers()
+    updated: list[Peer] = []
+    replaced: Peer | None = None
+    for peer in peers:
+        if peer.name == peer_name:
+            peer = Peer(name=peer.name, path=peer.path, url=peer.url, token=peer.token, public_key=new_key)
+            replaced = peer
+        updated.append(peer)
+    if replaced is None:
+        raise click.ClickException(f"Peer '{peer_name}' not found in local registry.")
+    save_peers(updated)
+    return replaced
+
+
 
 
 @sync_group.command(name="export")
@@ -260,14 +359,38 @@ def sync_push(peer_name: str) -> None:
 
 
 @sync_group.command(name="pull")
-@click.argument("peer_name")
+@click.argument("peer_name", required=False)
 @click.option(
     "--allow-unsigned",
     is_flag=True,
     default=False,
     help="Skip signature verification (not recommended)",
 )
-def sync_pull(peer_name: str, allow_unsigned: bool) -> None:
+@click.option("--approve", "pending_id", default=None, help="Approve a pending pull ID")
+@click.option("--pending", "show_pending", is_flag=True, help="List pending pull approvals")
+def sync_pull(
+    peer_name: str | None,
+    allow_unsigned: bool,
+    pending_id: str | None = None,
+    show_pending: bool = False,
+) -> None:
+    if show_pending:
+        _print_pending_pull_entries()
+        return
+    if pending_id:
+        entry = get_pending_pull(pending_id)
+        if not entry:
+            _print_pending_pull_entries()
+            raise click.ClickException(f"Pending pull '{pending_id}' not found.")
+        peer_label, count, key_updated = approve_pending_pull(entry)
+        message = f"Approved pending pull for peer '{peer_label}' and imported {count} record(s)."
+        if key_updated:
+            message += " Trusted key updated."
+        click.secho(message, fg="green")
+        return
+    if not peer_name:
+        _print_pending_pull_entries()
+        raise click.ClickException("Provide a peer name to pull or use --approve/--pending.")
     peer = get_peer(peer_name)
     if not peer:
         raise click.ClickException(f"Peer '{peer_name}' not found. Use 'wb sync peers add'.")

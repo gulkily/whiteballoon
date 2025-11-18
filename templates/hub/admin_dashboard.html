@@ -82,6 +82,65 @@
         border-radius: 999px;
         cursor: pointer;
       }
+      .alert {
+        margin: 1.5rem 3vw 0;
+        padding: 1rem 1.5rem;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+      }
+      .alert--success {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: rgba(16, 185, 129, 0.4);
+        color: #bbf7d0;
+      }
+      .alert--error {
+        background: rgba(248, 113, 113, 0.15);
+        border-color: rgba(248, 113, 113, 0.4);
+        color: #fecaca;
+      }
+      section.pending {
+        margin-top: 2rem;
+        padding: 1.5rem;
+        background: rgba(15, 23, 42, 0.55);
+        border-radius: 18px;
+      }
+      .pending-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .pending-actions button {
+        border-radius: 999px;
+        border: none;
+        padding: 0.45rem 1rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .pending-actions button.primary {
+        background: #22d3ee;
+        color: #032030;
+      }
+      .pending-actions button.secondary {
+        background: rgba(148, 163, 184, 0.2);
+        color: #cbd5f5;
+      }
+      .key-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+      .key-list li {
+        background: rgba(15, 23, 42, 0.4);
+        padding: 0.15rem 0.4rem;
+        border-radius: 8px;
+        font-size: 0.8rem;
+      }
+      .inline-form {
+        margin: 0;
+      }
     </style>
   </head>
   <body>
@@ -94,6 +153,12 @@
         <button type="submit">Sign out</button>
       </form>
     </header>
+    {% if notice %}
+      <div class="alert alert--success">{{ notice.replace('-', ' ').capitalize() }}</div>
+    {% endif %}
+    {% if error_message %}
+      <div class="alert alert--error">{{ error_message.replace('-', ' ').capitalize() }}</div>
+    {% endif %}
     <main>
       <section class="stats">
         <div class="stat">
@@ -113,6 +178,65 @@
           <strong>{{ 'Enabled' if allow_auto_register_pull else 'Disabled' }}</strong>
         </div>
       </section>
+      <section class="pending">
+        <h2>Pending key approvals ({{ pending_entries|length }})</h2>
+        {% if pending_entries %}
+          <table>
+            <thead>
+              <tr>
+                <th>Peer</th>
+                <th>Presented key</th>
+                <th>Existing keys</th>
+                <th>Created</th>
+                <th>Manifest</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for entry in pending_entries %}
+                <tr>
+                  <td>
+                    {{ entry.peer_name }}
+                    {% if entry.peer_missing %}
+                      <small style="color: #f87171; display: block;">Peer missing</small>
+                    {% endif %}
+                  </td>
+                  <td><code>{{ entry.presented_key }}</code></td>
+                  <td>
+                    {% if entry.existing_keys %}
+                      <ul class="key-list">
+                        {% for key in entry.existing_keys %}
+                          <li><code>{{ key }}</code></li>
+                        {% endfor %}
+                      </ul>
+                    {% else %}
+                      <em>No keys stored</em>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {{ entry.created_at.strftime('%Y-%m-%d %H:%M UTC') if entry.created_at else '—' }}<br />
+                    {% if entry.signed_at %}<small>Signed {{ entry.signed_at.strftime('%Y-%m-%d %H:%M UTC') }}</small>{% endif %}
+                  </td>
+                  <td><code>{{ entry.manifest_digest or 'unknown' }}</code></td>
+                  <td>
+                    <div class="pending-actions">
+                      <form method="post" action="/admin/pending/{{ entry.id }}/approve" class="inline-form">
+                        <button type="submit" class="primary">Approve new key</button>
+                      </form>
+                      <form method="post" action="/admin/pending/{{ entry.id }}/discard" class="inline-form">
+                        <button type="submit" class="secondary">Discard</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <p>No pending approvals.</p>
+        {% endif %}
+      </section>
+
       <p style="margin-top: 2rem;">
         Peers: {{ peer_count }} · Files: {{ total_files }} · Size: {{ total_kb }} KB
       </p>

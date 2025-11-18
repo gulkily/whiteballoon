@@ -1,0 +1,44 @@
+<article class="feed-card" data-request-id="{{ entry.id }}">
+  <header class="feed-card__meta">
+    <span class="status status--{{ entry.status }}">{{ entry.status | capitalize }}</span>
+    <span class="meta-pill">
+      <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" /></svg>
+      {{ entry.source_instance }} · #{{ entry.source_request_id }}
+    </span>
+    <span class="meta-pill">Updated {{ entry.updated_at.strftime('%b %d, %Y %H:%M UTC') }}</span>
+  </header>
+  <div class="feed-card__body">
+    <h2>{{ entry.title or 'Untitled request' }}</h2>
+    <p>{{ entry.description | e }}</p>
+  </div>
+  <dl class="feed-card__details">
+    <div>
+      <dt>Creator</dt>
+      <dd>{{ entry.created_by_username or ('User #' ~ entry.created_by_id if entry.created_by_id else 'Unknown') }}</dd>
+    </div>
+    <div>
+      <dt>Peer</dt>
+      <dd>{{ entry.peer_name }}</dd>
+    </div>
+    <div>
+      <dt>Comments</dt>
+      <dd>{{ entry.comment_count }}</dd>
+    </div>
+  </dl>
+  {% if entry.comment_count > 0 %}
+    <section class="feed-card__comments">
+      <h3>Recent comments</h3>
+      <ul>
+        {% for comment in entry.comments %}
+          <li>
+            <div class="comment-meta">
+              <span>{{ comment.username or 'Member' }}</span>
+              <span>{{ comment.created_at.strftime('%b %d, %Y %H:%M UTC') }}</span>
+            </div>
+            <p>{{ comment.body | e }}</p>
+         </li>
+       {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</article>

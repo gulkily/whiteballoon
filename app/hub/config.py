@@ -20,7 +20,19 @@ DEFAULT_STORAGE_DIR = Path("data/hub_store")
 class HubPeer:
     name: str
     token_hash: str
-    public_key: str
+    public_keys: tuple[str, ...]
+
+    @property
+    def public_key(self) -> str:
+        return self.public_keys[0] if self.public_keys else ""
+
+    def allows_public_key(self, key: str) -> bool:
+        return key in self.public_keys
+
+    def append_public_key(self, key: str) -> HubPeer:
+        if key in self.public_keys:
+            return self
+        return HubPeer(name=self.name, token_hash=self.token_hash, public_keys=self.public_keys + (key,))
 
 
 @dataclass(frozen=True)
@@ -59,20 +71,48 @@ def hash_token(token: str) -> str:
     return digest.hexdigest()
 
 
+def _normalize_keys(raw_keys: object, single_key: object, name: str) -> tuple[str, ...]:
+    keys: list[str] = []
+    if isinstance(raw_keys, list):
+        for idx, value in enumerate(raw_keys):
+            if not value:
+                continue
+            key = str(value).strip()
+            if not key:
+                raise ValueError(f"Peer '{name}' has empty key at index {idx}")
+            keys.append(key)
+    elif raw_keys is None and single_key:
+        candidate = str(single_key).strip()
+        if candidate:
+            keys.append(candidate)
+    elif raw_keys is not None:
+        raise ValueError(f"Peer '{name}' public_keys must be a list")
+
+    if not keys:
+        raise ValueError(f"Peer '{name}' missing 'public_keys' or 'public_key'")
+    # Remove duplicates while preserving order
+    seen: set[str] = set()
+    normalized: list[str] = []
+    for key in keys:
+        if key in seen:
+            continue
+        seen.add(key)
+        normalized.append(key)
+    return tuple(normalized)
+
+
 def _load_peer(entry: dict) -> HubPeer:
     name = entry.get("name")
     if not name:
         raise ValueError("Peer entry missing 'name'")
-    public_key = entry.get("public_key")
-    if not public_key:
-        raise ValueError(f"Peer '{name}' missing 'public_key'")
+    public_keys = _normalize_keys(entry.get("public_keys"), entry.get("public_key"), name)
     token_hash = entry.get("token_hash")
     token_plain = entry.get("token")
     if not token_hash and not token_plain:
         raise ValueError(f"Peer '{name}' must define 'token' or 'token_hash'")
     if not token_hash and token_plain:
         token_hash = hash_token(token_plain)
-    return HubPeer(name=name, token_hash=str(token_hash), public_key=str(public_key))
+    return HubPeer(name=name, token_hash=str(token_hash), public_keys=public_keys)
 
 
 def _load_settings(path: Path) -> HubSettings:
@@ -84,7 +124,7 @@ def _load_settings(path: Path) -> HubSettings:
                 {
                     "name": "example",
                     "token": "replace-me",
-                    "public_key": "BASE64PUB",
+                    "public_keys": ["BASE64PUB"],
                 }
             ],
         }
@@ -99,7 +139,7 @@ def _load_settings(path: Path) -> HubSettings:
         default_peer = {
             "name": "local",
             "token": "replace-me",
-            "public_key": "BASE64PUB",
+            "public_keys": ["BASE64PUB"],
         }
         peers_raw = [default_peer]
         data = {
@@ -171,6 +211,7 @@ def persist_peer(config_path: Path, peer: HubPeer, *, storage_dir: Path | None =
         {
             "name": peer.name,
             "token_hash": peer.token_hash,
+            "public_keys": list(peer.public_keys),
             "public_key": peer.public_key,
         }
     )

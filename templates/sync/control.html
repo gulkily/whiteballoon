@@ -119,6 +119,56 @@
     {% endif %}
   </div>
 
+  <div class="card stack" data-section="pending-pulls">
+    <div class="stack">
+      <h2>Pending pull approvals</h2>
+      <p class="muted">Approve mismatched keys discovered during pull jobs. You can also run <code>wb sync pull --pending</code>.</p>
+    </div>
+    {% if pending_pull_entries %}
+      <table class="peer-table">
+        <thead>
+          <tr>
+            <th>Peer</th>
+            <th>Pending ID</th>
+            <th>Presented key</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for entry in pending_pull_entries %}
+            <tr>
+              <td>{{ entry.peer_name }}</td>
+              <td><code>{{ entry.id }}</code></td>
+              <td><code title="{{ entry.presented_key }}">{{ entry.presented_key[:24] }}{% if entry.presented_key|length > 24 %}…{% endif %}</code></td>
+              <td>
+                {% if entry.created_at %}
+                  <time datetime="{{ entry.created_at.isoformat() }}">{{ entry.created_at | friendly_time }}</time>
+                {% else %}
+                  <span class="muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="peer-card__actions">
+                  <form method="post" action="/admin/sync-control/pending-pull/{{ entry.id }}/approve" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                    <button type="submit" class="button button--secondary">Approve</button>
+                  </form>
+                  <form method="post" action="/admin/sync-control/pending-pull/{{ entry.id }}/discard" class="inline-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                    <button type="submit" class="button button--ghost">Discard</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">No pending pull approvals.</p>
+    {% endif %}
+  </div>
+
   <div class="card stack" data-section="peer-management">
     <div class="stack">
       <h2>Peer management</h2>
