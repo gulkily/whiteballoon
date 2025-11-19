@@ -30,7 +30,9 @@ CREATE TABLE IF NOT EXISTS dedalus_runs (
     response TEXT,
     status TEXT NOT NULL DEFAULT 'pending',
     error TEXT,
-    context_hash TEXT
+    context_hash TEXT,
+    structured_label TEXT,
+    structured_tools TEXT
 );
 
 CREATE TABLE IF NOT EXISTS dedalus_tool_calls (
@@ -47,6 +49,11 @@ CREATE TABLE IF NOT EXISTS dedalus_tool_calls (
 CREATE INDEX IF NOT EXISTS idx_runs_created_at ON dedalus_runs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_tool_calls_run_id ON dedalus_tool_calls(run_id);
 """
+
+_ALTERS = (
+    "ALTER TABLE dedalus_runs ADD COLUMN structured_label TEXT",
+    "ALTER TABLE dedalus_runs ADD COLUMN structured_tools TEXT",
+)
 
 _init_lock = threading.Lock()
 _initialized = False
@@ -74,6 +81,11 @@ def _ensure_initialized() -> None:
         conn = sqlite3.connect(_DB_PATH)
         try:
             conn.executescript(_SCHEMA)
+            for statement in _ALTERS:
+                try:
+                    conn.execute(statement)
+                except sqlite3.OperationalError:
+                    pass
         finally:
             conn.close()
         _initialized = True
@@ -97,6 +109,8 @@ class RunRecord:
     status: str
     error: Optional[str]
     context_hash: Optional[str]
+    structured_label: Optional[str]
+    structured_tools: Optional[str]
     tool_calls: list[dict]
 
 
@@ -168,12 +182,14 @@ def finalize_run(
     response: Optional[str],
     status: str,
     error: Optional[str] = None,
+    structured_label: Optional[str] = None,
+    structured_tools: Optional[str] = None,
 ) -> None:
     with _connect() as conn:
         conn.execute(
             """
             UPDATE dedalus_runs
-            SET completed_at = ?, response = ?, status = ?, error = ?
+            SET completed_at = ?, response = ?, status = ?, error = ?, structured_label = ?, structured_tools = ?
             WHERE run_id = ?
             """,
             (
@@ -181,6 +197,8 @@ def finalize_run(
                 response,
                 status,
                 error,
+                structured_label,
+                structured_tools,
                 run_id,
             ),
         )
@@ -224,6 +242,7 @@ def fetch_runs(
         tool_map = _fetch_tool_calls(conn, run_ids)
     records: list[RunRecord] = []
     for row in rows:
+        keys = row.keys()
         records.append(
             RunRecord(
                 run_id=row["run_id"],
@@ -238,6 +257,8 @@ def fetch_runs(
                 status=row["status"],
                 error=row["error"],
                 context_hash=row["context_hash"],
+                structured_label=row["structured_label"] if "structured_label" in keys else None,
+                structured_tools=row["structured_tools"] if "structured_tools" in keys else None,
                 tool_calls=tool_map.get(row["run_id"], []),
             )
         )

@@ -51,6 +51,8 @@ def finalize_logged_run(
     response: str | None,
     status: str,
     error: str | None = None,
+    structured_label: str | None = None,
+    structured_tools: list[str] | None = None,
 ) -> None:
     response_clean = redact_text(response) if response else response
     error_clean = redact_text(error) if error else error
@@ -60,6 +62,8 @@ def finalize_logged_run(
         response=response_clean,
         status=status,
         error=error_clean,
+        structured_label=structured_label,
+        structured_tools=",".join(structured_tools) if structured_tools else None,
     )
 
 
@@ -124,19 +128,24 @@ def _log_tool_event(
     )
 
 
-async def finalize_from_response(run_id: str, response: Any) -> None:
+async def finalize_from_response(run_id: str, response: Any, **extra: Any) -> None:
     """Persist Dedalus runner outputs (handles streamed results)."""
 
     if response is None:
-        finalize_logged_run(run_id=run_id, response=None, status="unknown")
+        finalize_logged_run(run_id=run_id, response=None, status="unknown", **extra)
         return
     final_output = getattr(response, "final_output", None)
     if final_output:
-        finalize_logged_run(run_id=run_id, response=_stringify(final_output), status="success")
+        finalize_logged_run(
+            run_id=run_id,
+            response=_stringify(final_output),
+            status="success",
+            **extra,
+        )
         return
     outputs = getattr(response, "outputs", None)
     if outputs:
         summary = "\n".join(_stringify(item) for item in outputs)
-        finalize_logged_run(run_id=run_id, response=summary, status="success")
+        finalize_logged_run(run_id=run_id, response=summary, status="success", **extra)
         return
-    finalize_logged_run(run_id=run_id, response=_stringify(response), status="success")
+    finalize_logged_run(run_id=run_id, response=_stringify(response), status="success", **extra)

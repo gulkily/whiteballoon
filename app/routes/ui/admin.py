@@ -4,6 +4,7 @@ from datetime import datetime
 import csv
 import io
 import os
+import re
 from math import ceil
 from pathlib import Path
 from typing import Optional
@@ -35,6 +36,42 @@ ENV_PATH = Path(".env")
 ENV_EXAMPLE_PATH = Path(".env.example")
 DEDALUS_ENV_KEY = "DEDALUS_API_KEY"
 DEDALUS_ENV_VERIFIED = "DEDALUS_API_KEY_VERIFIED_AT"
+VERIFICATION_MAX_CHARS = 300
+DEDALUS_VERIFICATION_PROMPT = (
+    "You are verifying the WhiteBalloon Mutual Aid Copilot Dedalus connection. "
+    "Respond with exactly one line under {max_chars} characters. "
+    "Format: `OK: <short summary>; tools: <comma-separated tools>` when healthy. "
+    "If anything fails, respond `ERROR: <concise reason>` and optionally append minimal guidance. "
+    "Explicitly mention that you recognize the WhiteBalloon context and list the MCP tools available "
+    "(for example audit_auth_requests) even if you do not call them. Do not provide multi-step checklists."
+).format(max_chars=VERIFICATION_MAX_CHARS)
+
+STATUS_PATTERN = re.compile(r"^(OK|ERROR):\s*(.+)", re.IGNORECASE)
+TOOLS_PATTERN = re.compile(r";\s*tools?\s*:\s*(.+)", re.IGNORECASE)
+
+
+def parse_verification_response(text: str | None) -> tuple[str | None, str | None, list[str]]:
+    if not text:
+        return None, None, []
+    match = STATUS_PATTERN.match(text.strip())
+    if not match:
+        return None, text.strip(), []
+    label = match.group(1).upper()
+    remainder = match.group(2)
+    tools: list[str] = []
+    tools_match = TOOLS_PATTERN.search(remainder)
+    if tools_match:
+        tools_text = tools_match.group(1)
+        remainder = remainder[: tools_match.start()].strip()
+        tokens: list[str] = []
+        for section in tools_text.split(";"):
+            for chunk in section.split(","):
+                value = chunk.strip()
+                if value:
+                    tokens.append(value)
+        tools = tokens
+    summary = remainder.strip()
+    return label, summary, tools
 
 
 def _require_admin(session_user: SessionUser) -> None:
@@ -156,27 +193,42 @@ async def _verify_dedalus_api_key(value: str) -> tuple[bool, str]:
         os.environ[DEDALUS_ENV_KEY] = value
         client = AsyncDedalus()  # type: ignore[call-arg]
     runner = DedalusRunner(client)  # type: ignore[call-arg]
+    instructions = DEDALUS_VERIFICATION_PROMPT
     run_id = start_logged_run(
         user_id=None,
         entity_type="admin",
         entity_id="dedalus-key-check",
         model="openai/gpt-5-mini",
-        prompt="WhiteBalloon connectivity check",
+        prompt=instructions,
     )
     try:
         response = await runner.run(
-            input="WhiteBalloon connectivity check",
+            input=instructions,
             model="openai/gpt-5-mini",
         )
     except Exception as exc:  # pragma: no cover - external dependency
-        finalize_logged_run(run_id=run_id, response=None, status="error", error=str(exc))
+        finalize_logged_run(
+            run_id=run_id,
+            response=None,
+            status="error",
+            error=str(exc),
+            structured_label="ERROR",
+        )
         return False, str(exc)
-    summary = getattr(response, "final_output", None)
-    if not summary and hasattr(response, "outputs"):
-        summary = str(response.outputs)
-    message = summary or "Verified successfully."
-    finalize_logged_run(run_id=run_id, response=message, status="success")
-    return True, message
+    raw_text = getattr(response, "final_output", None)
+    if not raw_text and hasattr(response, "outputs"):
+        raw_text = str(response.outputs)
+    message = raw_text or "Verified successfully."
+    label, summary, tools = parse_verification_response(raw_text)
+    finalize_logged_run(
+        run_id=run_id,
+        response=message,
+        status="success",
+        structured_label=label,
+        structured_tools=tools,
+    )
+    display = summary or message
+    return True, display
 
 
 def _serialize_run(record: log_store.RunRecord) -> dict:

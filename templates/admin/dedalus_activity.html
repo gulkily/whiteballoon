@@ -70,7 +70,8 @@
                 <p class="muted small-text">{{ entry.created_at }}{% if entry.completed_at %} → {{ entry.completed_at }}{% endif %}</p>
                 <h2>Run {{ entry.run_id }}</h2>
               </div>
-              <div class="account-status__tag account-status__tag--{{ 'ok' if entry.status == 'success' else 'muted' }}">{{ entry.status|upper }}</div>
+              {% set badge = entry.structured_label or entry.status %}
+              <div class="account-status__tag account-status__tag--{{ 'ok' if badge and badge.startswith('OK') else 'muted' if badge and badge.startswith('ERROR') else 'muted' }}">{{ badge|upper }}</div>
             </div>
             <p class="small-text">Model: <code>{{ entry.model or 'unknown' }}</code></p>
             {% if entry.user_id or entry.entity_type %}
@@ -81,6 +82,9 @@
                   {{ entry.entity_type }}{% if entry.entity_id %} #{{ entry.entity_id }}{% endif %}
                 {% endif %}
               </p>
+            {% endif %}
+            {% if entry.structured_tools %}
+              <p class="small-text">Tools noted: {{ entry.structured_tools }}</p>
             {% endif %}
           </header>
           <details>
@@ -116,6 +120,9 @@
                 {% endfor %}
               </ul>
             </div>
+          {% endif %}
+          {% if entry.entity_type == 'admin' and entry.entity_id == 'dedalus-key-check' and not entry.structured_label %}
+            <div class="alert alert--error">Structured format missing. Dedalus returned an unexpected response.</div>
           {% endif %}
         </article>
       {% endfor %}
