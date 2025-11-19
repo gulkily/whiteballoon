@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Admin · Dedalus Activity · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="admin-dedalus-activity">
+  <header class="stack">
+    <p class="muted small-text">Admin-only</p>
+    <h1>Dedalus activity log</h1>
+    <p class="muted">See exactly what we send to Dedalus, the responses we receive, and which MCP tools were invoked.</p>
+  </header>
+
+  {% if flash_message %}
+    <div class="alert {{ 'alert--error' if flash_severity == 'error' else 'alert--success' if flash_severity == 'success' else '' }}">{{ flash_message }}</div>
+  {% endif %}
+
+  <form class="card stack" method="get">
+    <div class="form-grid">
+      <label class="stack">
+        <span>User ID</span>
+        <input type="text" name="user_id" value="{{ filters.user_id }}" placeholder="ID or leave blank" />
+      </label>
+      <label class="stack">
+        <span>Entity type</span>
+        <input type="text" name="entity_type" value="{{ filters.entity_type }}" placeholder="request, comment, etc." />
+      </label>
+      <label class="stack">
+        <span>Entity ID</span>
+        <input type="text" name="entity_id" value="{{ filters.entity_id }}" placeholder="Target identifier" />
+      </label>
+      <label class="stack">
+        <span>Status</span>
+        <select name="status">
+          <option value="">Any</option>
+          <option value="pending" {{ 'selected' if filters.status == 'pending' else '' }}>Pending</option>
+          <option value="success" {{ 'selected' if filters.status == 'success' else '' }}>Success</option>
+          <option value="error" {{ 'selected' if filters.status == 'error' else '' }}>Error</option>
+        </select>
+      </label>
+      <label class="stack">
+        <span>Results</span>
+        <input type="number" name="limit" min="1" max="200" value="{{ filters.limit }}" />
+      </label>
+    </div>
+    <div class="actions">
+      <button type="submit" class="button button--secondary">Apply filters</button>
+      <a class="button button--ghost" href="/admin/dedalus/logs">Reset</a>
+      <a class="button" href="/admin/dedalus/logs/export?user_id={{ filters.user_id }}&entity_type={{ filters.entity_type }}&entity_id={{ filters.entity_id }}&status={{ filters.status }}&limit={{ filters.limit }}">Download CSV</a>
+    </div>
+  </form>
+
+  <form class="card stack" method="post" action="/admin/dedalus/logs/purge">
+    <p class="muted small-text">Remove log entries older than {{ retention_days }} days to keep the SQLite file compact.</p>
+    <div>
+      <button type="submit" class="button button--secondary">Purge older entries</button>
+    </div>
+  </form>
+
+  {% if entries %}
+    <div class="stack">
+      {% for entry in entries %}
+        <article class="card stack" data-log-id="{{ entry.run_id }}">
+          <header class="stack">
+            <div class="stack stack--row" style="justify-content: space-between;">
+              <div>
+                <p class="muted small-text">{{ entry.created_at }}{% if entry.completed_at %} → {{ entry.completed_at }}{% endif %}</p>
+                <h2>Run {{ entry.run_id }}</h2>
+              </div>
+              <div class="account-status__tag account-status__tag--{{ 'ok' if entry.status == 'success' else 'muted' }}">{{ entry.status|upper }}</div>
+            </div>
+            <p class="small-text">Model: <code>{{ entry.model or 'unknown' }}</code></p>
+            {% if entry.user_id or entry.entity_type %}
+              <p class="small-text">
+                {% if entry.user_id %}User #{{ entry.user_id }}{% endif %}
+                {% if entry.entity_type %}
+                  {% if entry.user_id %} · {% endif %}
+                  {{ entry.entity_type }}{% if entry.entity_id %} #{{ entry.entity_id }}{% endif %}
+                {% endif %}
+              </p>
+            {% endif %}
+          </header>
+          <details>
+            <summary>Prompt & response</summary>
+            <div class="stack">
+              <div>
+                <p class="muted small-text">Prompt</p>
+                <pre><code>{{ entry.prompt or '—' }}</code></pre>
+              </div>
+              <div>
+                <p class="muted small-text">Response</p>
+                <pre><code>{{ entry.response or '—' }}</code></pre>
+              </div>
+              {% if entry.error %}
+                <div class="alert alert--error">{{ entry.error }}</div>
+              {% endif %}
+            </div>
+          </details>
+          {% if entry.tool_calls %}
+            <div class="stack">
+              <p class="muted small-text">Tool calls</p>
+              <ul class="stack">
+                {% for call in entry.tool_calls %}
+                  <li class="request-item" style="padding: 0.75rem;">
+                    <p><strong>{{ call.tool_name }}</strong> · {{ call.created_at }} · {{ call.status or 'invoked' }}</p>
+                    {% if call.arguments %}
+                      <p class="small-text">Args: <code>{{ call.arguments }}</code></p>
+                    {% endif %}
+                    {% if call.output %}
+                      <p class="small-text">Output: <code>{{ call.output }}</code></p>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert">No Dedalus runs logged yet.</div>
+  {% endif %}
+</section>
+{% endblock %}

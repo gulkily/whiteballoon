@@ -44,6 +44,7 @@ class Settings:
     skin_strict: bool = _get_bool(os.getenv("WB_SKIN_STRICT"), False)
     dedalus_api_key: str = os.getenv("DEDALUS_API_KEY", "")
     dedalus_api_key_verified_at: Optional[str] = os.getenv("DEDALUS_API_KEY_VERIFIED_AT")
+    dedalus_log_retention_days: int = int(os.getenv("DEDALUS_LOG_RETENTION_DAYS", "30"))
 
 
 @lru_cache(maxsize=1)

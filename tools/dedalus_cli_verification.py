@@ -23,6 +23,12 @@ def _pre_boot_interrupt(signum, frame) -> None:  # pragma: no cover - signal han
 signal.signal(signal.SIGINT, _pre_boot_interrupt)
 
 from app.env import ensure_env_loaded
+from app.dedalus.logging import (
+    finalize_from_response,
+    finalize_logged_run,
+    instrument_tools,
+    start_logged_run,
+)
 
 try:  # pragma: no cover - optional dependency check
     from dedalus_labs import AsyncDedalus, DedalusRunner
@@ -149,15 +155,23 @@ async def run(args: argparse.Namespace) -> int:
     except TypeError:  # pragma: no cover - backwards compatibility when api_key required
         client = AsyncDedalus(api_key=api_key)
     runner = DedalusRunner(client)
+    run_id = start_logged_run(
+        user_id=None,
+        entity_type="cli",
+        entity_id="dedalus_poc",
+        model=model,
+        prompt=instructions,
+    )
 
     log("Starting Dedalus runner invocation")
     try:
         response = await runner.run(
             input=instructions,
             model=model,
-            tools=[audit_auth_requests],
+            tools=instrument_tools([audit_auth_requests], run_id=run_id),
         )
     except Exception as exc:  # pragma: no cover - external dependency
+        finalize_logged_run(run_id=run_id, response=None, status="error", error=str(exc))
         print(f"Dedalus request failed: {exc}", file=sys.stderr)
         return 1
     log("Dedalus runner finished; streaming final output")
@@ -169,6 +183,7 @@ async def run(args: argparse.Namespace) -> int:
             output = "\n".join(str(item) for item in outputs)
         else:
             output = str(response)
+    await finalize_from_response(run_id, response)
     print(output)
     return 0
 

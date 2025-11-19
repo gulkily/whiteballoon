@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from datetime import datetime
+import csv
+import io
 import os
 from math import ceil
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from sqlalchemy import func
 from sqlmodel import select
 
@@ -14,6 +17,8 @@ from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.models import HelpRequest, InviteToken, User
 from app import config
 from app.routes.ui.helpers import friendly_time
+from app.dedalus.logging import finalize_logged_run, start_logged_run
+from app.dedalus import log_store
 
 try:
     from dedalus_labs import AsyncDedalus, DedalusRunner
@@ -88,6 +93,11 @@ def admin_panel(
             "description": "Manage the API key that powers the Mutual Aid Copilot.",
             "href": "/admin/dedalus",
         },
+        {
+            "title": "Dedalus activity",
+            "description": "Review prompts, responses, and MCP tool calls for every Dedalus run.",
+            "href": "/admin/dedalus/logs",
+        },
     ]
 
     context = {
@@ -146,17 +156,175 @@ async def _verify_dedalus_api_key(value: str) -> tuple[bool, str]:
         os.environ[DEDALUS_ENV_KEY] = value
         client = AsyncDedalus()  # type: ignore[call-arg]
     runner = DedalusRunner(client)  # type: ignore[call-arg]
+    run_id = start_logged_run(
+        user_id=None,
+        entity_type="admin",
+        entity_id="dedalus-key-check",
+        model="openai/gpt-5-mini",
+        prompt="WhiteBalloon connectivity check",
+    )
     try:
         response = await runner.run(
             input="WhiteBalloon connectivity check",
             model="openai/gpt-5-mini",
         )
     except Exception as exc:  # pragma: no cover - external dependency
+        finalize_logged_run(run_id=run_id, response=None, status="error", error=str(exc))
         return False, str(exc)
     summary = getattr(response, "final_output", None)
     if not summary and hasattr(response, "outputs"):
         summary = str(response.outputs)
-    return True, summary or "Verified successfully."
+    message = summary or "Verified successfully."
+    finalize_logged_run(run_id=run_id, response=message, status="success")
+    return True, message
+
+
+def _serialize_run(record: log_store.RunRecord) -> dict:
+    return {
+        "run_id": record.run_id,
+        "created_at": record.created_at,
+        "completed_at": record.completed_at,
+        "user_id": record.user_id,
+        "entity_type": record.entity_type,
+        "entity_id": record.entity_id,
+        "model": record.model,
+        "prompt": record.prompt,
+        "response": record.response,
+        "status": record.status,
+        "error": record.error,
+        "context_hash": record.context_hash,
+        "tool_calls": record.tool_calls,
+    }
+
+
+def _dedalus_filters(
+    *,
+    user_id: Optional[str],
+    entity_type: Optional[str],
+    entity_id: Optional[str],
+    status: Optional[str],
+    limit: int,
+) -> dict:
+    return {
+        "user_id": user_id or "",
+        "entity_type": entity_type or "",
+        "entity_id": entity_id or "",
+        "status": status or "",
+        "limit": limit,
+    }
+
+
+@router.get("/admin/dedalus/logs")
+def admin_dedalus_logs(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+    user_id: Optional[str] = Query(None),
+    entity_type: Optional[str] = Query(None),
+    entity_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    message: Optional[str] = Query(None),
+    severity: Optional[str] = Query("success"),
+):
+    _require_admin(session_user)
+    runs = log_store.fetch_runs(
+        limit=limit,
+        user_id=user_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        status=status,
+    )
+    settings = config.get_settings()
+    context = {
+        "request": request,
+        "user": session_user.user,
+        "session": session_user.session,
+        "session_role": describe_session_role(session_user.user, session_user.session),
+        "entries": [_serialize_run(run) for run in runs],
+        "filters": _dedalus_filters(
+            user_id=user_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            status=status,
+            limit=limit,
+        ),
+        "flash_message": message,
+        "flash_severity": severity,
+        "retention_days": settings.dedalus_log_retention_days,
+    }
+    return templates.TemplateResponse("admin/dedalus_activity.html", context)
+
+
+@router.post("/admin/dedalus/logs/purge")
+def admin_dedalus_logs_purge(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    settings = config.get_settings()
+    removed = log_store.purge_older_than_days(settings.dedalus_log_retention_days)
+    target = URL(request.url_for("admin_dedalus_logs")).include_query_params(
+        message=f"Removed {removed} runs older than {settings.dedalus_log_retention_days} days",
+        severity="success",
+    )
+    return RedirectResponse(str(target), status_code=303)
+
+
+@router.get("/admin/dedalus/logs/export")
+def admin_dedalus_logs_export(
+    session_user: SessionUser = Depends(require_session_user),
+    user_id: Optional[str] = Query(None),
+    entity_type: Optional[str] = Query(None),
+    entity_id: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    limit: int = Query(200, ge=1, le=1000),
+):
+    _require_admin(session_user)
+    runs = log_store.fetch_runs(
+        limit=limit,
+        user_id=user_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        status=status,
+    )
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "run_id",
+            "created_at",
+            "completed_at",
+            "status",
+            "user_id",
+            "entity_type",
+            "entity_id",
+            "model",
+            "prompt",
+            "response",
+            "error",
+        ]
+    )
+    for run in runs:
+        writer.writerow(
+            [
+                run.run_id,
+                run.created_at,
+                run.completed_at or "",
+                run.status,
+                run.user_id or "",
+                run.entity_type or "",
+                run.entity_id or "",
+                run.model or "",
+                (run.prompt or "").replace("\n", " "),
+                (run.response or "").replace("\n", " "),
+                (run.error or "").replace("\n", " "),
+            ]
+        )
+    csv_data = buffer.getvalue()
+    buffer.close()
+    filename = "dedalus_logs.csv"
+    headers = {"Content-Disposition": f"attachment; filename=\"{filename}\""}
+    return PlainTextResponse(content=csv_data, headers=headers, media_type="text/csv")
 
 
 @router.get("/admin/profiles")

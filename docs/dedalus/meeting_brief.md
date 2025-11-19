@@ -10,8 +10,9 @@ CLI tool supports checking Dedalus connectivity
 
 Tested basic tool-calling via Dedalus API
 
+Built a Dedalus activity log (\`/admin/dedalus/logs\`) with prompt/response/tool-call visibility, CSV export, configurable retention via \`DEDALUS_LOG_RETENTION_DAYS\`, and purge controls (including \`wb dedalus purge-logs\`).
+
 
 What's next:
 
 Mutual Aid Copilot MVP
-
