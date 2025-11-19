@@ -92,11 +92,11 @@
             <div class="stack">
               <div>
                 <p class="muted small-text">Prompt</p>
-                <pre><code>{{ entry.prompt or '—' }}</code></pre>
+                <pre style="white-space: pre-wrap; word-break: break-word; overflow-x: auto;"><code>{{ entry.prompt or '—' }}</code></pre>
               </div>
               <div>
                 <p class="muted small-text">Response</p>
-                <pre><code>{{ entry.response or '—' }}</code></pre>
+                <pre style="white-space: pre-wrap; word-break: break-word; overflow-x: auto;"><code>{{ entry.response or '—' }}</code></pre>
               </div>
               {% if entry.error %}
                 <div class="alert alert--error">{{ entry.error }}</div>
