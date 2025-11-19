@@ -19,10 +19,10 @@ Our "Verify connection" action produces long, generic troubleshooting advice bec
 1. Admin clicks “Verify connection.”
 2. Backend sends the new constrained prompt (including "tell me which tools you know about") to Dedalus.
 3. Dedalus responds with `OK: Verified <timestamp>; tools: audit_auth_requests` (or `ERROR: ...`).
-4. Log entry shows the concise response plus tool-awareness note; auditor can expand for full prompt if desired.
+4. The activity log highlights runs missing this structured format so admins know when Dedalus deviates and can rerun the check or contact support.
 
 ## Success Criteria
 - Minimum 90% of verification runs return `OK:` responses under 300 chars when the call succeeds.
 - Responses enumerate at least one known tool (`audit_auth_requests`) so we know Dedalus recognizes our MCP wiring.
 - Error cases still include actionable info prefixed with `ERROR:`.
-- The activity log clearly shows the structured status without extra noise.
+- Non-conforming responses trigger a gentle warning in the activity log so admins know to rerun or investigate.

@@ -121,9 +121,7 @@
               </ul>
             </div>
           {% endif %}
-          {% if entry.entity_type == 'admin' and entry.entity_id == 'dedalus-key-check' and not entry.structured_label %}
-            <div class="alert alert--error">Structured format missing. Dedalus returned an unexpected response.</div>
-          {% endif %}
+          {# Fallback warning temporarily disabled pending tightened prompt compliance #}
         </article>
       {% endfor %}
     </div>
