@@ -1,14 +1,16 @@
 (function () {
   var statusNodes = document.querySelectorAll('[data-job-status]');
   var controlNodes = document.querySelectorAll('[data-job-control]');
-  if (!statusNodes.length && !controlNodes.length) {
+  var formNodes = document.querySelectorAll('[data-job-form]');
+  if (!statusNodes.length && !controlNodes.length && !formNodes.length) {
     return;
   }
 
   var tiles = mapNodes(statusNodes, createTileController);
   var controls = mapNodes(controlNodes, createControlController);
+  var forms = mapNodes(formNodes, createFormController);
 
-  var channel = createRealtimeChannel(tiles, controls);
+  var channel = createRealtimeChannel(tiles, controls, forms);
   channel.start();
 
   function mapNodes(list, factory) {
@@ -177,6 +179,134 @@ function createControlController(node) {
   }
 }
 
+function createFormController(form) {
+  if (!supportsAsyncSubmit()) {
+    return null;
+  }
+
+  var dataset = form.dataset || {};
+  var action = dataset.jobAction || null;
+  var targetValue = dataset.jobTarget || null;
+  var targetField = dataset.jobTargetField || 'peer';
+  var messageEl = form.querySelector('[data-job-message]');
+  var submitButton = form.querySelector('[type="submit"]');
+  var pending = false;
+
+  form.addEventListener('submit', function (event) {
+    if (!supportsAsyncSubmit()) {
+      return;
+    }
+    event.preventDefault();
+    if (pending) {
+      return;
+    }
+    pending = true;
+    setMessage('Starting…', null);
+    disableButton();
+    enqueue(new FormData(form));
+  });
+
+  return {
+    element: form,
+    matches: matches,
+    apply: apply,
+  };
+
+  function matches(job) {
+    if (!job || !job.target) {
+      return false;
+    }
+    if (action && job.target.action !== action) {
+      return false;
+    }
+    if (targetValue) {
+      var scopedValue = targetField ? job.target[targetField] : null;
+      if (scopedValue !== targetValue) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function apply(job) {
+    if (!job) {
+      return;
+    }
+    var state = normalizeState(job.state || job.status);
+    if (!state) {
+      return;
+    }
+    if (state === 'queued' || state === 'pending') {
+      setMessage('Job queued…', null);
+      return;
+    }
+    if (state === 'running') {
+      setMessage('Job running…', null);
+      return;
+    }
+    if (state === 'success') {
+      setMessage(job.message || 'Job finished successfully.', 'success');
+      return;
+    }
+    if (state === 'error' || state === 'failed') {
+      setMessage(job.message || 'Job failed. Check logs.', 'error');
+      return;
+    }
+  }
+
+  function enqueue(formData) {
+    var method = form.getAttribute('method') || 'POST';
+    var actionUrl = form.getAttribute('action');
+    fetch(actionUrl, {
+      method: method,
+      body: formData,
+      credentials: 'same-origin',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error('Request failed');
+        }
+        pending = false;
+        setMessage('Job queued. Watching for updates…', 'success');
+      })
+      .catch(function () {
+        pending = false;
+        setMessage('Could not start job. Try again.', 'error');
+        enableButton();
+      });
+  }
+
+  function disableButton() {
+    if (submitButton) {
+      submitButton.setAttribute('disabled', '');
+    }
+  }
+
+  function enableButton() {
+    if (submitButton) {
+      submitButton.removeAttribute('disabled');
+      submitButton.removeAttribute('data-job-id');
+    }
+  }
+
+  function setMessage(text, tone) {
+    if (!messageEl) {
+      return;
+    }
+    messageEl.textContent = text || '';
+    if (!text) {
+      messageEl.removeAttribute('data-tone');
+      return;
+    }
+    if (tone) {
+      messageEl.setAttribute('data-tone', tone);
+    } else {
+      messageEl.removeAttribute('data-tone');
+    }
+  }
+}
+
 function normalizeState(state) {
   return state ? state.replace(/\s+/g, '-').toLowerCase() : 'idle';
 }
@@ -241,7 +371,7 @@ function formatRelativeTime(date) {
   return value + unit + ' ago';
 }
 
-function createRealtimeChannel(tiles, controls) {
+function createRealtimeChannel(tiles, controls, forms) {
   var source = null;
   var reconnectTimer = null;
   var reconnectDelay = 1000;
@@ -250,6 +380,7 @@ function createRealtimeChannel(tiles, controls) {
   var pollInterval = 3000;
   var tileList = tiles || [];
   var controlList = controls || [];
+  var formList = forms || [];
 
   return {
     start: start,
@@ -308,6 +439,12 @@ function createRealtimeChannel(tiles, controls) {
       var control = controlList[j];
       if (control.matches(job)) {
         control.apply(job);
+      }
+    }
+    for (var k = 0; k < formList.length; k += 1) {
+      var form = formList[k];
+      if (form.matches(job)) {
+        form.apply(job);
       }
     }
   }
@@ -387,4 +524,8 @@ function createRealtimeChannel(tiles, controls) {
 
 function supportsEventSource() {
   return typeof window !== 'undefined' && typeof window.EventSource !== 'undefined';
+}
+
+function supportsAsyncSubmit() {
+  return typeof window !== 'undefined' && typeof window.fetch !== 'undefined' && typeof window.FormData !== 'undefined';
 }

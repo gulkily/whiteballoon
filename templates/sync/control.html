@@ -90,7 +90,14 @@
             {% endif %}
 
             <div class="peer-card__actions">
-              <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/push">
+              <form
+                method="post"
+                action="/admin/sync-control/peers/{{ peer.name }}/push"
+                data-job-form
+                data-job-action="push"
+                data-job-target="{{ peer.name }}"
+                data-job-target-field="peer"
+              >
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
                 <button
                   type="submit"
@@ -103,8 +110,17 @@
                 >
                   Push now
                 </button>
+                <p class="job-control__message" data-job-message></p>
               </form>
-              <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/pull" class="peer-card__pull">
+              <form
+                method="post"
+                action="/admin/sync-control/peers/{{ peer.name }}/pull"
+                class="peer-card__pull"
+                data-job-form
+                data-job-action="pull"
+                data-job-target="{{ peer.name }}"
+                data-job-target-field="peer"
+              >
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
                 <label class="checkbox">
                   <input type="checkbox" name="allow_unsigned" value="1" /> Allow unsigned
@@ -120,12 +136,29 @@
                 >
                   Pull now
                 </button>
+                <p class="job-control__message" data-job-message></p>
               </form>
             </div>
 
             <div class="peer-card__statuses">
-              {% include "partials/realtime_status.html" with job=push_job label="Push · " ~ peer.name description="Manual push status" action="push" target=peer.name empty_message="No push jobs yet." only %}
-              {% include "partials/realtime_status.html" with job=pull_job label="Pull · " ~ peer.name description="Manual pull status" action="pull" target=peer.name empty_message="No pull jobs yet." only %}
+              {% with %}
+                {% set job = push_job %}
+                {% set label = "Push · " ~ peer.name %}
+                {% set description = "Manual push status" %}
+                {% set action = "push" %}
+                {% set target = peer.name %}
+                {% set empty_message = "No push jobs yet." %}
+                {% include "partials/realtime_status.html" %}
+              {% endwith %}
+              {% with %}
+                {% set job = pull_job %}
+                {% set label = "Pull · " ~ peer.name %}
+                {% set description = "Manual pull status" %}
+                {% set action = "pull" %}
+                {% set target = peer.name %}
+                {% set empty_message = "No pull jobs yet." %}
+                {% include "partials/realtime_status.html" %}
+              {% endwith %}
             </div>
           </article>
         {% endfor %}

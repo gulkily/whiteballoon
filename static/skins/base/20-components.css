@@ -74,10 +74,26 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .peer-card__pull {
   gap: 0.5rem;
+}
+
+.job-control__message {
+  font-size: var(--font-size-sm);
+  margin: 0;
+  min-height: 1.25rem;
+  color: var(--color-muted);
+}
+
+.job-control__message[data-tone="success"] {
+  color: var(--color-success);
+}
+
+.job-control__message[data-tone="error"] {
+  color: var(--color-danger);
 }
 
 .job-status {
