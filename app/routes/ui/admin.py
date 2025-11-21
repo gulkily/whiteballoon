@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from datetime import datetime
 import csv
 import io
@@ -26,6 +28,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     AsyncDedalus = None  # type: ignore
     DedalusRunner = None  # type: ignore
+from app.realtime import (
+    enqueue_job as enqueue_realtime_job,
+    load_job_history as realtime_load_history,
+    update_job as update_realtime_job,
+)
 from app.routes.ui.helpers import describe_session_role, templates
 from app.services import user_attribute_service
 from starlette.datastructures import URL
@@ -48,6 +55,10 @@ DEDALUS_VERIFICATION_PROMPT = (
 
 STATUS_PATTERN = re.compile(r"^(OK|ERROR):\s*(.+)", re.IGNORECASE)
 TOOLS_PATTERN = re.compile(r";\s*tools?\s*:\s*(.+)", re.IGNORECASE)
+DEDALUS_SCOPE = "dedalus"
+DEDALUS_VERIFY_ACTION = "dedalus-verify"
+DEDALUS_SAVE_ACTION = "dedalus-save"
+logger = logging.getLogger(__name__)
 
 
 def parse_verification_response(text: str | None) -> tuple[str | None, str | None, list[str]]:
@@ -263,6 +274,77 @@ def _dedalus_filters(
         "entity_id": entity_id or "",
         "status": status or "",
         "limit": limit,
+    }
+
+
+def _queue_dedalus_job(action: str, triggered_by: str, *, message: Optional[str] = None):
+    return enqueue_realtime_job(
+        category=f"dedalus.{action}",
+        target={"scope": DEDALUS_SCOPE, "action": action},
+        triggered_by=triggered_by,
+        message=message or "Job queued",
+    )
+
+
+async def _run_dedalus_job(job_id: str, *, api_key: str, action: str) -> None:
+    try:
+        update_realtime_job(job_id, state="running", message="Contacting Dedalus Labs…")
+        success, note = await _verify_dedalus_api_key(api_key)
+        final_state = "success" if success else "error"
+        if success:
+            timestamp = datetime.utcnow().isoformat()
+            _write_env_value(DEDALUS_ENV_VERIFIED, timestamp)
+            os.environ[DEDALUS_ENV_VERIFIED] = timestamp
+        elif action == DEDALUS_SAVE_ACTION:
+            _write_env_value(DEDALUS_ENV_VERIFIED, None)
+            os.environ.pop(DEDALUS_ENV_VERIFIED, None)
+        update_realtime_job(job_id, state=final_state, message=note)
+    except Exception as exc:  # pragma: no cover - defensive guard
+        logger.exception("Dedalus %s job failed", action)
+        update_realtime_job(job_id, state="error", message=str(exc))
+    finally:
+        config.reset_settings_cache()
+
+
+def _parse_iso_datetime(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _snapshot_to_template_job(snapshot: Optional[dict]) -> Optional[dict]:
+    if not snapshot:
+        return None
+    return {
+        "job_id": snapshot.get("id"),
+        "status": snapshot.get("state") or "queued",
+        "message": snapshot.get("message"),
+        "queued_at": _parse_iso_datetime(snapshot.get("queued_at")),
+        "started_at": _parse_iso_datetime(snapshot.get("started_at")),
+        "finished_at": _parse_iso_datetime(snapshot.get("finished_at")),
+    }
+
+
+def _dedalus_job_statuses() -> dict[str, Optional[dict]]:
+    snapshots = realtime_load_history(limit=200)
+    latest: dict[str, dict] = {}
+    for snapshot in reversed(snapshots):
+        category = str(snapshot.get("category") or "")
+        if not category.startswith("dedalus."):
+            continue
+        target = snapshot.get("target") or {}
+        action = target.get("action")
+        if not action or action in latest:
+            continue
+        latest[action] = snapshot
+        if len(latest) >= 2:
+            break
+    return {
+        DEDALUS_VERIFY_ACTION: _snapshot_to_template_job(latest.get(DEDALUS_VERIFY_ACTION)),
+        DEDALUS_SAVE_ACTION: _snapshot_to_template_job(latest.get(DEDALUS_SAVE_ACTION)),
     }
 
 
@@ -525,21 +607,32 @@ async def admin_dedalus_settings(
     _require_admin(session_user)
     settings = config.get_settings()
     has_key = bool(settings.dedalus_api_key)
+    message: Optional[str] = None
+    status: Optional[str] = None
     verification_message: Optional[str] = None
     verification_ok: Optional[bool] = None
-    if has_key and request.query_params.get("verify") == "1":
-        verification_ok, verification_message = await _verify_dedalus_api_key(settings.dedalus_api_key)
-        if verification_ok:
-            timestamp = datetime.utcnow().isoformat()
-            _write_env_value(DEDALUS_ENV_VERIFIED, timestamp)
-            os.environ[DEDALUS_ENV_VERIFIED] = timestamp
-            config.reset_settings_cache()
-            settings = config.get_settings()
+    if request.query_params.get("verify") == "1":
+        if not has_key:
+            message = "Store a Dedalus API key before verifying."
+            status = "error"
+        else:
+            job = _queue_dedalus_job(
+                DEDALUS_VERIFY_ACTION,
+                session_user.user.username,
+                message="Verification job queued",
+            )
+            api_key = settings.dedalus_api_key or ""
+            asyncio.create_task(
+                _run_dedalus_job(job.id, api_key=api_key, action=DEDALUS_VERIFY_ACTION)
+            )
+            message = "Verification job queued. Watch the realtime status below."
+            status = "info"
     formatted_verified = (
         friendly_time(settings.dedalus_api_key_verified_at)
         if settings.dedalus_api_key_verified_at
         else None
     )
+    job_statuses = _dedalus_job_statuses()
     context = {
         "request": request,
         "user": session_user.user,
@@ -550,10 +643,12 @@ async def admin_dedalus_settings(
         "has_key": has_key,
         "last_verified": formatted_verified,
         "last_verified_raw": settings.dedalus_api_key_verified_at,
-        "message": None,
-        "status": None,
+        "message": message,
+        "status": status,
         "verification_message": verification_message,
         "verification_ok": verification_ok,
+        "dedalus_verify_job": job_statuses.get(DEDALUS_VERIFY_ACTION),
+        "dedalus_save_job": job_statuses.get(DEDALUS_SAVE_ACTION),
     }
     return templates.TemplateResponse("admin/dedalus_settings.html", context)
 
@@ -589,20 +684,16 @@ async def admin_dedalus_settings_submit(
             os.environ[DEDALUS_ENV_KEY] = new_value
             config.reset_settings_cache()
             if new_value:
-                verification_ok, verification_message = await _verify_dedalus_api_key(new_value)
-                if verification_ok:
-                    timestamp = datetime.utcnow().isoformat()
-                    _write_env_value(DEDALUS_ENV_VERIFIED, timestamp)
-                    os.environ[DEDALUS_ENV_VERIFIED] = timestamp
-                    config.reset_settings_cache()
-                    message = "Dedalus API key updated and verified."
-                    status = "success"
-                else:
-                    _write_env_value(DEDALUS_ENV_VERIFIED, None)
-                    os.environ.pop(DEDALUS_ENV_VERIFIED, None)
-                    config.reset_settings_cache()
-                    message = "Dedalus API key saved, but verification failed."
-                    status = "error"
+                job = _queue_dedalus_job(
+                    DEDALUS_SAVE_ACTION,
+                    session_user.user.username,
+                    message="Verifying saved API key",
+                )
+                asyncio.create_task(
+                    _run_dedalus_job(job.id, api_key=new_value, action=DEDALUS_SAVE_ACTION)
+                )
+                message = "Dedalus API key saved. Verification job queued."
+                status = "success"
             else:
                 _write_env_value(DEDALUS_ENV_VERIFIED, None)
                 os.environ.pop(DEDALUS_ENV_VERIFIED, None)
@@ -620,6 +711,7 @@ async def admin_dedalus_settings_submit(
         if settings.dedalus_api_key_verified_at
         else None
     )
+    job_statuses = _dedalus_job_statuses()
     context = {
         "request": request,
         "user": session_user.user,
@@ -634,6 +726,8 @@ async def admin_dedalus_settings_submit(
         "status": status,
         "verification_message": verification_message,
         "verification_ok": verification_ok,
+        "dedalus_verify_job": job_statuses.get(DEDALUS_VERIFY_ACTION),
+        "dedalus_save_job": job_statuses.get(DEDALUS_SAVE_ACTION),
     }
     status_code = 500 if status == "error" else 200
     return templates.TemplateResponse("admin/dedalus_settings.html", context, status_code=status_code)

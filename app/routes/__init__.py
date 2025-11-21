@@ -1,5 +1,5 @@
 """Route packages for WhiteBalloon."""
 
-from . import auth, ui
+from . import admin_jobs_api, auth, ui
 
-__all__ = ["auth", "ui"]
+__all__ = ["admin_jobs_api", "auth", "ui"]

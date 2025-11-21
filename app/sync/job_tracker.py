@@ -5,6 +5,10 @@ from datetime import datetime, timezone
 from threading import Lock
 from typing import Dict, Tuple
 
+from app.realtime import enqueue_job as enqueue_realtime_job
+from app.realtime import reset as reset_realtime_jobs
+from app.realtime import update_job as update_realtime_job
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -12,6 +16,7 @@ def _now() -> datetime:
 
 @dataclass
 class JobStatus:
+    job_id: str
     peer: str
     action: str
     queued_at: datetime = field(default_factory=_now)
@@ -23,6 +28,7 @@ class JobStatus:
 
     def as_dict(self) -> dict[str, object]:
         return {
+            "job_id": self.job_id,
             "peer": self.peer,
             "action": self.action,
             "queued_at": self.queued_at.isoformat(),
@@ -38,32 +44,44 @@ _LOCK = Lock()
 _JOBS: Dict[Tuple[str, str], JobStatus] = {}
 
 
+def _ensure_job(peer: str, action: str) -> JobStatus:
+    with _LOCK:
+        job = _JOBS.get((peer, action))
+    if job:
+        return job
+    return queue_job(peer, action)
+
+
 def queue_job(peer: str, action: str, *, triggered_by: str | None = None) -> JobStatus:
-    job = JobStatus(peer=peer, action=action, triggered_by=triggered_by)
+    envelope = enqueue_realtime_job(
+        category=f"sync.{action}",
+        target={"peer": peer, "action": action},
+        triggered_by=triggered_by,
+    )
+    job = JobStatus(job_id=envelope.id, peer=peer, action=action, triggered_by=triggered_by)
     with _LOCK:
         _JOBS[(peer, action)] = job
     return job
 
 
 def mark_started(peer: str, action: str) -> None:
+    job = _ensure_job(peer, action)
     with _LOCK:
-        job = _JOBS.get((peer, action))
-        if not job:
-            job = JobStatus(peer=peer, action=action)
-            _JOBS[(peer, action)] = job
         job.started_at = _now()
         job.status = "running"
+        job_id = job.job_id
+    update_realtime_job(job_id, state="running")
 
 
 def mark_finished(peer: str, action: str, success: bool, message: str | None = None) -> None:
+    job = _ensure_job(peer, action)
     with _LOCK:
-        job = _JOBS.get((peer, action))
-        if not job:
-            job = JobStatus(peer=peer, action=action)
-            _JOBS[(peer, action)] = job
         job.finished_at = _now()
         job.status = "success" if success else "error"
         job.message = message
+        job_id = job.job_id
+    state = "success" if success else "error"
+    update_realtime_job(job_id, state=state, message=message)
 
 
 def snapshot() -> dict[str, dict[str, JobStatus]]:
@@ -87,3 +105,4 @@ __all__ = [
 def reset() -> None:
     with _LOCK:
         _JOBS.clear()
+    reset_realtime_jobs()

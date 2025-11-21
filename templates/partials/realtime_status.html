@@ -1,0 +1,61 @@
+{% set state = job.status if job else 'idle' %}
+{% set _empty_message = empty_message or 'No recent activity yet.' %}
+{% set _target_field = target_field if target_field is defined else 'peer' %}
+<div
+  class="realtime-status"
+  data-job-status
+  data-job-action="{{ action }}"
+  data-job-target="{{ target }}"
+  data-job-label="{{ label }}"
+  {% if job and job.job_id %}data-job-id="{{ job.job_id }}"{% endif %}
+  data-job-state="{{ state }}"
+  data-job-target-field="{{ _target_field }}"
+  data-job-empty-message="{{ _empty_message }}"
+>
+  <header class="realtime-status__header">
+    <div class="realtime-status__title">
+      <p class="realtime-status__eyebrow">{{ description }}</p>
+      <h4 class="realtime-status__label">{{ label }}</h4>
+    </div>
+    <span class="realtime-status__badge realtime-status__badge--{{ state }}" data-role="state">{{ state | replace('_', ' ') | title }}</span>
+  </header>
+  <p class="realtime-status__message" data-role="message">
+    {% if job %}
+      {{ job.message or (state | replace('_', ' ') | title) }}
+    {% else %}
+      {{ _empty_message }}
+    {% endif %}
+  </p>
+  <dl class="realtime-status__meta">
+    <div>
+      <dt>Queued</dt>
+      <dd data-role="queued">
+        {% if job and job.queued_at %}
+          <time datetime="{{ job.queued_at.isoformat() }}">{{ job.queued_at | friendly_time }}</time>
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </dd>
+    </div>
+    <div>
+      <dt>Started</dt>
+      <dd data-role="started">
+        {% if job and job.started_at %}
+          <time datetime="{{ job.started_at.isoformat() }}">{{ job.started_at | friendly_time }}</time>
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </dd>
+    </div>
+    <div>
+      <dt>Finished</dt>
+      <dd data-role="finished">
+        {% if job and job.finished_at %}
+          <time datetime="{{ job.finished_at.isoformat() }}">{{ job.finished_at | friendly_time }}</time>
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </dd>
+    </div>
+  </dl>
+</div>

@@ -29,9 +29,33 @@
         <div class="alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
       {% endif %}
       {% if has_key %}
+        <div class="peer-card__statuses">
+          {% with
+            job = dedalus_verify_job,
+            label = "Dedalus verification",
+            description = "Manual verification status",
+            action = "dedalus-verify",
+            target = "dedalus",
+            target_field = "scope",
+            empty_message = "No verification jobs yet."
+          %}
+            {% include "partials/realtime_status.html" %}
+          {% endwith %}
+        </div>
+      {% endif %}
+      {% if has_key %}
         <form method="get">
           <input type="hidden" name="verify" value="1" />
-          <button type="submit" class="button button--secondary">Verify connection</button>
+          <button
+            type="submit"
+            class="button button--secondary"
+            data-job-control
+            data-job-action="dedalus-verify"
+            data-job-target="dedalus"
+            data-job-target-field="scope"
+          >
+            Verify connection
+          </button>
         </form>
       {% endif %}
     </div>
@@ -53,9 +77,31 @@
         Remove stored key
       </label>
       <div>
-        <button type="submit" class="button">Save API key</button>
+        <button
+          type="submit"
+          class="button"
+          data-job-control
+          data-job-action="dedalus-save"
+          data-job-target="dedalus"
+          data-job-target-field="scope"
+        >
+          Save API key
+        </button>
       </div>
     </form>
+    <div class="peer-card__statuses">
+      {% with
+        job = dedalus_save_job,
+        label = "Save API key",
+        description = "Verification after saving key",
+        action = "dedalus-save",
+        target = "dedalus",
+        target_field = "scope",
+        empty_message = "No save jobs yet."
+      %}
+        {% include "partials/realtime_status.html" %}
+      {% endwith %}
+    </div>
   </div>
   <p class="small-text">Need to audit interactions? <a href="/admin/dedalus/logs">Open the Dedalus activity log</a>.</p>
 </section>

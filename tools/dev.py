@@ -8,6 +8,7 @@ import tarfile
 import tempfile
 import sys
 import json
+import os
 from datetime import timezone
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -60,6 +61,18 @@ from tools.skins_build import (
 )
 
 
+def running_in_wsl() -> bool:
+    """Return True when executing under Windows Subsystem for Linux."""
+
+    if os.environ.get("WSL_DISTRO_NAME"):
+        return True
+    try:
+        osrelease = Path("/proc/sys/kernel/osrelease").read_text().lower()
+    except FileNotFoundError:
+        return False
+    return "microsoft" in osrelease
+
+
 class PendingApprovalError(click.ClickException):
     def __init__(self, peer_name: str, pending_id: str, message: str | None = None) -> None:
         self.peer_name = peer_name
@@ -73,15 +86,24 @@ class PendingApprovalError(click.ClickException):
 
 
 class PendingPullApprovalError(click.ClickException):
-    def __init__(self, peer_name: str, presented_key: str, pending_id: str) -> None:
+    def __init__(
+        self,
+        peer_name: str,
+        presented_key: str,
+        pending_id: str,
+        cache_dir: str | None = None,
+    ) -> None:
         self.peer_name = peer_name
         self.presented_key = presented_key
         self.pending_id = pending_id
+        self.cache_dir = cache_dir
         guidance = (
             f"Peer '{peer_name}' presented a new key during pull. Pending ID: {pending_id}. "
             "Visit /admin/sync-control or run 'wb sync pull --approve "
             f"{pending_id}' to trust the key and import the cached bundle."
         )
+        if cache_dir:
+            guidance += f" Cached bundle: {cache_dir}"
         super().__init__(guidance)
 
 
@@ -257,7 +279,12 @@ def _pull_from_hub(peer: Peer, temp_root: Path, allow_unsigned: bool) -> Path:
                 manifest_digest=metadata.manifest_digest,
                 signed_at=metadata.signed_at,
             )
-            raise PendingPullApprovalError(peer.name, metadata.public_key_b64, entry.id)
+            raise PendingPullApprovalError(
+                peer.name,
+                metadata.public_key_b64,
+                entry.id,
+                str(entry.directory),
+            )
     if expected_key:
         click.secho(
             f"Verified bundle signature for peer '{peer.name}' (key {metadata.key_id}).",
@@ -487,19 +514,31 @@ def peers_remove(name: str) -> None:
 
 
 @cli.command()
-@click.option("--host", default="127.0.0.1", show_default=True, help="Interface to bind the development server")
+@click.option(
+    "--host",
+    default=None,
+    show_default="127.0.0.1 (WSL auto-switches to 0.0.0.0)",
+    help="Interface to bind the development server",
+)
 @click.option("--port", default=8000, show_default=True, type=int, help="Port to bind the development server")
 @click.option("--reload/--no-reload", default=True, show_default=True, help="Enable auto-reload on code changes")
-def runserver(host: str, port: int, reload: bool) -> None:
+def runserver(host: str | None, port: int, reload: bool) -> None:
     """Start the FastAPI application using uvicorn."""
 
     reload_includes = None
     if reload:
         reload_includes = ["*.py", ".env", ".env.*"]
 
+    effective_host = host or ("0.0.0.0" if running_in_wsl() else "127.0.0.1")
+    if host is None and effective_host == "0.0.0.0":
+        click.secho(
+            "WSL detected; binding to 0.0.0.0 so Windows can reach the dev server via localhost. Use --host to override.",
+            fg="yellow",
+        )
+
     uvicorn.run(
         "app.main:app",
-        host=host,
+        host=effective_host,
         port=port,
         reload=reload,
         reload_includes=reload_includes,

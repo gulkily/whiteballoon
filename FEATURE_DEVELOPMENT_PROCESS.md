@@ -54,7 +54,7 @@ Four-step process for feature development with optional solution assessment.
 - **MUST create feature branch first** (e.g., `feature/request-feed-enhancements`)
 - Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work.
 - Complete stages atomically (<2 hours each)
-- Manual smoke verification is sufficient for each stage; automated tests are optional and can follow later if needed.
+- Manual smoke verification is sufficient for each stage; do not write automated tests.
 - Update the Step 4 implementation summary document after every stage and commit those updates as you go.
 - Conclude Step 4 by finalizing the implementation summary document.
 

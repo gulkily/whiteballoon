@@ -92,23 +92,41 @@
             <div class="peer-card__actions">
               <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/push">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
-                <button type="submit" class="button button--secondary" {% if push_job and push_job.status == 'running' %}disabled{% endif %}>Push now</button>
+                <button
+                  type="submit"
+                  class="button button--secondary"
+                  data-job-control
+                  data-job-action="push"
+                  data-job-target="{{ peer.name }}"
+                  data-job-target-field="peer"
+                  {% if push_job and push_job.status == 'running' %}disabled{% endif %}
+                >
+                  Push now
+                </button>
               </form>
               <form method="post" action="/admin/sync-control/peers/{{ peer.name }}/pull" class="peer-card__pull">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
                 <label class="checkbox">
                   <input type="checkbox" name="allow_unsigned" value="1" /> Allow unsigned
                 </label>
-                <button type="submit" class="button button--secondary" {% if pull_job and pull_job.status == 'running' %}disabled{% endif %}>Pull now</button>
+                <button
+                  type="submit"
+                  class="button button--secondary"
+                  data-job-control
+                  data-job-action="pull"
+                  data-job-target="{{ peer.name }}"
+                  data-job-target-field="peer"
+                  {% if pull_job and pull_job.status == 'running' %}disabled{% endif %}
+                >
+                  Pull now
+                </button>
               </form>
             </div>
 
-            {% if push_job %}
-              <p class="job-status job-status--{{ push_job.status }}"><strong>Push:</strong> {{ push_job.message or push_job.status | title }}</p>
-            {% endif %}
-            {% if pull_job %}
-              <p class="job-status job-status--{{ pull_job.status }}"><strong>Pull:</strong> {{ pull_job.message or pull_job.status | title }}</p>
-            {% endif %}
+            <div class="peer-card__statuses">
+              {% include "partials/realtime_status.html" with job=push_job label="Push · " ~ peer.name description="Manual push status" action="push" target=peer.name empty_message="No push jobs yet." only %}
+              {% include "partials/realtime_status.html" with job=pull_job label="Pull · " ~ peer.name description="Manual pull status" action="pull" target=peer.name empty_message="No pull jobs yet." only %}
+            </div>
           </article>
         {% endfor %}
       </div>

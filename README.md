@@ -48,14 +48,15 @@ Requires Python 3.10+.
    ```
 
 2. **Run the development server**
-   ```bash
-   ./wb runserver
-   ```
-   On Windows:
-   ```cmd
-   wb.bat runserver
-   ```
-   Visit `http://127.0.0.1:8000` to access the interface.
+ ```bash
+  ./wb runserver
+  ```
+  On Windows:
+  ```cmd
+  wb.bat runserver
+  ```
+  Visit `http://127.0.0.1:8000` to access the interface.
+  > Running inside WSL? `wb runserver` now binds to `0.0.0.0` automatically so Windows browsers can still reach `127.0.0.1:8000`. Pass `--host` to override the binding.
 
 > **Note**: The first registered user (no invite token required) becomes an administrator automatically.
 

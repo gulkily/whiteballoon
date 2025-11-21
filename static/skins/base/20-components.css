@@ -101,6 +101,111 @@
   color: var(--color-danger);
 }
 
+.peer-card__statuses {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.realtime-status {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.85rem;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.realtime-status__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.realtime-status__title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.realtime-status__eyebrow {
+  text-transform: uppercase;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  margin: 0;
+  color: var(--color-muted);
+}
+
+.realtime-status__label {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.realtime-status__badge {
+  border-radius: 999px;
+  padding: 0.15rem 0.75rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.realtime-status__badge--idle {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-muted);
+}
+
+.realtime-status__badge--queued,
+.realtime-status__badge--pending {
+  background: rgba(58, 171, 255, 0.15);
+  color: var(--color-info);
+}
+
+.realtime-status__badge--running {
+  background: rgba(255, 197, 0, 0.15);
+  color: var(--color-warning);
+}
+
+.realtime-status__badge--success {
+  background: rgba(52, 199, 89, 0.18);
+  color: var(--color-success);
+}
+
+.realtime-status__badge--warning {
+  background: rgba(255, 197, 0, 0.18);
+  color: var(--color-warning);
+}
+
+.realtime-status__badge--error {
+  background: rgba(255, 87, 87, 0.15);
+  color: var(--color-danger);
+}
+
+.realtime-status__message {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.realtime-status__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.realtime-status__meta dt {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.realtime-status__meta dd {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
 .activity-list {
   list-style: none;
   padding: 0;
