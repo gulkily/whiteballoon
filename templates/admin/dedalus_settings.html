@@ -19,10 +19,10 @@
   {% endif %}
 
   <div class="dedalus-admin__grid">
-    <section class="dedalus-panel card stack dedalus-panel--status">
+    <section class="dedalus-panel card stack dedalus-panel--status" aria-labelledby="dedalus-status-heading">
       <header class="dedalus-panel__header stack">
         <p class="muted small-text">Verification status</p>
-        <h2>Connection health</h2>
+        <h2 id="dedalus-status-heading">Connection health</h2>
         <p class="muted small-text">Check whether the stored key is communicating with Dedalus Labs.</p>
         {% set job_state = dedalus_verify_job.status if dedalus_verify_job and dedalus_verify_job.status else 'idle' %}
         {% set job_tone = 'success' if job_state == 'success' else 'warning' if job_state in ['queued', 'pending', 'running'] else 'danger' if job_state in ['error', 'failed'] else 'muted' %}
@@ -96,10 +96,10 @@
         </div>
       </div>
     </section>
-    <section class="dedalus-panel card stack dedalus-panel--keys">
+    <section class="dedalus-panel card stack dedalus-panel--keys" aria-labelledby="dedalus-key-heading">
       <header class="dedalus-panel__header stack">
         <p class="muted small-text">API key management</p>
-        <h2>Mutual Aid Copilot key</h2>
+        <h2 id="dedalus-key-heading">Mutual Aid Copilot key</h2>
         <p class="muted small-text">Paste the key provided by Dedalus Labs. Saving a new value replaces the stored secret and kicks off a verification job.</p>
       </header>
       <div class="dedalus-key__summary">

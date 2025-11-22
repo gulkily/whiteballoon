@@ -16,8 +16,13 @@
 - Added a "Key storage" summary and helper copy explaining `.env` behavior so admins immediately know whether a secret is stored and what saving/removing will do.
 - Reworked the form layout with consistent spacing plus an expanded checkbox label that clarifies the removal flow while retaining the existing field names/IDs.
 
+## Stage 5 – Responsive polish & accessibility sweep
+- Added `aria-labelledby` wiring between each panel and its heading so screen readers announce the correct section title while navigating the page.
+- Updated the summary badge grid to auto-fit into columns at larger breakpoints, preventing cramped badges on tablets while keeping a single column on narrow screens.
+
 ## Verification
 - Stage 1: Attempted `PYTHONPATH=. pytest tests -q` to make sure template imports remain healthy, but the run timed out in this environment; manual UI smoke test will be performed once the dev server is accessible.
 - Stage 2: Visual diffed the updated template/CSS to ensure summaries render even when `dedalus_verify_job` is missing; UI verification will occur alongside a future manual browser pass.
 - Stage 3: Inspected the rendered HTML structure to confirm the verify button + log link share the new action row and that job-status HTMX attributes remained untouched; browser validation still pending.
 - Stage 4: Double-checked the form markup to ensure `dedalus_api_key`/`clear_key` names remained unchanged and verified spacing via template preview tooling; live browser check remains on the follow-up list.
+- Stage 5: Confirmed Lighthouse/a11y-focused tweaks by reviewing the markup hierarchy and ensuring the responsive grid math keeps badges readable down to 375px; still recommend a real browser regression when possible.
