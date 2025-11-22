@@ -23,27 +23,42 @@
       <header class="dedalus-panel__header stack">
         <p class="muted small-text">Verification status</p>
         <h2 id="dedalus-status-heading">Connection health</h2>
-        <p class="muted small-text">Check whether the stored key is communicating with Dedalus Labs.</p>
+        <p class="muted small-text dedalus-panel__intro">Check whether the stored key is communicating with Dedalus Labs.</p>
         {% set job_state = dedalus_verify_job.status if dedalus_verify_job and dedalus_verify_job.status else 'idle' %}
         {% set job_tone = 'success' if job_state == 'success' else 'warning' if job_state in ['queued', 'pending', 'running'] else 'danger' if job_state in ['error', 'failed'] else 'muted' %}
         {% set job_label = job_state | replace('_', ' ') | title %}
         {% if job_state == 'idle' %}
           {% set job_label = 'Idle' %}
         {% endif %}
-        <div class="dedalus-status__summary">
+        <dl class="dedalus-info-grid" aria-label="Dedalus connection summary">
           <div>
-            <p class="dedalus-status__summary-label">Key stored</p>
-            <span class="status-pill status-pill--{{ 'success' if has_key else 'danger' }}">{{ 'Stored' if has_key else 'Missing' }}</span>
+            <dt>Key stored</dt>
+            <dd>
+              <span class="status-pill status-pill--{{ 'success' if has_key else 'danger' }}">
+                <span class="status-pill__dot status-pill__dot--{{ 'success' if has_key else 'danger' }}" aria-hidden="true"></span>
+                {{ 'Stored' if has_key else 'Missing' }}
+              </span>
+            </dd>
           </div>
           <div>
-            <p class="dedalus-status__summary-label">Last verified</p>
-            <span class="status-pill status-pill--{{ 'success' if last_verified else 'warning' }}"{% if last_verified_raw %} title="{{ last_verified_raw }}"{% endif %}>{{ last_verified or 'Never run' }}</span>
+            <dt>Last verified</dt>
+            <dd>
+              <span class="status-pill status-pill--{{ 'success' if last_verified else 'warning' }}"{% if last_verified_raw %} title="{{ last_verified_raw }}"{% endif %}>
+                <span class="status-pill__dot status-pill__dot--{{ 'success' if last_verified else 'warning' }}" aria-hidden="true"></span>
+                {{ last_verified or 'Never run' }}
+              </span>
+            </dd>
           </div>
           <div>
-            <p class="dedalus-status__summary-label">Latest job</p>
-            <span class="status-pill status-pill--{{ job_tone }}">{{ job_label }}</span>
+            <dt>Latest job</dt>
+            <dd>
+              <span class="status-pill status-pill--{{ job_tone }}">
+                <span class="status-pill__dot status-pill__dot--{{ job_tone }}" aria-hidden="true"></span>
+                {{ job_label }}
+              </span>
+            </dd>
           </div>
-        </div>
+        </dl>
         {% if verification_message is not none %}
           <div class="dedalus-status__alert alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
         {% endif %}
@@ -54,7 +69,7 @@
           <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
         {% endif %}
         {% if has_key %}
-          <div class="dedalus-status__timeline">
+          <div class="dedalus-status__timeline" aria-live="polite">
             <div class="dedalus-status__timeline-head">
               <p class="dedalus-status__summary-label">Realtime updates</p>
               <p class="muted small-text">Manual verification jobs and background saves appear below.</p>
@@ -82,7 +97,7 @@
               <input type="hidden" name="verify" value="1" />
               <button
                 type="submit"
-                class="button button--secondary"
+                class="button dedalus-cta"
                 data-job-control
                 data-job-action="dedalus-verify"
                 data-job-target="dedalus"
@@ -92,7 +107,7 @@
               </button>
             </form>
           {% endif %}
-          <a class="button button--ghost" href="/admin/dedalus/logs">Open activity log</a>
+          <a class="button button--ghost dedalus-cta" href="/admin/dedalus/logs">Open activity log</a>
         </div>
       </div>
     </section>
@@ -100,12 +115,15 @@
       <header class="dedalus-panel__header stack">
         <p class="muted small-text">API key management</p>
         <h2 id="dedalus-key-heading">Mutual Aid Copilot key</h2>
-        <p class="muted small-text">Paste the key provided by Dedalus Labs. Saving a new value replaces the stored secret and kicks off a verification job.</p>
+        <p class="muted small-text dedalus-panel__intro">Paste the key provided by Dedalus Labs. Saving a new value replaces the stored secret and kicks off a verification job.</p>
       </header>
       <div class="dedalus-key__summary">
         <p class="dedalus-status__summary-label">Key storage</p>
         <div>
-          <span class="status-pill status-pill--{{ 'success' if has_key else 'warning' }}">{{ 'Key stored' if has_key else 'No key stored' }}</span>
+          <span class="status-pill status-pill--{{ 'success' if has_key else 'warning' }}">
+            <span class="status-pill__dot status-pill__dot--{{ 'success' if has_key else 'warning' }}" aria-hidden="true"></span>
+            {{ 'Key stored' if has_key else 'No key stored' }}
+          </span>
           <p class="muted small-text">Values live in <code>.env</code> as <code>DEDALUS_API_KEY</code>. Clearing the key disables the Mutual Aid Copilot until a new value is saved.</p>
         </div>
       </div>
@@ -119,6 +137,7 @@
             value=""
             placeholder="sk_live_..."
             autocomplete="off"
+            class="dedalus-key__input"
           />
         </label>
         <p class="muted small-text">Leave the field blank to keep the existing key. Submitting a new value overwrites the stored secret and queues an immediate verification.</p>
@@ -132,7 +151,7 @@
         <div class="dedalus-key__actions">
           <button
             type="submit"
-            class="button"
+            class="button dedalus-cta"
             data-job-control
             data-job-action="dedalus-save"
             data-job-target="dedalus"

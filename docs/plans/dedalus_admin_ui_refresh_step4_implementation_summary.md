@@ -20,9 +20,14 @@
 - Added `aria-labelledby` wiring between each panel and its heading so screen readers announce the correct section title while navigating the page.
 - Updated the summary badge grid to auto-fit into columns at larger breakpoints, preventing cramped badges on tablets while keeping a single column on narrow screens.
 
+## Stage 6 – Layout & visual refinement
+- Rebuilt the status summary as a definition-list "info grid" with pill badges that now include color-coded dots, plus larger panel padding, card shadows, and intro text spacing that aligns with the refreshed prompt.
+- Enhanced CTAs and forms by upgrading the verify/save buttons to a shared `dedalus-cta` style, adding a dedicated input treatment for the API key field, and refining key storage messaging so the page feels more open and polished within the dark theme.
+
 ## Verification
 - Stage 1: Attempted `PYTHONPATH=. pytest tests -q` to make sure template imports remain healthy, but the run timed out in this environment; manual UI smoke test will be performed once the dev server is accessible.
 - Stage 2: Visual diffed the updated template/CSS to ensure summaries render even when `dedalus_verify_job` is missing; UI verification will occur alongside a future manual browser pass.
 - Stage 3: Inspected the rendered HTML structure to confirm the verify button + log link share the new action row and that job-status HTMX attributes remained untouched; browser validation still pending.
 - Stage 4: Double-checked the form markup to ensure `dedalus_api_key`/`clear_key` names remained unchanged and verified spacing via template preview tooling; live browser check remains on the follow-up list.
 - Stage 5: Confirmed Lighthouse/a11y-focused tweaks by reviewing the markup hierarchy and ensuring the responsive grid math keeps badges readable down to 375px; still recommend a real browser regression when possible.
+- Stage 6: Manually inspected the refreshed definition list, CTA sizing, and input focus states in the template preview to ensure hierarchy improves per the design prompt; will verify end-to-end in a real browser when available.
