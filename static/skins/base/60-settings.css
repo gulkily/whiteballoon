@@ -178,3 +178,45 @@
 .dedalus-status__actions form {
   margin: 0;
 }
+
+.dedalus-key__summary {
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  background: rgba(124, 58, 237, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.dedalus-key__summary code {
+  font-size: 0.85em;
+}
+
+.dedalus-key__form {
+  gap: 1.25rem;
+}
+
+.dedalus-key__option {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.dedalus-key__option input {
+  margin-top: 0.4rem;
+}
+
+.dedalus-key__option span {
+  display: block;
+  font-weight: 600;
+}
+
+.dedalus-key__option p {
+  margin: 0.25rem 0 0 0;
+}
+
+.dedalus-key__actions {
+  display: flex;
+  justify-content: flex-start;
+}

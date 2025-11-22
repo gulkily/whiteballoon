@@ -100,9 +100,16 @@
       <header class="dedalus-panel__header stack">
         <p class="muted small-text">API key management</p>
         <h2>Mutual Aid Copilot key</h2>
-        <p class="muted small-text">Paste the key provided by Dedalus Labs. It is stored in <code>.env</code> under <code>DEDALUS_API_KEY</code>.</p>
+        <p class="muted small-text">Paste the key provided by Dedalus Labs. Saving a new value replaces the stored secret and kicks off a verification job.</p>
       </header>
-      <form class="stack" method="post">
+      <div class="dedalus-key__summary">
+        <p class="dedalus-status__summary-label">Key storage</p>
+        <div>
+          <span class="status-pill status-pill--{{ 'success' if has_key else 'warning' }}">{{ 'Key stored' if has_key else 'No key stored' }}</span>
+          <p class="muted small-text">Values live in <code>.env</code> as <code>DEDALUS_API_KEY</code>. Clearing the key disables the Mutual Aid Copilot until a new value is saved.</p>
+        </div>
+      </div>
+      <form class="stack dedalus-key__form" method="post">
         <label class="stack" for="dedalus-api-key">
           <span>Dedalus API key</span>
           <input
@@ -114,12 +121,15 @@
             autocomplete="off"
           />
         </label>
-        <p class="muted small-text">This key is required for connecting the Mutual Aid Copilot to Dedalus Labs. Leave blank to keep the current key.</p>
-        <label class="checkbox">
+        <p class="muted small-text">Leave the field blank to keep the existing key. Submitting a new value overwrites the stored secret and queues an immediate verification.</p>
+        <label class="checkbox dedalus-key__option">
           <input type="checkbox" name="clear_key" value="1" />
-          Remove stored key
+          <div>
+            <span>Remove stored key</span>
+            <p class="muted small-text">Clear the key from <code>.env</code> and stop manual verification until a replacement is saved.</p>
+          </div>
         </label>
-        <div>
+        <div class="dedalus-key__actions">
           <button
             type="submit"
             class="button"

@@ -12,7 +12,12 @@
 - Wrapped the realtime status include in a new timeline container with a caption so manual verification jobs read like a lightweight timeline rather than a loose card grid.
 - Added a flexbox action row that keeps the “Verify connection” button (when available) beside the “Open activity log” link so all verification actions live in the same panel with preserved `data-job-*` hooks.
 
+## Stage 4 – API key management refinements
+- Added a "Key storage" summary and helper copy explaining `.env` behavior so admins immediately know whether a secret is stored and what saving/removing will do.
+- Reworked the form layout with consistent spacing plus an expanded checkbox label that clarifies the removal flow while retaining the existing field names/IDs.
+
 ## Verification
 - Stage 1: Attempted `PYTHONPATH=. pytest tests -q` to make sure template imports remain healthy, but the run timed out in this environment; manual UI smoke test will be performed once the dev server is accessible.
 - Stage 2: Visual diffed the updated template/CSS to ensure summaries render even when `dedalus_verify_job` is missing; UI verification will occur alongside a future manual browser pass.
 - Stage 3: Inspected the rendered HTML structure to confirm the verify button + log link share the new action row and that job-status HTMX attributes remained untouched; browser validation still pending.
+- Stage 4: Double-checked the form markup to ensure `dedalus_api_key`/`clear_key` names remained unchanged and verified spacing via template preview tooling; live browser check remains on the follow-up list.
