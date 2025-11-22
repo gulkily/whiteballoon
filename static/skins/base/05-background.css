@@ -1,0 +1,109 @@
+.background-texture {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  opacity: 0.15;
+  background: url('/static/img/grain.png');
+  mix-blend-mode: soft-light;
+}
+
+[data-theme="dark"] .background-texture {
+  opacity: 0.08;
+}
+
+.background-gradient {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: var(--skin-background-gradient);
+  animation: gradient-flow 18s ease-in-out infinite alternate;
+}
+
+.background-bubbles {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.bubble {
+  position: absolute;
+  border-radius: 999px;
+  opacity: 0.6;
+  background: var(--skin-bubble-background);
+  box-shadow: var(--skin-bubble-shadow);
+  animation: float 28s ease-in-out infinite;
+}
+
+.bubble--one {
+  width: 160px;
+  height: 160px;
+  top: 12%;
+  left: 8%;
+}
+
+.bubble--two {
+  width: 120px;
+  height: 120px;
+  bottom: 10%;
+  right: 15%;
+  animation-duration: 24s;
+}
+
+.bubble--three {
+  width: 90px;
+  height: 90px;
+  top: 35%;
+  right: 5%;
+  animation-duration: 26s;
+}
+
+.bubble--four {
+  width: 110px;
+  height: 110px;
+  bottom: 22%;
+  left: 12%;
+  animation-duration: 22s;
+}
+
+.bubble--five {
+  width: 75px;
+  height: 75px;
+  top: 8%;
+  right: 32%;
+  animation-duration: 30s;
+}
+
+.background-bubbles,
+.background-gradient,
+.bubble {
+  transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, border 0.3s ease;
+}
+
+@keyframes gradient-flow {
+  0% {
+    filter: hue-rotate(0deg) brightness(1);
+  }
+  100% {
+    filter: hue-rotate(35deg) brightness(1.05);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0) translateX(0);
+  }
+  50% {
+    transform: translateY(-20px) translateX(10px);
+  }
+  100% {
+    transform: translateY(0) translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .background-gradient,
+  .bubble {
+    animation: none;
+  }
+}

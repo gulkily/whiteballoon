@@ -18,44 +18,163 @@
     <div class="alert {{ 'alert--success' if status == 'success' else 'alert--info' if status == 'info' else 'alert--error' }}">{{ message }}</div>
   {% endif %}
 
-  <div class="card stack">
-    <p class="muted small-text">Paste the API key provided by Dedalus Labs. It will be stored in <code>.env</code> under <code>DEDALUS_API_KEY</code>.</p>
-    <div class="stack">
-      <p><strong>{{ 'A Dedalus API key is stored.' if has_key else 'No API key stored yet.' }}</strong></p>
-      {% if has_key and last_verified %}
-        <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
-      {% endif %}
-      {% if verification_message is not none %}
-        <div class="alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
-      {% endif %}
-      {% if has_key %}
-        <form method="get">
-          <input type="hidden" name="verify" value="1" />
-          <button type="submit" class="button button--secondary">Verify connection</button>
-        </form>
-      {% endif %}
-    </div>
-    <form class="stack" method="post">
-      <label class="stack" for="dedalus-api-key">
-        <span>Dedalus API key</span>
-        <input
-          id="dedalus-api-key"
-          type="password"
-          name="dedalus_api_key"
-          value=""
-          placeholder="sk_live_..."
-          autocomplete="off"
-        />
-      </label>
-      <p class="muted small-text">This key is required for connecting the Mutual Aid Copilot to Dedalus Labs. Leave blank to keep the current key.</p>
-      <label class="checkbox">
-        <input type="checkbox" name="clear_key" value="1" />
-        Remove stored key
-      </label>
-      <div>
-        <button type="submit" class="button">Save API key</button>
+  <div class="dedalus-admin__grid">
+    <section class="dedalus-panel card stack dedalus-panel--status" aria-labelledby="dedalus-status-heading">
+      <header class="dedalus-panel__header stack">
+        <p class="muted small-text">Verification status</p>
+        <h2 id="dedalus-status-heading">Connection health</h2>
+        <p class="muted small-text dedalus-panel__intro">Check whether the stored key is communicating with Dedalus Labs.</p>
+        {% set job_state = dedalus_verify_job.status if dedalus_verify_job and dedalus_verify_job.status else 'idle' %}
+        {% set job_tone = 'success' if job_state == 'success' else 'warning' if job_state in ['queued', 'pending', 'running'] else 'danger' if job_state in ['error', 'failed'] else 'muted' %}
+        {% set job_label = job_state | replace('_', ' ') | title %}
+        {% if job_state == 'idle' %}
+          {% set job_label = 'Idle' %}
+        {% endif %}
+        <dl class="dedalus-info-grid" aria-label="Dedalus connection summary">
+          <div>
+            <dt>Key stored</dt>
+            <dd>
+              <span class="status-pill status-pill--{{ 'success' if has_key else 'danger' }}">
+                <span class="status-pill__dot status-pill__dot--{{ 'success' if has_key else 'danger' }}" aria-hidden="true"></span>
+                {{ 'Stored' if has_key else 'Missing' }}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Last verified</dt>
+            <dd>
+              <span class="status-pill status-pill--{{ 'success' if last_verified else 'warning' }}"{% if last_verified_raw %} title="{{ last_verified_raw }}"{% endif %}>
+                <span class="status-pill__dot status-pill__dot--{{ 'success' if last_verified else 'warning' }}" aria-hidden="true"></span>
+                {{ last_verified or 'Never run' }}
+              </span>
+            </dd>
+          </div>
+          <div>
+            <dt>Latest job</dt>
+            <dd>
+              <span class="status-pill status-pill--{{ job_tone }}">
+                <span class="status-pill__dot status-pill__dot--{{ job_tone }}" aria-hidden="true"></span>
+                {{ job_label }}
+              </span>
+            </dd>
+          </div>
+        </dl>
+        {% if verification_message is not none %}
+          <div class="dedalus-status__alert alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
+        {% endif %}
+      </header>
+      <div class="stack">
+        <p><strong>{{ 'A Dedalus API key is stored.' if has_key else 'No API key stored yet.' }}</strong></p>
+        {% if has_key and last_verified %}
+          <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
+        {% endif %}
+        {% if has_key %}
+          <div class="dedalus-status__timeline" aria-live="polite">
+            <div class="dedalus-status__timeline-head">
+              <p class="dedalus-status__summary-label">Realtime updates</p>
+              <p class="muted small-text">Manual verification jobs and background saves appear below.</p>
+            </div>
+            <div class="peer-card__statuses dedalus-status__timeline-card">
+              {% with
+                job = dedalus_verify_job,
+                label = "Dedalus verification",
+                description = "Manual verification status",
+                action = "dedalus-verify",
+                target = "dedalus",
+                target_field = "scope",
+                empty_message = "No verification jobs yet."
+              %}
+                {% include "partials/realtime_status.html" %}
+              {% endwith %}
+            </div>
+          </div>
+        {% else %}
+          <p class="muted small-text">Store a Dedalus API key to enable manual verification jobs.</p>
+        {% endif %}
+        <div class="dedalus-status__actions">
+          {% if has_key %}
+            <form method="get">
+              <input type="hidden" name="verify" value="1" />
+              <button
+                type="submit"
+                class="button dedalus-cta"
+                data-job-control
+                data-job-action="dedalus-verify"
+                data-job-target="dedalus"
+                data-job-target-field="scope"
+              >
+                Verify connection
+              </button>
+            </form>
+          {% endif %}
+          <a class="button button--ghost dedalus-cta" href="/admin/dedalus/logs">Open activity log</a>
+        </div>
       </div>
-    </form>
+    </section>
+    <section class="dedalus-panel card stack dedalus-panel--keys" aria-labelledby="dedalus-key-heading">
+      <header class="dedalus-panel__header stack">
+        <p class="muted small-text">API key management</p>
+        <h2 id="dedalus-key-heading">Mutual Aid Copilot key</h2>
+        <p class="muted small-text dedalus-panel__intro">Paste the key provided by Dedalus Labs. Saving a new value replaces the stored secret and kicks off a verification job.</p>
+      </header>
+      <div class="dedalus-key__summary">
+        <p class="dedalus-status__summary-label">Key storage</p>
+        <div>
+          <span class="status-pill status-pill--{{ 'success' if has_key else 'warning' }}">
+            <span class="status-pill__dot status-pill__dot--{{ 'success' if has_key else 'warning' }}" aria-hidden="true"></span>
+            {{ 'Key stored' if has_key else 'No key stored' }}
+          </span>
+          <p class="muted small-text">Values live in <code>.env</code> as <code>DEDALUS_API_KEY</code>. Clearing the key disables the Mutual Aid Copilot until a new value is saved.</p>
+        </div>
+      </div>
+      <form class="stack dedalus-key__form" method="post">
+        <label class="stack" for="dedalus-api-key">
+          <span>Dedalus API key</span>
+          <input
+            id="dedalus-api-key"
+            type="password"
+            name="dedalus_api_key"
+            value=""
+            placeholder="sk_live_..."
+            autocomplete="off"
+            class="dedalus-key__input"
+          />
+        </label>
+        <p class="muted small-text">Leave the field blank to keep the existing key. Submitting a new value overwrites the stored secret and queues an immediate verification.</p>
+        <label class="checkbox dedalus-key__option">
+          <input type="checkbox" name="clear_key" value="1" />
+          <div>
+            <span>Remove stored key</span>
+            <p class="muted small-text">Clear the key from <code>.env</code> and stop manual verification until a replacement is saved.</p>
+          </div>
+        </label>
+        <div class="dedalus-key__actions">
+          <button
+            type="submit"
+            class="button dedalus-cta"
+            data-job-control
+            data-job-action="dedalus-save"
+            data-job-target="dedalus"
+            data-job-target-field="scope"
+          >
+            Save API key
+          </button>
+        </div>
+      </form>
+      <div class="peer-card__statuses">
+        {% with
+          job = dedalus_save_job,
+          label = "Save API key",
+          description = "Verification after saving key",
+          action = "dedalus-save",
+          target = "dedalus",
+          target_field = "scope",
+          empty_message = "No save jobs yet."
+        %}
+          {% include "partials/realtime_status.html" %}
+        {% endwith %}
+      </div>
+    </section>
   </div>
 </section>
 {% endblock %}

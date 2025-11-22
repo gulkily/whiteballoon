@@ -51,6 +51,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 VENV_DIR = SCRIPT_DIR / ".venv"
 DEV_TOOL = SCRIPT_DIR / "tools" / "dev.py"
 DEDALUS_POC = SCRIPT_DIR / "tools" / "dedalus_cli_verification.py"
+DEDALUS_LOG_MAINT = SCRIPT_DIR / "tools" / "dedalus_log_maintenance.py"
 
 
 def python_in_venv() -> Path:
@@ -194,17 +195,25 @@ def dev_invoke(venv_python: Path, *args: str, graceful_interrupt: bool = False, 
 
 def cmd_hub(args: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="wb hub", description="Manage the sync hub service")
-    parser.add_argument("action", choices=["serve", "admin-token"], nargs="?", default="serve")
+    parser.add_argument("action", choices=["serve", "admin-token"], nargs="?")
     parser.add_argument("--config", dest="config", default=str(SCRIPT_DIR / ".sync" / "hub_config.json"), help="Path to hub config (WB_HUB_CONFIG)")
     parser.add_argument("--host", dest="host", default="0.0.0.0", help="Host to bind")
     parser.add_argument("--port", dest="port", type=int, default=9100, help="Port to bind")
     parser.add_argument("--token-name", dest="token_name", default="primary", help="Identifier when creating admin tokens")
     parser.add_argument("--no-reload", dest="reload", action="store_false", help="Disable autoreload (enabled by default)")
     parser.set_defaults(reload=True)
+    if not args or args[0] in {"help", "--help", "-h"}:
+        parser.print_help()
+        return 0
+
     ns = parser.parse_args(args)
 
     if ns.action == "admin-token":
         return _create_hub_admin_token(Path(ns.config), ns.token_name)
+
+    if ns.action is None:
+        parser.print_help()
+        return 0
 
     vpy = python_in_venv()
     if not vpy.exists():
@@ -229,28 +238,36 @@ def cmd_hub(args: list[str]) -> int:
 
 
 def cmd_dedalus(args: list[str]) -> int:
-    if not DEDALUS_POC.exists():
-        error("Missing Dedalus verification script. Expected tools/dedalus_cli_verification.py")
-        return 1
     if not args or args[0] in {"-h", "--help", "help"}:
-        print("Usage: wb dedalus test [options]")
-        print("  test   Run the Step 1 verification script (passes remaining args through)")
+        print("Usage: wb dedalus <subcommand> [options]")
+        print("  test          Run the Step 1 verification script (passes remaining args through)")
+        print("  purge-logs    Delete log rows older than the retention window")
         return 0
     subcommand, *passthrough = args
-    if subcommand != "test":
-        error(f"Unknown dedalus subcommand: {subcommand}")
-        return 1
     vpy = python_in_venv()
     if not vpy.exists():
         warn("Virtualenv missing. Run './wb setup' first.")
         return 1
-    info("Launching Dedalus CLI verification script")
-    cmd = [str(vpy), str(DEDALUS_POC), *passthrough]
-    return _run_process(
-        cmd,
-        graceful_interrupt=True,
-        interrupt_message="Dedalus verification stopped",
-    )
+    if subcommand == "test":
+        if not DEDALUS_POC.exists():
+            error("Missing Dedalus verification script. Expected tools/dedalus_cli_verification.py")
+            return 1
+        info("Launching Dedalus CLI verification script")
+        cmd = [str(vpy), str(DEDALUS_POC), *passthrough]
+        return _run_process(
+            cmd,
+            graceful_interrupt=True,
+            interrupt_message="Dedalus verification stopped",
+        )
+    if subcommand == "purge-logs":
+        if not DEDALUS_LOG_MAINT.exists():
+            error("Missing Dedalus log maintenance script.")
+            return 1
+        info("Purging Dedalus logs")
+        cmd = [str(vpy), str(DEDALUS_LOG_MAINT), "purge", *passthrough]
+        return _run_process(cmd)
+    error(f"Unknown dedalus subcommand: {subcommand}")
+    return 1
 
 
 def _create_hub_admin_token(config_path: Path, token_name: str) -> int:

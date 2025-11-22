@@ -1,0 +1,246 @@
+.invite-page {
+  gap: 2rem;
+}
+
+.invite-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .invite-grid {
+    grid-template-columns: 320px 1fr;
+  }
+}
+
+.copy-row {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.copy-row input {
+  width: 100%;
+}
+
+.qr-preview {
+  width: 200px;
+  height: 200px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-md);
+}
+
+.invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.invite-profile {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.invite-profile__photo {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.invite-profile__body {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.invite-profile__help {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.invite-profile__help li {
+  list-style: disc;
+}
+
+.invite-map__outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.invite-map__tree {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.5rem;
+  position: relative;
+}
+
+.invite-map__tree--root {
+  padding-left: 0;
+}
+
+.invite-map__tree li {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.invite-map__tree li::before {
+  content: "";
+  position: absolute;
+  left: 0.4rem;
+  top: -0.65rem;
+  bottom: 0;
+  width: 1px;
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.invite-map__tree li::after {
+  content: "";
+  position: absolute;
+  left: 0.4rem;
+  top: 0.75rem;
+  width: 0.75rem;
+  height: 1px;
+  background: rgba(148, 163, 184, 0.4);
+}
+
+.invite-map__tree li:last-child::after {
+  display: none;
+}
+
+.invite-map__tree--root > .invite-map__branch::before,
+.invite-map__tree--root > .invite-map__branch::after {
+  display: none;
+}
+
+.invite-map__node {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.65);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: var(--shadow-sm);
+}
+
+.invite-map__node-body {
+  flex: 1;
+  display: grid;
+  gap: 0.1rem;
+}
+
+.invite-map__node-meta {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+}
+
+.invite-map__node--upstream {
+  opacity: 0.8;
+}
+
+.invite-map__node--self {
+  border: 2px solid var(--color-accent, #7c3aed);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+
+[data-theme="dark"] .invite-map__node--self {
+  border-color: rgba(250, 204, 21, 0.9);
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.25);
+}
+
+[data-theme="dark"] .invite-map__node {
+  background: rgba(192, 132, 252, 0.12);
+}
+
+.invite-map__name {
+  font-weight: 600;
+}
+
+.invite-map__link {
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+}
+
+.invite-map__link:hover,
+.invite-map__link:focus-visible {
+  text-decoration: underline;
+}
+
+.invite-map__timestamp {
+  white-space: nowrap;
+}
+
+.invite-map__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--color-card);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.invite-map__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.invite-map__avatar-fallback {
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.invite-map__branch[data-degree="0"] .invite-map__node {
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.invite-map__branch[data-degree="0"] .invite-map__degree {
+  color: var(--color-info);
+}
+
+.invite-map__empty {
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+@media (max-width: 600px) {
+  [data-invite-map] {
+    padding: 1rem;
+  }
+
+  .invite-map__node {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .invite-map__tree li::after {
+    bottom: -0.5rem;
+  }
+}
+
+.invite-note {
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  background: rgba(124, 58, 237, 0.1);
+  color: var(--color-text);
+}

@@ -1,0 +1,48 @@
+[data-request-status] {
+  min-height: 1.2rem;
+  font-size: var(--font-size-sm);
+}
+
+[data-request-status][data-tone="success"] {
+  color: #15803d;
+}
+
+[data-request-status][data-tone="error"] {
+  color: #dc2626;
+}
+
+[data-request-status][data-tone="info"] {
+  color: var(--color-muted);
+}
+
+[data-request-card] [data-request-form] {
+  display: none;
+}
+
+[data-request-card].is-expanded [data-request-form] {
+  display: grid;
+}
+
+[data-request-card].is-expanded [data-request-collapsed] {
+  display: none;
+}
+
+[data-request-card].is-collapsed [data-request-form] {
+  display: none;
+}
+
+@font-face {
+  font-family: "Sora";
+  src: url("/static/fonts/Sora-Variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/static/fonts/Inter-Variable.woff2") format("woff2");
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}

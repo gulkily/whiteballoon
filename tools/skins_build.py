@@ -11,9 +11,11 @@ from typing import Iterable, Callable
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 SKINS_DIR = PROJECT_ROOT / "static" / "skins"
 BASE_FILENAME = "base.css"
+BASE_MODULE_DIR = SKINS_DIR / "base"
 BUILD_DIR = PROJECT_ROOT / "static" / "build" / "skins"
 MANIFEST_FILENAME = "manifest.json"
 IMPORT_BASE_PATTERN = re.compile(r"@import\s+url\(\"\.\/base\.css\"\);?\s*", re.IGNORECASE)
+MODULE_IMPORT_PATTERN = re.compile(r"@import\s+url\(\"(\.\/base\/[^\"]+)\"\);?", re.IGNORECASE)
 
 
 @dataclass(slots=True)
@@ -40,11 +42,26 @@ def discover_skins(directory: Path | None = None) -> list[SkinEntry]:
     return entries
 
 
+def _inline_base_modules(css: str, *, base_dir: Path) -> str:
+    def replace(match: re.Match[str]) -> str:
+        rel_path = match.group(1)
+        module_rel = rel_path[2:] if rel_path.startswith("./") else rel_path
+        module_path = base_dir.parent / module_rel
+        if not module_path.exists():
+            raise SkinBuildError(f"Base module missing: {module_path}")
+        return module_path.read_text(encoding="utf-8")
+
+    return MODULE_IMPORT_PATTERN.sub(replace, css)
+
+
 def _load_base_css(base_path: Path | None = None) -> str:
     path = base_path or (SKINS_DIR / BASE_FILENAME)
     if not path.exists():
         raise SkinBuildError(f"Base stylesheet not found: {path}")
-    return path.read_text(encoding="utf-8")
+    css = path.read_text(encoding="utf-8")
+    if MODULE_IMPORT_PATTERN.search(css):
+        css = _inline_base_modules(css, base_dir=path.parent / "base")
+    return css
 
 
 def _strip_base_import(css: str) -> str:
@@ -127,7 +144,8 @@ def watch_skins(
     base_path = base_css_path or (SKINS_DIR / BASE_FILENAME)
 
     def snapshot() -> dict[Path, float]:
-        files = [base_path, *[entry.path for entry in discover_skins()]]
+        module_files = sorted(BASE_MODULE_DIR.glob("*.css")) if BASE_MODULE_DIR.exists() else []
+        files = [base_path, *module_files, *[entry.path for entry in discover_skins()]]
         state: dict[Path, float] = {}
         for file_path in files:
             try:

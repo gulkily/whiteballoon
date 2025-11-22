@@ -20,6 +20,9 @@ pip install -r requirements.txt
 
 # Environment Configuration
 cp .env.example .env                # Copy defaults and adjust as needed
+# CSS skins
+./wb skins build               # Rebuild hashed bundles after editing static/skins
+./wb skins watch               # Rebuild on change during frontend work
 ```
 
 ## Feature Development Process

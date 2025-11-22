@@ -3,86 +3,9 @@
   <head>
     <meta charset="utf-8" />
     <title>Hub Admin</title>
-    <style>
-      body {
-        font-family: 'Inter', system-ui, sans-serif;
-        background: #050816;
-        color: #f1f5f9;
-        min-height: 100vh;
-        margin: 0;
-      }
-      header {
-        padding: 1.5rem 3vw;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: rgba(15, 23, 42, 0.8);
-        backdrop-filter: blur(12px);
-        position: sticky;
-        top: 0;
-      }
-      main {
-        padding: 2rem 3vw 4rem;
-      }
-      h1 {
-        margin: 0 0 0.5rem;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 1.5rem;
-      }
-      th,
-      td {
-        text-align: left;
-        padding: 0.65rem 0.75rem;
-        border-bottom: 1px solid rgba(148, 163, 184, 0.2);
-      }
-      th {
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        letter-spacing: 0.08em;
-        color: #94a3b8;
-      }
-      code {
-        background: rgba(15, 23, 42, 0.6);
-        padding: 0.15rem 0.35rem;
-        border-radius: 6px;
-      }
-      .stats {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1rem;
-      }
-      .stat {
-        background: rgba(15, 23, 42, 0.55);
-        padding: 1rem;
-        border-radius: 16px;
-      }
-      .badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.35rem 0.7rem;
-        border-radius: 999px;
-        background: rgba(59, 130, 246, 0.15);
-        color: #60a5fa;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-      }
-      form.logout {
-        margin: 0;
-      }
-      form.logout button {
-        background: transparent;
-        border: 1px solid rgba(248, 250, 252, 0.4);
-        color: #f8fafc;
-        padding: 0.5rem 1rem;
-        border-radius: 999px;
-        cursor: pointer;
-      }
-    </style>
+    
+    <link rel="stylesheet" href="{{ url_for('static', path='css/admin-dashboard.css') }}" />
+
   </head>
   <body>
     <header>
@@ -94,60 +17,140 @@
         <button type="submit">Sign out</button>
       </form>
     </header>
+    {% if notice %}
+      <div class="alert alert--success">{{ notice.replace('-', ' ').capitalize() }}</div>
+    {% endif %}
+    {% if error_message %}
+      <div class="alert alert--error">{{ error_message.replace('-', ' ').capitalize() }}</div>
+    {% endif %}
     <main>
-      <section class="stats">
-        <div class="stat">
-          <p class="label">Config path</p>
-          <code>{{ config_path }}</code>
+      <section class="admin-card">
+        <div class="admin-card__intro">
+          <p class="muted small-text">WhiteBalloon Hub</p>
+          <h1>Admin control panel</h1>
+          <p>
+            Review configuration, approve new keys, and inspect peer bundles from one place. Actions here
+            stay in sync with the CLI so every operator shares the same view of the hub.
+          </p>
         </div>
-        <div class="stat">
-          <p class="label">Storage dir</p>
-          <code>{{ storage_dir }}</code>
-        </div>
-        <div class="stat">
-          <p class="label">Loose push</p>
-          <strong>{{ 'Enabled' if allow_auto_register_push else 'Disabled' }}</strong>
-        </div>
-        <div class="stat">
-          <p class="label">Loose pull</p>
-          <strong>{{ 'Enabled' if allow_auto_register_pull else 'Disabled' }}</strong>
+        <div class="panel-list">
+          <section class="panel">
+            <h2>Environment</h2>
+            <div class="stats">
+              <div class="stat">
+                <p class="label">Config path</p>
+                <code>{{ config_path }}</code>
+              </div>
+              <div class="stat">
+                <p class="label">Storage dir</p>
+                <code>{{ storage_dir }}</code>
+              </div>
+              <div class="stat">
+                <p class="label">Loose push</p>
+                <strong>{{ 'Enabled' if allow_auto_register_push else 'Disabled' }}</strong>
+              </div>
+              <div class="stat">
+                <p class="label">Loose pull</p>
+                <strong>{{ 'Enabled' if allow_auto_register_pull else 'Disabled' }}</strong>
+              </div>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>Pending push approvals ({{ pending_entries|length }})</h2>
+            {% if pending_entries %}
+              <table>
+                <thead>
+                  <tr>
+                    <th>Peer</th>
+                    <th>Presented key</th>
+                    <th>Existing keys</th>
+                    <th>Created</th>
+                    <th>Manifest</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for entry in pending_entries %}
+                    <tr>
+                      <td>
+                        {{ entry.peer_name }}
+                        {% if entry.peer_missing %}
+                          <small style="color: #f87171; display: block;">Peer missing</small>
+                        {% endif %}
+                      </td>
+                      <td><code>{{ entry.presented_key }}</code></td>
+                      <td>
+                        {% if entry.existing_keys %}
+                          <ul class="key-list">
+                            {% for key in entry.existing_keys %}
+                              <li><code>{{ key }}</code></li>
+                            {% endfor %}
+                          </ul>
+                        {% else %}
+                          <em>No keys stored</em>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {{ entry.created_at.strftime('%Y-%m-%d %H:%M UTC') if entry.created_at else '—' }}<br />
+                        {% if entry.signed_at %}<small>Signed {{ entry.signed_at.strftime('%Y-%m-%d %H:%M UTC') }}</small>{% endif %}
+                      </td>
+                      <td><code>{{ entry.manifest_digest or 'unknown' }}</code></td>
+                      <td>
+                        <div class="pending-actions">
+                          <form method="post" action="/admin/pending/{{ entry.id }}/approve" class="inline-form">
+                            <button type="submit" class="primary">Approve</button>
+                          </form>
+                          <form method="post" action="/admin/pending/{{ entry.id }}/discard" class="inline-form">
+                            <button type="submit" class="secondary">Discard</button>
+                          </form>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p>No pending approvals.</p>
+            {% endif %}
+          </section>
+          <section class="panel">
+            <h2>Peer overview · {{ peer_count }} peers</h2>
+            <p class="muted small-text">Files: {{ total_files }} · Size: {{ total_kb }} KB</p>
+            <table>
+              <thead>
+                <tr>
+                  <th>Peer</th>
+                  <th>Bundle</th>
+                  <th>Files</th>
+                  <th>Size</th>
+                  <th>Signed</th>
+                  <th>Digest</th>
+                  <th>Public key</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if peer_rows %}
+                  {% for row in peer_rows %}
+                    <tr>
+                      <td>{{ row.name }}</td>
+                      <td>{{ 'Yes' if row.has_bundle else 'No' }}</td>
+                      <td>{{ row.file_count }}</td>
+                      <td>{{ row.size_kb }} KB</td>
+                      <td>{{ row.signed_at }}</td>
+                      <td><code>{{ row.digest }}</code></td>
+                      <td><code>{{ row.public_key_short }}</code></td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="7">No peers configured.</td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </section>
         </div>
       </section>
-      <p style="margin-top: 2rem;">
-        Peers: {{ peer_count }} · Files: {{ total_files }} · Size: {{ total_kb }} KB
-      </p>
-      <table>
-        <thead>
-          <tr>
-            <th>Peer</th>
-            <th>Bundle</th>
-            <th>Files</th>
-            <th>Size</th>
-            <th>Signed</th>
-            <th>Digest</th>
-            <th>Public key</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% if peer_rows %}
-          {% for row in peer_rows %}
-          <tr>
-            <td>{{ row.name }}</td>
-            <td>{{ 'Yes' if row.has_bundle else 'No' }}</td>
-            <td>{{ row.file_count }}</td>
-            <td>{{ row.size_kb }} KB</td>
-            <td>{{ row.signed_at }}</td>
-            <td><code>{{ row.digest }}</code></td>
-            <td><code>{{ row.public_key_short }}</code></td>
-          </tr>
-          {% endfor %}
-          {% else %}
-          <tr>
-            <td colspan="7">No peers configured.</td>
-          </tr>
-          {% endif %}
-        </tbody>
-      </table>
     </main>
   </body>
 </html>

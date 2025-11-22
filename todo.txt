@@ -1,27 +1,23 @@
 todo
 ====
 
-remove html strings from python strings
-	and codify that this shouldn't happen
-
-make the hub placeholder page look cooler
-
-better handling of ctrl+c in both servers
-
-make "share first request" field optional to reduce friction of registration process
-
-get rid of "suggested message" which appears after invite successful
-
-make register url prettier (no ? or =)
-
-for each user, display full invite tree path just above them
-
 allow encrypting (publishing) packets specifically for individual/multiple clients (using their public key)
-
-enable users/operators to skin their own instance
-	may need a refactor of the html/css templates
 
 idea: entry page with a door opening
 	invite could be an image instead of text
 
-put each route in its own file
+better login flow:
+	add social/cross-login
+		another user can approve
+		another session from self user can approve
+		admin can approve via command line
+	add client fingerprinting to auto-approve future sesion
+	add half-login state
+	somehow use dedalus integration for this too? how?
+		sanitize user inputs
+		use user inputs as part of prompt
+
+As admin, I want to see realtime or at least poll-updated status 
+wherever I click a button that kicks off a process, such as Push/Pull, test dedalus
+connection, etc. Please use FEATURE_DEVELOPMENT_PROCESS.md to 
+just write a document standardizing how we do this.

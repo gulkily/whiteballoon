@@ -4,9 +4,11 @@ import json
 import logging
 
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.hub.config import get_settings
+from app.hub.feed import DEFAULT_FEED_PAGE_SIZE, feed_api_router, list_feed_requests
 from app.hub.storage import summarize_bundle, METADATA_FILENAME
 from app.sync.signing import ensure_local_keypair
 from app.skins.runtime import register_skin_helpers
@@ -21,6 +23,8 @@ register_skin_helpers(templates)
 def create_hub_app() -> FastAPI:
     app = FastAPI(title="WhiteBalloon Sync Hub", version="0.1.0")
     logger = logging.getLogger("whiteballoon.hub")
+
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
     @app.on_event("startup")
     async def _log_settings() -> None:
@@ -75,6 +79,7 @@ def create_hub_app() -> FastAPI:
         )
         ready_count = sum(1 for entry in peer_stats if entry["has_bundle"])
 
+        feed_page = list_feed_requests(limit=DEFAULT_FEED_PAGE_SIZE, offset=0)
         context = {
             "request": request,
             "peer_stats": peer_stats,
@@ -85,12 +90,16 @@ def create_hub_app() -> FastAPI:
             "truncated_key": truncated_key,
             "ready_count": ready_count,
             "has_peers": bool(peer_stats),
+            "feed_page": feed_page,
+            "feed_page_size": DEFAULT_FEED_PAGE_SIZE,
+            "has_feed": bool(feed_page.items),
         }
         return templates.TemplateResponse("hub/home.html", context)
 
 
     app.include_router(admin_router)
     app.include_router(router)
+    app.include_router(feed_api_router)
     return app
 
 

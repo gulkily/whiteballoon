@@ -56,6 +56,31 @@ Restart the hub and visit `/admin`. Enter the printed token to view the dashboar
 Tokens are stored as SHA-256 hashes under `admin_tokens` in the config; rerun the command above to rotate them.
 The CLI prints a 64-character hex string so it is easy to copy/paste or transcribe if needed.
 
+### Pending Key Approvals
+
+If a peer uploads a bundle signed by a public key that is not yet stored in the hub config, the upload now queues a pending approval:
+
+1. Hub verifies the signature, captures the presented key, and stores the uploaded tarball under `data/hub_pending/<peer>/<entry-id>/`.
+2. The client receives a `400` JSON payload with `{"error": "peer_key_mismatch", "pending_id": "..."}` so the operator knows an approval is required.
+3. `/admin` shows a “Pending key approvals” table listing the peer, presented key, timestamps, and current key set. Clicking **Approve new key** appends the key to the peer’s allowed list, reloads the config, replays the stored bundle, and clears the pending entry. Discard simply deletes the queue entry.
+4. Approved keys accumulate, so older keys remain valid until you remove them manually from `.sync/hub_config.json`.
+
+This flow lets operators confirm a single dialog without editing JSON files or asking peers to retry uploads manually.
+
+### Pull Key Approvals (CLI + UI)
+
+When a local instance pulls from a hub and the remote rotated signing keys, `wb sync pull <peer>` now caches the downloaded bundle and prints a pending approval message instead of crashing. Run `wb sync pull --pending` to list entries and `wb sync pull --approve <pending-id>` to trust the presented key (updates `sync_peers.txt`), import the cached bundle, and clean up. The `/admin/sync-control` page shows the same queue with Approve/Discard buttons so admins can resolve the mismatch without leaving the browser.
+
+## Public Feed & Structured Store
+
+The hub now renders a reddit-style feed at `/` backed by a lightweight SQLite database (`data/hub_feed.db`). Every bundle upload parses the `requests/*.sync.txt` files plus embedded comment transcripts and user exports, normalizes them into SQLModel tables, and surfaces the data to the UI and APIs.
+
+- `GET /api/v1/feed/?limit=20&offset=0` returns paginated `HubFeedRequestDTO` objects with comment previews, counts, and manifest metadata. Skin builders can hit this endpoint directly for custom front-ends.
+- The default SSR template shows ~20 most recent public requests with status pills, creator metadata, and the latest comments. A "Load more" button progressively enhances the page by calling the JSON endpoint.
+- Only `Sync-Scope: public` entries are ingested, so keep private/pending records redacted before exporting bundles.
+
+Skins can override the presentation layer without touching the ingest pipeline—simply reuse the JSON endpoint or extend the Jinja template.
+
 ## CLI Integration
 
 On each WhiteBalloon instance:
