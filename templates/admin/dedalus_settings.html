@@ -24,14 +24,34 @@
         <p class="muted small-text">Verification status</p>
         <h2>Connection health</h2>
         <p class="muted small-text">Check whether the stored key is communicating with Dedalus Labs.</p>
+        {% set job_state = dedalus_verify_job.status if dedalus_verify_job and dedalus_verify_job.status else 'idle' %}
+        {% set job_tone = 'success' if job_state == 'success' else 'warning' if job_state in ['queued', 'pending', 'running'] else 'danger' if job_state in ['error', 'failed'] else 'muted' %}
+        {% set job_label = job_state | replace('_', ' ') | title %}
+        {% if job_state == 'idle' %}
+          {% set job_label = 'Idle' %}
+        {% endif %}
+        <div class="dedalus-status__summary">
+          <div>
+            <p class="dedalus-status__summary-label">Key stored</p>
+            <span class="status-pill status-pill--{{ 'success' if has_key else 'danger' }}">{{ 'Stored' if has_key else 'Missing' }}</span>
+          </div>
+          <div>
+            <p class="dedalus-status__summary-label">Last verified</p>
+            <span class="status-pill status-pill--{{ 'success' if last_verified else 'warning' }}"{% if last_verified_raw %} title="{{ last_verified_raw }}"{% endif %}>{{ last_verified or 'Never run' }}</span>
+          </div>
+          <div>
+            <p class="dedalus-status__summary-label">Latest job</p>
+            <span class="status-pill status-pill--{{ job_tone }}">{{ job_label }}</span>
+          </div>
+        </div>
+        {% if verification_message is not none %}
+          <div class="dedalus-status__alert alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
+        {% endif %}
       </header>
       <div class="stack">
         <p><strong>{{ 'A Dedalus API key is stored.' if has_key else 'No API key stored yet.' }}</strong></p>
         {% if has_key and last_verified %}
           <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
-        {% endif %}
-        {% if verification_message is not none %}
-          <div class="alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
         {% endif %}
         {% if has_key %}
           <div class="peer-card__statuses">

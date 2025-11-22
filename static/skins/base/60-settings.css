@@ -86,3 +86,60 @@
 .dedalus-panel__header h2 {
   margin: 0;
 }
+
+.dedalus-status__summary {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .dedalus-status__summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.dedalus-status__summary-label {
+  margin: 0 0 0.2rem 0;
+  font-size: var(--font-size-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  border-radius: 999px;
+  padding: 0.15rem 0.85rem;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-muted);
+  text-transform: none;
+}
+
+.status-pill--success {
+  background: rgba(52, 199, 89, 0.18);
+  color: var(--color-success);
+}
+
+.status-pill--warning {
+  background: rgba(255, 197, 0, 0.18);
+  color: var(--color-warning);
+}
+
+.status-pill--danger {
+  background: rgba(255, 87, 87, 0.18);
+  color: var(--color-danger);
+}
+
+.status-pill--muted {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--color-muted);
+}
+
+.dedalus-status__alert {
+  margin-top: 0.5rem;
+}
