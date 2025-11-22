@@ -8,6 +8,11 @@
 - Extended the status panel header with a summary grid of badges that report whether a key is stored, when it was last verified, and the most recent verify job state with success/warning/danger tones for scanability.
 - Moved the verification alert block into the header beside the summary and introduced reusable `status-pill` styles so success/error copy sits near the badges instead of midway through the panel body.
 
+## Stage 3 – Controls + timeline styling
+- Wrapped the realtime status include in a new timeline container with a caption so manual verification jobs read like a lightweight timeline rather than a loose card grid.
+- Added a flexbox action row that keeps the “Verify connection” button (when available) beside the “Open activity log” link so all verification actions live in the same panel with preserved `data-job-*` hooks.
+
 ## Verification
 - Stage 1: Attempted `PYTHONPATH=. pytest tests -q` to make sure template imports remain healthy, but the run timed out in this environment; manual UI smoke test will be performed once the dev server is accessible.
 - Stage 2: Visual diffed the updated template/CSS to ensure summaries render even when `dedalus_verify_job` is missing; UI verification will occur alongside a future manual browser pass.
+- Stage 3: Inspected the rendered HTML structure to confirm the verify button + log link share the new action row and that job-status HTMX attributes remained untouched; browser validation still pending.

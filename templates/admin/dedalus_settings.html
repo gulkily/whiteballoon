@@ -54,33 +54,46 @@
           <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
         {% endif %}
         {% if has_key %}
-          <div class="peer-card__statuses">
-            {% with
-              job = dedalus_verify_job,
-              label = "Dedalus verification",
-              description = "Manual verification status",
-              action = "dedalus-verify",
-              target = "dedalus",
-              target_field = "scope",
-              empty_message = "No verification jobs yet."
-            %}
-              {% include "partials/realtime_status.html" %}
-            {% endwith %}
+          <div class="dedalus-status__timeline">
+            <div class="dedalus-status__timeline-head">
+              <p class="dedalus-status__summary-label">Realtime updates</p>
+              <p class="muted small-text">Manual verification jobs and background saves appear below.</p>
+            </div>
+            <div class="peer-card__statuses dedalus-status__timeline-card">
+              {% with
+                job = dedalus_verify_job,
+                label = "Dedalus verification",
+                description = "Manual verification status",
+                action = "dedalus-verify",
+                target = "dedalus",
+                target_field = "scope",
+                empty_message = "No verification jobs yet."
+              %}
+                {% include "partials/realtime_status.html" %}
+              {% endwith %}
+            </div>
           </div>
-          <form method="get">
-            <input type="hidden" name="verify" value="1" />
-            <button
-              type="submit"
-              class="button button--secondary"
-              data-job-control
-              data-job-action="dedalus-verify"
-              data-job-target="dedalus"
-              data-job-target-field="scope"
-            >
-              Verify connection
-            </button>
-          </form>
+        {% else %}
+          <p class="muted small-text">Store a Dedalus API key to enable manual verification jobs.</p>
         {% endif %}
+        <div class="dedalus-status__actions">
+          {% if has_key %}
+            <form method="get">
+              <input type="hidden" name="verify" value="1" />
+              <button
+                type="submit"
+                class="button button--secondary"
+                data-job-control
+                data-job-action="dedalus-verify"
+                data-job-target="dedalus"
+                data-job-target-field="scope"
+              >
+                Verify connection
+              </button>
+            </form>
+          {% endif %}
+          <a class="button button--ghost" href="/admin/dedalus/logs">Open activity log</a>
+        </div>
       </div>
     </section>
     <section class="dedalus-panel card stack dedalus-panel--keys">
@@ -134,6 +147,5 @@
       </div>
     </section>
   </div>
-  <p class="small-text">Need to audit interactions? <a href="/admin/dedalus/logs">Open the Dedalus activity log</a>.</p>
 </section>
 {% endblock %}
