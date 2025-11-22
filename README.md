@@ -65,6 +65,8 @@ Requires Python 3.10+.
 > **Invite links**: By default invite links use the incoming request origin. Set `SITE_URL` in `.env` to provide a fallback host for CLI usage or non-HTTP contexts.
 >
 > **Sync Control Center**: After logging in as an administrator, open `/admin/sync-control` (also linked from `/sync/public`) to edit peers, run push/pull jobs, and monitor activity without leaving the browser.
+>
+> **Frontend skins**: Whenever you change files under `static/skins/` or adjust shared design tokens, run `./wb skins build` (or `./wb skins watch` during development) so the hashed bundles in `static/build/skins/` stay in sync. Skipping the rebuild leaves browsers serving the previous CSS and makes refreshed layouts look broken.
 
 ## Manual sync bundles & signatures
 
