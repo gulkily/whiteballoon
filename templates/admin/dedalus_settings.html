@@ -18,90 +18,101 @@
     <div class="alert {{ 'alert--success' if status == 'success' else 'alert--info' if status == 'info' else 'alert--error' }}">{{ message }}</div>
   {% endif %}
 
-  <div class="card stack">
-    <p class="muted small-text">Paste the API key provided by Dedalus Labs. It will be stored in <code>.env</code> under <code>DEDALUS_API_KEY</code>.</p>
-    <div class="stack">
-      <p><strong>{{ 'A Dedalus API key is stored.' if has_key else 'No API key stored yet.' }}</strong></p>
-      {% if has_key and last_verified %}
-        <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
-      {% endif %}
-      {% if verification_message is not none %}
-        <div class="alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
-      {% endif %}
-      {% if has_key %}
-        <div class="peer-card__statuses">
-          {% with
-            job = dedalus_verify_job,
-            label = "Dedalus verification",
-            description = "Manual verification status",
-            action = "dedalus-verify",
-            target = "dedalus",
-            target_field = "scope",
-            empty_message = "No verification jobs yet."
-          %}
-            {% include "partials/realtime_status.html" %}
-          {% endwith %}
-        </div>
-      {% endif %}
-      {% if has_key %}
-        <form method="get">
-          <input type="hidden" name="verify" value="1" />
+  <div class="dedalus-admin__grid">
+    <section class="dedalus-panel card stack dedalus-panel--status">
+      <header class="dedalus-panel__header stack">
+        <p class="muted small-text">Verification status</p>
+        <h2>Connection health</h2>
+        <p class="muted small-text">Check whether the stored key is communicating with Dedalus Labs.</p>
+      </header>
+      <div class="stack">
+        <p><strong>{{ 'A Dedalus API key is stored.' if has_key else 'No API key stored yet.' }}</strong></p>
+        {% if has_key and last_verified %}
+          <p class="muted small-text" title="{{ last_verified_raw }}">Last verified {{ last_verified }}</p>
+        {% endif %}
+        {% if verification_message is not none %}
+          <div class="alert {{ 'alert--success' if verification_ok else 'alert--error' }}">{{ verification_message }}</div>
+        {% endif %}
+        {% if has_key %}
+          <div class="peer-card__statuses">
+            {% with
+              job = dedalus_verify_job,
+              label = "Dedalus verification",
+              description = "Manual verification status",
+              action = "dedalus-verify",
+              target = "dedalus",
+              target_field = "scope",
+              empty_message = "No verification jobs yet."
+            %}
+              {% include "partials/realtime_status.html" %}
+            {% endwith %}
+          </div>
+          <form method="get">
+            <input type="hidden" name="verify" value="1" />
+            <button
+              type="submit"
+              class="button button--secondary"
+              data-job-control
+              data-job-action="dedalus-verify"
+              data-job-target="dedalus"
+              data-job-target-field="scope"
+            >
+              Verify connection
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+    <section class="dedalus-panel card stack dedalus-panel--keys">
+      <header class="dedalus-panel__header stack">
+        <p class="muted small-text">API key management</p>
+        <h2>Mutual Aid Copilot key</h2>
+        <p class="muted small-text">Paste the key provided by Dedalus Labs. It is stored in <code>.env</code> under <code>DEDALUS_API_KEY</code>.</p>
+      </header>
+      <form class="stack" method="post">
+        <label class="stack" for="dedalus-api-key">
+          <span>Dedalus API key</span>
+          <input
+            id="dedalus-api-key"
+            type="password"
+            name="dedalus_api_key"
+            value=""
+            placeholder="sk_live_..."
+            autocomplete="off"
+          />
+        </label>
+        <p class="muted small-text">This key is required for connecting the Mutual Aid Copilot to Dedalus Labs. Leave blank to keep the current key.</p>
+        <label class="checkbox">
+          <input type="checkbox" name="clear_key" value="1" />
+          Remove stored key
+        </label>
+        <div>
           <button
             type="submit"
-            class="button button--secondary"
+            class="button"
             data-job-control
-            data-job-action="dedalus-verify"
+            data-job-action="dedalus-save"
             data-job-target="dedalus"
             data-job-target-field="scope"
           >
-            Verify connection
+            Save API key
           </button>
-        </form>
-      {% endif %}
-    </div>
-    <form class="stack" method="post">
-      <label class="stack" for="dedalus-api-key">
-        <span>Dedalus API key</span>
-        <input
-          id="dedalus-api-key"
-          type="password"
-          name="dedalus_api_key"
-          value=""
-          placeholder="sk_live_..."
-          autocomplete="off"
-        />
-      </label>
-      <p class="muted small-text">This key is required for connecting the Mutual Aid Copilot to Dedalus Labs. Leave blank to keep the current key.</p>
-      <label class="checkbox">
-        <input type="checkbox" name="clear_key" value="1" />
-        Remove stored key
-      </label>
-      <div>
-        <button
-          type="submit"
-          class="button"
-          data-job-control
-          data-job-action="dedalus-save"
-          data-job-target="dedalus"
-          data-job-target-field="scope"
-        >
-          Save API key
-        </button>
+        </div>
+      </form>
+      <div class="peer-card__statuses">
+        {% with
+          job = dedalus_save_job,
+          label = "Save API key",
+          description = "Verification after saving key",
+          action = "dedalus-save",
+          target = "dedalus",
+          target_field = "scope",
+          empty_message = "No save jobs yet."
+        %}
+          {% include "partials/realtime_status.html" %}
+        {% endwith %}
       </div>
-    </form>
-    <div class="peer-card__statuses">
-      {% with
-        job = dedalus_save_job,
-        label = "Save API key",
-        description = "Verification after saving key",
-        action = "dedalus-save",
-        target = "dedalus",
-        target_field = "scope",
-        empty_message = "No save jobs yet."
-      %}
-        {% include "partials/realtime_status.html" %}
-      {% endwith %}
-    </div>
+    </section>
   </div>
   <p class="small-text">Need to audit interactions? <a href="/admin/dedalus/logs">Open the Dedalus activity log</a>.</p>
 </section>
