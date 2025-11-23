@@ -17,7 +17,3 @@ better login flow:
 		sanitize user inputs
 		use user inputs as part of prompt
 
-As admin, I want to see realtime or at least poll-updated status 
-wherever I click a button that kicks off a process, such as Push/Pull, test dedalus
-connection, etc. Please use FEATURE_DEVELOPMENT_PROCESS.md to 
-just write a document standardizing how we do this.
