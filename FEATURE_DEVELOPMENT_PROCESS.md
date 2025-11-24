@@ -55,7 +55,8 @@ Four-step process for feature development with optional solution assessment.
 - Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work.
 - Complete stages atomically (<2 hours each)
 - Manual smoke verification is sufficient for each stage; do not write automated tests.
-- Update the Step 4 implementation summary document after every stage and commit those updates as you go.
+- Update the Step 4 implementation summary document immediately after finishing each stage (document what shipped + how it was verified).
+- Commit the code + documentation for each stage (including the Step 4 summary update) before starting the next stage.
 - Conclude Step 4 by finalizing the implementation summary document.
 
 **Completion Criteria**:
