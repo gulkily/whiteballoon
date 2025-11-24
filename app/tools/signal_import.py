@@ -20,6 +20,7 @@ from sqlmodel import Session, select
 
 from app.db import get_engine
 from app.models import HelpRequest, RequestComment, User, UserAttribute
+from app.services import request_chat_search_service
 
 SIGNAL_SOURCE_TAG = "signal_group_seed"
 IMPORT_STATE_PATH = Path("storage/signal_import_state.json")
@@ -609,6 +610,8 @@ def ingest_messages(export: SignalExport, *, dry_run: bool) -> MessageImportSumm
 
         if not dry_run:
             session.commit()
+            if request.id:
+                request_chat_search_service.refresh_chat_index(session, request.id)
 
         return MessageImportSummary(
             total_messages=len(export.messages),

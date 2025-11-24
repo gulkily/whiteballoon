@@ -35,6 +35,7 @@ from app.services import (
     auth_service,
     invite_graph_service,
     invite_map_cache_service,
+    request_chat_search_service,
     request_comment_service,
     user_attribute_service,
     vouch_service,
@@ -189,6 +190,11 @@ async def create_request_comment(
 
     db.commit()
     db.refresh(comment)
+
+    try:
+        request_chat_search_service.refresh_chat_index(db, help_request.id)
+    except Exception:  # pragma: no cover - best-effort cache update
+        logger.warning("Failed to refresh chat search index for request %s", help_request.id, exc_info=True)
 
     comment_payload = request_comment_service.serialize_comment(comment, viewer)
     fragment = templates.get_template("requests/partials/comment.html").render(
