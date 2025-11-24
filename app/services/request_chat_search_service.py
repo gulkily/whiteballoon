@@ -6,7 +6,7 @@ import re
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Callable, Iterable, Sequence
 
 from sqlmodel import Session
 
@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 CACHE_DIR = Path("storage/cache/request_chats")
 TOKEN_PATTERN = re.compile(r"[a-z0-9@#]+")
 DEFAULT_RESULT_LIMIT = 20
+
+ClassifierFn = Callable[[int, str], list[str]]
 
 TOPIC_KEYWORDS: dict[str, tuple[str, ...]] = {
     "housing": ("housing", "apartment", "apt", "lease", "room", "shelter"),
@@ -36,6 +38,7 @@ class ChatSearchEntry:
     body: str
     tokens: list[str]
     topics: list[str]
+    ai_topics: list[str]
 
 
 @dataclass
@@ -55,11 +58,17 @@ class ChatSearchResult:
     created_at: str | None
     body: str
     topics: list[str]
+    ai_topics: list[str]
     matched_tokens: list[str]
     anchor: str
 
 
-def refresh_chat_index(session: Session, help_request_id: int) -> ChatSearchIndex:
+def refresh_chat_index(
+    session: Session,
+    help_request_id: int,
+    *,
+    extra_classifier: ClassifierFn | None = None,
+) -> ChatSearchIndex:
     """Rebuild and persist the chat search index for a request."""
     rows, _ = request_comment_service.list_comments(session, help_request_id)
     entries: list[ChatSearchEntry] = []
@@ -70,6 +79,7 @@ def refresh_chat_index(session: Session, help_request_id: int) -> ChatSearchInde
         lowered = normalized_body.lower()
         tokens = _extract_tokens(lowered)
         topics = _detect_topics(lowered)
+        ai_topics = extra_classifier(comment.id, normalized_body) if extra_classifier else []
         created_at_iso = comment.created_at.isoformat() if comment.created_at else None
         entry = ChatSearchEntry(
             comment_id=comment.id,
@@ -79,6 +89,7 @@ def refresh_chat_index(session: Session, help_request_id: int) -> ChatSearchInde
             body=normalized_body,
             tokens=tokens,
             topics=topics,
+            ai_topics=ai_topics,
         )
         entries.append(entry)
         participant_terms[str(user.id)] = _participant_terms(user.username)
@@ -100,7 +111,21 @@ def load_chat_index(help_request_id: int) -> ChatSearchIndex | None:
     if not cache_path.exists():
         return None
     data = json.loads(cache_path.read_text())
-    entries = [ChatSearchEntry(**entry) for entry in data.get("entries", [])]
+    entries_payload = data.get("entries", [])
+    entries: list[ChatSearchEntry] = []
+    for entry in entries_payload:
+        entries.append(
+            ChatSearchEntry(
+                comment_id=entry["comment_id"],
+                user_id=entry["user_id"],
+                username=entry["username"],
+                created_at=entry.get("created_at"),
+                body=entry["body"],
+                tokens=entry.get("tokens", []),
+                topics=entry.get("topics", []),
+                ai_topics=entry.get("ai_topics", []),
+            )
+        )
     return ChatSearchIndex(
         request_id=data["request_id"],
         generated_at=data["generated_at"],
@@ -135,7 +160,8 @@ def search_chat(
     for entry in index.entries:
         if participant_filter and entry.user_id not in participant_filter:
             continue
-        if topic_filter and not (topic_filter & set(entry.topics)):
+        candidate_topics = set(entry.topics) | set(entry.ai_topics)
+        if topic_filter and not (topic_filter & candidate_topics):
             continue
         matched_tokens = _match_tokens(entry.tokens, query_tokens)
         if query_tokens and not matched_tokens:
@@ -147,6 +173,7 @@ def search_chat(
             created_at=entry.created_at,
             body=entry.body,
             topics=entry.topics,
+            ai_topics=entry.ai_topics,
             matched_tokens=matched_tokens,
             anchor=f"comment-{entry.comment_id}",
         )

@@ -53,6 +53,7 @@ DEV_TOOL = SCRIPT_DIR / "tools" / "dev.py"
 DEDALUS_POC = SCRIPT_DIR / "tools" / "dedalus_cli_verification.py"
 DEDALUS_LOG_MAINT = SCRIPT_DIR / "tools" / "dedalus_log_maintenance.py"
 SIGNAL_IMPORT_MODULE = "app.tools.signal_import"
+CHAT_INDEX_MODULE = "app.tools.request_chat_index"
 
 
 def python_in_venv() -> Path:
@@ -300,6 +301,28 @@ def cmd_import_signal_group(args: list[str]) -> int:
     return _run_process(cmd)
 
 
+def cmd_chat_index(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="wb chat-index",
+        description="Rebuild request chat caches and optionally run LLM tagging",
+    )
+    if not args or args[0] in {"-h", "--help", "help"}:
+        parser.print_help()
+        return 0
+
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+
+    cmd = [str(vpy), "-m", CHAT_INDEX_MODULE, *args]
+    info("Reindexing request chat caches")
+    return _run_process(cmd)
+
+
 def cmd_dedalus(args: list[str]) -> int:
     if not args or args[0] in {"-h", "--help", "help"}:
         print("Usage: wb dedalus <subcommand> [options]")
@@ -460,6 +483,7 @@ def print_help() -> None:
     print("  create-admin USER     Promote a user to admin")
     print("  create-invite [opts]  Generate invite tokens")
     print("  import-signal-group   Import a Signal Desktop group export (local seed)")
+    print("  chat-index [opts]     Reindex request chats + optional LLM tagging")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
@@ -487,6 +511,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("session")
     subparsers.add_parser("dedalus")
     subparsers.add_parser("import-signal-group")
+    subparsers.add_parser("chat-index")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
@@ -518,6 +543,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.command == "import-signal-group":
         return cmd_import_signal_group(passthrough)
+
+    if ns.command == "chat-index":
+        return cmd_chat_index(passthrough)
 
     # Known commands path
     if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "sync", "skins"}:
