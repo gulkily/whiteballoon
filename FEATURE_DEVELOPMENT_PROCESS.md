@@ -11,10 +11,10 @@ Four-step process for feature development with optional solution assessment.
 **Format**: Ultra-concise comparison document (≤1 page) in `docs/plans/`
 **Filename**: `{feature_name}_solution_assessment.md`
 - Problem statement (1 sentence)
-- 2-4 solution options with key pros/cons (bullet points only)
+- ≥2 solution options, each tagged sequentially as Option A/B/C/etc., with key pros/cons (bullet points only)
 - Clear recommendation with brief reasoning
 
-**Avoid**: Long explanations, implementation details, >4 options, verbose prose
+**Avoid**: Long explanations, implementation details, verbose prose
 
 ---
 
