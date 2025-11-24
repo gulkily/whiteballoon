@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Annotated, Optional
 from uuid import uuid4
@@ -11,6 +12,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     Request,
     Response,
     UploadFile,
@@ -26,7 +28,7 @@ from app.dependencies import (
     require_authenticated_user,
     require_session_user,
 )
-from app.models import AuthenticationRequest, HelpRequest, RequestComment, User, UserSession
+from app.models import AuthenticationRequest, HelpRequest, RequestComment, User, UserAttribute, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
@@ -130,9 +132,10 @@ def request_detail(
     request_id: int,
     db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
+    page: int = Query(1, ge=1),
 ) -> Response:
     help_request = request_services.get_request_by_id(db, request_id=request_id)
-    context = _build_request_detail_context(request, db, session_user, help_request)
+    context = _build_request_detail_context(request, db, session_user, help_request, page=page)
     return templates.TemplateResponse("requests/detail.html", context)
 
 
@@ -309,6 +312,7 @@ def _build_request_detail_context(
     *,
     comment_form_errors: Optional[list[str]] = None,
     comment_form_body: str = "",
+    page: int = 1,
 ) -> dict[str, object]:
     viewer = session_user.user
     session_record = session_user.session
@@ -328,10 +332,42 @@ def _build_request_detail_context(
     readonly = not session_record.is_fully_authenticated
     session_role = describe_session_role(viewer, session_record)
 
-    comment_rows = request_comment_service.list_comments(db, help_request_id=help_request.id)
-    comments = [request_comment_service.serialize_comment(comment, author) for comment, author in comment_rows]
+    # Pagination
+    comments_per_page = request_comment_service.DEFAULT_COMMENTS_PER_PAGE
+    offset = (page - 1) * comments_per_page
+    comment_rows, total_comments = request_comment_service.list_comments(
+        db, help_request_id=help_request.id, limit=comments_per_page, offset=offset
+    )
+    attr_key = _signal_display_attr_key(help_request)
+    display_names = _load_signal_display_names(db, comment_rows, attr_key)
+    comments = [
+        request_comment_service.serialize_comment(
+            comment,
+            author,
+            display_name=display_names.get(author.id),
+        )
+        for comment, author in comment_rows
+    ]
     can_moderate = viewer.is_admin
     can_toggle_sync_scope = viewer.is_admin
+
+    # Calculate pagination info
+    total_pages = max(1, (total_comments + comments_per_page - 1) // comments_per_page) if total_comments else 1
+    current_page = min(page, total_pages) if total_pages else 1
+    
+    def _page_url(target_page: int) -> str:
+        url = request.url.include_query_params(page=target_page)
+        return str(url)
+    
+    pagination = {
+        "has_prev": current_page > 1,
+        "has_next": current_page < total_pages,
+        "prev_url": _page_url(current_page - 1) if current_page > 1 else None,
+        "next_url": _page_url(current_page + 1) if current_page < total_pages else None,
+        "current_page": current_page,
+        "total_pages": total_pages,
+        "total_comments": total_comments,
+    }
 
     return {
         "request": request,
@@ -350,7 +386,47 @@ def _build_request_detail_context(
         "comment_form_body": comment_form_body,
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
         "request_id": help_request.id,
+        "pagination": pagination,
     }
+
+
+_SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify(value: str) -> str:
+    return _SLUG_PATTERN.sub("-", value.strip().lower()).strip("-")
+
+
+def _signal_display_attr_key(help_request: HelpRequest) -> Optional[str]:
+    title = (help_request.title or "").strip()
+    if not title.startswith("[Signal]"):
+        return None
+    _, _, group_name = title.partition("]")
+    group_name = group_name.strip()
+    if not group_name:
+        return None
+    slug = _slugify(group_name)
+    if not slug:
+        return None
+    return f"signal_display_name:{slug}"
+
+
+def _load_signal_display_names(
+    db: Session,
+    comment_rows: list[tuple[RequestComment, User]],
+    attr_key: Optional[str],
+) -> dict[int, str]:
+    if not attr_key:
+        return {}
+    user_ids = {author.id for _, author in comment_rows}
+    if not user_ids:
+        return {}
+    rows = db.exec(
+        select(UserAttribute.user_id, UserAttribute.value)
+        .where(UserAttribute.user_id.in_(user_ids))
+        .where(UserAttribute.key == attr_key)
+    ).all()
+    return {user_id: value for user_id, value in rows if value}
 
 
 def _validate_contact_email(value: str) -> Optional[str]:

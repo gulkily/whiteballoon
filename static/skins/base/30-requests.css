@@ -16,6 +16,13 @@
   overflow: hidden;
 }
 
+.request-item p {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .request-item::before {
   content: "";
   position: absolute;
@@ -174,6 +181,10 @@
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   background: var(--color-card);
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .request-comment__meta {
@@ -182,22 +193,31 @@
   gap: 0.75rem;
   font-size: 0.9rem;
   color: var(--color-muted);
+  flex-wrap: wrap;
 }
 
 .request-comment__meta-right {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .request-comment__author {
   font-weight: 600;
   color: var(--color-text);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 .request-comment__body {
   margin: 0.5rem 0 0;
   white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .request-comment__delete {
@@ -232,4 +252,20 @@
 
 .sync-scope-toggle .button {
   padding: 0.35rem 0.75rem;
+}
+
+.request-comments__pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.request-comments__pagination-actions {
+  display: flex;
+  gap: 0.5rem;
 }

@@ -52,6 +52,7 @@ VENV_DIR = SCRIPT_DIR / ".venv"
 DEV_TOOL = SCRIPT_DIR / "tools" / "dev.py"
 DEDALUS_POC = SCRIPT_DIR / "tools" / "dedalus_cli_verification.py"
 DEDALUS_LOG_MAINT = SCRIPT_DIR / "tools" / "dedalus_log_maintenance.py"
+SIGNAL_IMPORT_MODULE = "app.tools.signal_import"
 
 
 def python_in_venv() -> Path:
@@ -237,6 +238,68 @@ def cmd_hub(args: list[str]) -> int:
     return _run_process(cmd, env=env, graceful_interrupt=True, interrupt_message="Hub stopped")
 
 
+def cmd_import_signal_group(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="wb import-signal-group",
+        description="Import a Signal Desktop group export into the local database",
+    )
+    parser.add_argument(
+        "--export-path",
+        required=True,
+        help="Path to the folder (on Windows or /mnt/c) created by signal-export",
+    )
+    parser.add_argument(
+        "--group-name",
+        help="Optional friendly name override for the group",
+    )
+    parser.add_argument(
+        "--log-path",
+        default="signal_group_import.log",
+        help="Where to write the import log (default: signal_group_import.log)",
+    )
+    parser.add_argument(
+        "--skip-attachments",
+        action="store_true",
+        help="Skip copying attachment metadata while seeding",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Parse and log without writing to the database",
+    )
+    if not args or args[0] in {"-h", "--help", "help"}:
+        parser.print_help()
+        return 0
+
+    ns = parser.parse_args(args)
+
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+
+    cmd = [
+        str(vpy),
+        "-m",
+        SIGNAL_IMPORT_MODULE,
+        "--export-path",
+        ns.export_path,
+        "--log-path",
+        ns.log_path,
+    ]
+    if ns.group_name:
+        cmd.extend(["--group-name", ns.group_name])
+    if ns.skip_attachments:
+        cmd.append("--skip-attachments")
+    if ns.dry_run:
+        cmd.append("--dry-run")
+    info("Launching Signal group importer (stub)")
+    return _run_process(cmd)
+
+
 def cmd_dedalus(args: list[str]) -> int:
     if not args or args[0] in {"-h", "--help", "help"}:
         print("Usage: wb dedalus <subcommand> [options]")
@@ -396,6 +459,7 @@ def print_help() -> None:
     print("  init-db               Initialize the SQLite database")
     print("  create-admin USER     Promote a user to admin")
     print("  create-invite [opts]  Generate invite tokens")
+    print("  import-signal-group   Import a Signal Desktop group export (local seed)")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
@@ -422,6 +486,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("create-invite")
     subparsers.add_parser("session")
     subparsers.add_parser("dedalus")
+    subparsers.add_parser("import-signal-group")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
@@ -450,6 +515,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.command == "update-env":
         return cmd_update_env(passthrough)
+
+    if ns.command == "import-signal-group":
+        return cmd_import_signal_group(passthrough)
 
     # Known commands path
     if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "sync", "skins"}:

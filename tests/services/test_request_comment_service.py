@@ -45,8 +45,9 @@ def test_add_and_list_comments(session: Session) -> None:
 
     assert comment.body == "First!"
 
-    rows = request_comment_service.list_comments(session, help_request_id=request.id)
+    rows, total_count = request_comment_service.list_comments(session, help_request_id=request.id)
     assert len(rows) == 1
+    assert total_count == 1
     stored_comment, stored_user = rows[0]
     assert stored_comment.id == comment.id
     assert stored_user.id == author.id
