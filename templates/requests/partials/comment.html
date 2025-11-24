@@ -1,4 +1,4 @@
-<li class="request-comment" data-comment-id="{{ comment.id }}">
+<li class="request-comment" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
   <div class="request-comment__meta">
     {% if comment.display_name %}
       <a class="request-comment__author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">

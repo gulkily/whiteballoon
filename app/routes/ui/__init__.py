@@ -140,6 +140,44 @@ def request_detail(
     return templates.TemplateResponse("requests/detail.html", context)
 
 
+@router.get("/requests/{request_id}/chat-search")
+def request_chat_search(
+    request_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    q: str = Query("", max_length=200),
+    participant_id: list[int] | None = Query(None, alias="participant"),
+    topic: list[str] | None = Query(None),
+    limit: int = Query(request_chat_search_service.DEFAULT_RESULT_LIMIT, ge=1, le=100),
+) -> Response:
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    query = (q or "").strip()
+    participant_ids = [pid for pid in (participant_id or []) if pid]
+    topic_filters = [value.strip().lower() for value in (topic or []) if value and value.strip()]
+
+    index, matches = request_chat_search_service.search_chat(
+        db,
+        help_request.id,
+        query=query,
+        participant_ids=participant_ids,
+        topics=topic_filters,
+        limit=limit,
+    )
+
+    payload = {
+        "request_id": help_request.id,
+        "query": query,
+        "results": [request_chat_search_service.serialize_result(result) for result in matches],
+        "meta": {
+            "generated_at": index.generated_at,
+            "total_entries": index.entry_count,
+            "participants": index.participants,
+            "limit": limit,
+        },
+    }
+    return JSONResponse(payload)
+
+
 @router.post("/requests/{request_id}/comments")
 async def create_request_comment(
     request: Request,
