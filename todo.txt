@@ -17,3 +17,6 @@ better login flow:
 		sanitize user inputs
 		use user inputs as part of prompt
 
+add ability to promote a comment to a request
+
+sub-comments
