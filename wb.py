@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import errno
 import io
 import json
 import os
@@ -16,6 +17,7 @@ import sys
 from pathlib import Path
 
 from app.env import ensure_env_loaded
+
 ensure_env_loaded()
 
 from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
@@ -54,6 +56,7 @@ DEDALUS_POC = SCRIPT_DIR / "tools" / "dedalus_cli_verification.py"
 DEDALUS_LOG_MAINT = SCRIPT_DIR / "tools" / "dedalus_log_maintenance.py"
 SIGNAL_IMPORT_MODULE = "app.tools.signal_import"
 CHAT_INDEX_MODULE = "app.tools.request_chat_index"
+CHAT_EMBED_MODULE = "app.tools.request_chat_embeddings"
 
 
 def python_in_venv() -> Path:
@@ -323,6 +326,28 @@ def cmd_chat_index(args: list[str]) -> int:
     return _run_process(cmd)
 
 
+def cmd_chat_embed(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="wb chat-embed",
+        description="Generate embedding caches for request chats",
+    )
+    if not args or args[0] in {"-h", "--help", "help"}:
+        parser.print_help()
+        return 0
+
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+
+    cmd = [str(vpy), "-m", CHAT_EMBED_MODULE, *args]
+    info("Generating semantic chat embeddings")
+    return _run_process(cmd)
+
+
 def cmd_dedalus(args: list[str]) -> int:
     if not args or args[0] in {"-h", "--help", "help"}:
         print("Usage: wb dedalus <subcommand> [options]")
@@ -421,17 +446,29 @@ def cmd_known(known_cmd: str, passthrough: list[str], *, graceful_interrupt: boo
     return dev_invoke(vpy, known_cmd, *passthrough, graceful_interrupt=graceful_interrupt, interrupt_message=interrupt_message)
 
 
+def _running_in_wsl() -> bool:
+    if os.environ.get("WSL_DISTRO_NAME"):
+        return True
+    try:
+        return "microsoft" in Path("/proc/sys/kernel/osrelease").read_text().lower()
+    except FileNotFoundError:
+        return False
+
+
 def _parse_host_port(args: list[str]) -> tuple[str, int]:
-    host = "127.0.0.1"
+    host: str | None = None
+    host_explicit = False
     port = 8000
     it = iter(range(len(args)))
     for i in it:
         a = args[i]
         if a == "--host" and i + 1 < len(args):
             host = args[i + 1]
+            host_explicit = True
             next(it, None)
         elif a.startswith("--host="):
             host = a.split("=", 1)[1]
+            host_explicit = True
         elif a == "--port" and i + 1 < len(args):
             try:
                 port = int(args[i + 1])
@@ -443,32 +480,53 @@ def _parse_host_port(args: list[str]) -> tuple[str, int]:
                 port = int(a.split("=", 1)[1])
             except ValueError:
                 pass
+    if not host_explicit or not host:
+        host = "0.0.0.0" if _running_in_wsl() else "127.0.0.1"
     return host, port
 
 
-def _port_available(host: str, port: int) -> bool:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+def _port_available(host: str, port: int) -> tuple[bool, OSError | None]:
+    try:
+        addrinfo = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except OSError as exc:
+        return False, exc
+    last_exc: OSError | None = None
+    for family, socktype, proto, _, sockaddr in addrinfo:
         try:
-            s.bind((host, port))
-            return True
-        except OSError:
-            return False
+            with socket.socket(family, socktype, proto) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind(sockaddr)
+            return True, None
+        except OSError as exc:
+            last_exc = exc
+    return False, last_exc
 
 
 def preflight_runserver(passthrough: list[str]) -> bool:
     host, port = _parse_host_port(passthrough)
-    if _port_available(host, port):
+    available, exc = _port_available(host, port)
+    if available:
         return True
-    warn(f"Address already in use: {host}:{port}")
-    print("Try one of the following:")
-    print(f"  - Choose a different port: wb runserver --port {port + 1}")
-    if platform.system() == "Windows":
-        print(f"  - Find process: netstat -ano ^| findstr :{port}")
-        print("  - Then terminate via Task Manager or: taskkill /PID <pid> /F")
-    else:
-        print(f"  - Find process: lsof -i :{port} -sTCP:LISTEN")
-        print(f"  - Kill process: fuser -k {port}/tcp")
+    if exc is None:
+        warn(f"Unable to bind {host}:{port} for an unknown reason")
+        return False
+    if exc.errno == errno.EADDRINUSE:
+        warn(f"Address already in use: {host}:{port}")
+        print("Try one of the following:")
+        print(f"  - Choose a different port: wb runserver --port {port + 1}")
+        if _running_in_wsl():
+            print(f"  - (WSL) Find process: lsof -i :{port} -sTCP:LISTEN")
+            print(f"  - (WSL) Kill process: fuser -k {port}/tcp")
+            print(f"  - (Windows) Find process: netstat -ano ^| findstr :{port}")
+            print("  - (Windows) Kill: taskkill /PID <pid> /F")
+        elif platform.system() == "Windows":
+            print(f"  - Find process: netstat -ano ^| findstr :{port}")
+            print("  - Then terminate via Task Manager or: taskkill /PID <pid> /F")
+        else:
+            print(f"  - Find process: lsof -i :{port} -sTCP:LISTEN")
+            print(f"  - Kill process: fuser -k {port}/tcp")
+        return False
+    warn(f"Failed to check {host}:{port}: {exc}")
     return False
 
 
@@ -484,6 +542,7 @@ def print_help() -> None:
     print("  create-invite [opts]  Generate invite tokens")
     print("  import-signal-group   Import a Signal Desktop group export (local seed)")
     print("  chat-index [opts]     Reindex request chats + optional LLM tagging")
+    print("  chat-embed [opts]     Build semantic embeddings for request chats")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
@@ -512,6 +571,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("dedalus")
     subparsers.add_parser("import-signal-group")
     subparsers.add_parser("chat-index")
+    subparsers.add_parser("chat-embed")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
@@ -546,6 +606,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.command == "chat-index":
         return cmd_chat_index(passthrough)
+    if ns.command == "chat-embed":
+        return cmd_chat_embed(passthrough)
 
     # Known commands path
     if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "sync", "skins"}:

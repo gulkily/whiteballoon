@@ -126,7 +126,7 @@
       {% if not chat_search.has_query and related_chat_suggestions %}
         <div class="request-chat-suggestions stack">
           <h3 class="h6">Related chat mentions</h3>
-          <p class="muted small-text">We found nearby requests mentioning similar people or topics.</p>
+          <p class="muted small-text">We found nearby requests mentioning similar people, topics, or overall phrasing.</p>
           <ul class="stack" data-chat-suggestions>
             {% for suggestion in related_chat_suggestions %}
               <li class="card request-chat-suggestions__item">
@@ -134,6 +134,14 @@
                   <a href="/requests/{{ suggestion.request_id }}" class="request-chat-suggestions__link">Request #{{ suggestion.request_id }} · {{ suggestion.request.title }}</a>
                   {% if suggestion.request.status %}
                     <span class="meta-chip meta-chip--small meta-chip--status">{{ suggestion.request.status | title }}</span>
+                  {% endif %}
+                  {% if suggestion.match_type == 'semantic' %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">Semantic match</span>
+                  {% elif suggestion.match_type == 'hybrid' %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">Hybrid match</span>
+                  {% endif %}
+                  {% if suggestion.embedding_similarity and suggestion.embedding_similarity > 0 %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">≈{{ (suggestion.embedding_similarity * 100) | round(0) }}% similar</span>
                   {% endif %}
                 </div>
                 <p class="request-chat-suggestions__summary">
