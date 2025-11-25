@@ -168,6 +168,19 @@
   flex-wrap: wrap;
 }
 
+.profile-recent-comment__link {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.profile-recent-comment__link:hover,
+.profile-recent-comment__link:focus-visible {
+  color: var(--color-accent);
+}
+
 .profile-recent-comment__request {
   font-weight: 600;
   color: var(--color-text);
