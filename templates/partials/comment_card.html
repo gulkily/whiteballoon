@@ -1,32 +1,69 @@
-
-{% set classes = classes or '' %}
-{% set scope_label = scope_label or comment.sync_scope %}
-<li class="comment-card {{ classes }}" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
-  <div class="comment-card__meta">
-    <div class="comment-card__identity">
-      {% if comment.display_name %}
-        <a class="comment-card__author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ comment.display_name }}</a>
-      {% else %}
-        <a class="comment-card__author" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
-      {% endif %}
+{% set variant = variant or 'request' %}
+{% if variant == 'request' %}
+<li class="request-comment" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
+  <div class="request-comment__meta">
+    {% if comment.display_name %}
+      <a class="request-comment__author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">
+        {{ comment.display_name }}
+      </a>
+    {% else %}
+      <a class="request-comment__author" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
+    {% endif %}
+    <div class="request-comment__meta-right">
+      <span class="request-comment__scope">{{ comment.sync_scope | title }}</span>
       {% if comment.created_at %}
-        <a class="comment-card__time" href="#comment-{{ comment.id }}">
-          <time datetime="{{ comment.created_at_iso }}">{{ comment.created_at | friendly_time }}</time>
-        </a>
-      {% endif %}
-    </div>
-    <div class="comment-card__meta-right">
-      {% if show_scope %}
-        <span class="comment-card__scope">{{ scope_label | title }}</span>
+        <time datetime="{{ comment.created_at_iso }}" class="request-comment__time">{{ comment.created_at | friendly_time }}</time>
       {% endif %}
       {% if actions %}
-        <div class="comment-card__actions">
-          {% for action in actions %}
-            {{ action|safe }}
-          {% endfor %}
-        </div>
+        {% for action in actions %}
+          {{ action | safe }}
+        {% endfor %}
       {% endif %}
     </div>
   </div>
-  <p class="comment-card__body">{{ comment.body }}</p>
+  <p class="request-comment__body">{{ comment.body }}</p>
 </li>
+{% elif variant == 'profile' %}
+<li class="profile-recent-comment" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
+  <div class="profile-recent-comment__meta">
+    {% if comment.display_name %}
+      <a class="profile-recent-comment__request" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ comment.display_name }}</a>
+    {% else %}
+      <a class="profile-recent-comment__request" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
+    {% endif %}
+    {% if comment.created_at %}
+      <a href="{{ comment.comment_url }}" class="profile-recent-comment__time-link">
+        <time datetime="{{ comment.created_at_iso }}" class="profile-recent-comment__time">{{ comment.created_at | friendly_time }}</time>
+      </a>
+    {% endif %}
+  </div>
+  <p class="profile-recent-comment__body">{{ comment.body }}</p>
+  <span class="meta-chip meta-chip--small">{{ comment.scope }}</span>
+</li>
+{% elif variant == 'search' %}
+<li class="comment-card request-chat-search__result">
+  <div class="request-chat-search__identity">
+    {% if comment.display_name %}
+      <a class="request-chat-search__result-author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ comment.display_name }}</a>
+    {% else %}
+      <a class="request-chat-search__result-author" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
+    {% endif %}
+    {% if comment.created_at %}
+      <a class="request-chat-search__result-time" href="#{{ comment.comment_anchor or ('comment-' ~ comment.id) }}">
+        <time datetime="{{ comment.created_at_iso }}">{{ comment.created_at | friendly_time }}</time>
+      </a>
+    {% endif %}
+  </div>
+  <p class="request-chat-search__result-body">{{ comment.body_html | default(comment.body) | safe }}</p>
+  {% if comment.topics or comment.ai_topics %}
+    <div class="request-chat-search__tags">
+      {% for topic in comment.topics %}
+        <span class="meta-chip meta-chip--small">{{ topic }}</span>
+      {% endfor %}
+      {% for topic in comment.ai_topics %}
+        <span class="meta-chip meta-chip--small meta-chip--ghost">{{ topic }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
+</li>
+{% endif %}

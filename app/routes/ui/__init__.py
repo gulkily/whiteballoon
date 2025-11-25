@@ -872,6 +872,8 @@ def profile_comments(
                 "created_at_iso": created_at_iso,
                 "scope": (comment.sync_scope or "private").title(),
                 "comment_url": f"{group_url}#comment-{comment.id}",
+                "username": person.username,
+                "display_name": person.username,
             }
         )
 
