@@ -1,34 +1,8 @@
-<li class="request-comment" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
-  <div class="request-comment__meta">
-    {% if comment.display_name %}
-      <a class="request-comment__author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">
-        {{ comment.display_name }}
-      </a>
-    {% else %}
-      <a class="request-comment__author" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
-    {% endif %}
-    <div class="request-comment__meta-right">
-      <span class="request-comment__scope">{{ comment.sync_scope | title }}</span>
-      {% if comment.created_at %}
-        <time datetime="{{ comment.created_at_iso }}" class="request-comment__time">{{ comment.created_at | friendly_time }}</time>
-      {% endif %}
-      {% if can_toggle_sync_scope %}
-        <form method="post" action="/sync/scope" data-comment-scope-form>
-          <input type="hidden" name="entity_type" value="comment" />
-          <input type="hidden" name="entity_id" value="{{ comment.id }}" />
-          <input type="hidden" name="next" value="{{ request.url.path }}" />
-          <input type="hidden" name="scope" value="{{ 'public' if comment.sync_scope == 'private' else 'private' }}" />
-          <button type="submit" class="button button--ghost request-comment__delete">
-            {{ 'Share' if comment.sync_scope == 'private' else 'Make private' }}
-          </button>
-        </form>
-      {% endif %}
-      {% if can_moderate_comments %}
-        <form method="post" action="/requests/{{ request_id }}/comments/{{ comment.id }}/delete" data-comment-delete-form>
-          <button type="submit" class="button button--ghost request-comment__delete" data-comment-delete>Delete</button>
-        </form>
-      {% endif %}
-    </div>
-  </div>
-  <p class="request-comment__body">{{ comment.body }}</p>
-</li>
+{% set actions = [] %}
+{% if can_toggle_sync_scope %}
+  {% set _ = actions.append('<form method="post" action="/sync/scope" data-comment-scope-form><input type="hidden" name="entity_type" value="comment" /><input type="hidden" name="entity_id" value="' ~ comment.id ~ '" /><input type="hidden" name="next" value="' ~ request.url.path ~ '" /><input type="hidden" name="scope" value="' ~ ('public' if comment.sync_scope == 'private' else 'private') ~ '" /><button type="submit" class="button button--ghost request-comment__delete">' ~ ('Share' if comment.sync_scope == 'private' else 'Make private') ~ '</button></form>') %}
+{% endif %}
+{% if can_moderate_comments %}
+  {% set _ = actions.append('<form method="post" action="/requests/' ~ request_id ~ '/comments/' ~ comment.id ~ '/delete" data-comment-delete-form><button type="submit" class="button button--ghost request-comment__delete" data-comment-delete>Delete</button></form>') %}
+{% endif %}
+{% include "partials/comment_card.html" with context %}

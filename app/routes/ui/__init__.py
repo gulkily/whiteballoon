@@ -408,6 +408,8 @@ def _build_request_detail_context(
     )
     attr_key = _signal_display_attr_key(help_request)
     display_names = _load_signal_display_names(db, comment_rows, attr_key)
+    for comment in comments:
+        comment["display_name"] = comment["display_name"] or display_names.get(comment["user_id"])
     comments = [
         request_comment_service.serialize_comment(
             comment,

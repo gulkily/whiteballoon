@@ -1,0 +1,32 @@
+
+{% set classes = classes or '' %}
+{% set scope_label = scope_label or comment.sync_scope %}
+<li class="comment-card {{ classes }}" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
+  <div class="comment-card__meta">
+    <div class="comment-card__identity">
+      {% if comment.display_name %}
+        <a class="comment-card__author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ comment.display_name }}</a>
+      {% else %}
+        <a class="comment-card__author" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
+      {% endif %}
+      {% if comment.created_at %}
+        <a class="comment-card__time" href="#comment-{{ comment.id }}">
+          <time datetime="{{ comment.created_at_iso }}">{{ comment.created_at | friendly_time }}</time>
+        </a>
+      {% endif %}
+    </div>
+    <div class="comment-card__meta-right">
+      {% if show_scope %}
+        <span class="comment-card__scope">{{ scope_label | title }}</span>
+      {% endif %}
+      {% if actions %}
+        <div class="comment-card__actions">
+          {% for action in actions %}
+            {{ action|safe }}
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  <p class="comment-card__body">{{ comment.body }}</p>
+</li>
