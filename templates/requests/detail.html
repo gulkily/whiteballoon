@@ -103,17 +103,19 @@
         {% if chat_search.results %}
           {% for match in chat_search.results %}
             <li class="card request-chat-search__result">
-              <a class="request-chat-search__result-link" href="#{{ match.anchor }}">
+              <div class="request-chat-search__identity">
                 {% set display_name = comment_display_names.get(match.user_id) %}
                 {% if display_name %}
-                  <span class="request-chat-search__result-author" title="@{{ match.username }}">{{ display_name }}</span>
+                  <a class="request-chat-search__result-author" href="/people/{{ match.username }}" title="@{{ match.username }}">{{ display_name }}</a>
                 {% else %}
-                  <span class="request-chat-search__result-author">@{{ match.username }}</span>
+                  <a class="request-chat-search__result-author" href="/people/{{ match.username }}">@{{ match.username }}</a>
                 {% endif %}
                 {% if match.created_at %}
-                  <time datetime="{{ match.created_at }}" class="request-chat-search__result-time">{{ match.created_at | friendly_time }}</time>
+                  <a class="request-chat-search__result-time" href="#{{ match.anchor }}">
+                    <time datetime="{{ match.created_at }}">{{ match.created_at | friendly_time }}</time>
+                  </a>
                 {% endif %}
-              </a>
+              </div>
               <p class="request-chat-search__result-body">{{ match.body }}</p>
               {% if match.topics or match.ai_topics %}
                 <div class="request-chat-search__tags">
