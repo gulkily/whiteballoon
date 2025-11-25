@@ -189,14 +189,19 @@ def request_chat_search(
     payload = {
         "request_id": help_request.id,
         "query": query,
-        "results": [request_chat_search_service.serialize_result(result) for result in matches],
+        "results": [
+            {
+                **request_chat_search_service.serialize_result(result),
+                "display_name": display_names.get(result.user_id),
+            }
+            for result in matches
+        ],
         "meta": {
             "generated_at": index.generated_at,
             "total_entries": index.entry_count,
             "participants": index.participants,
             "limit": limit,
         },
-        "display_names": {str(user_id): name for user_id, name in display_names.items()},
     }
     return JSONResponse(payload)
 
