@@ -20,3 +20,5 @@ better login flow:
 add ability to promote a comment to a request
 
 sub-comments
+
+surface most interesting/insightful/kind comments
