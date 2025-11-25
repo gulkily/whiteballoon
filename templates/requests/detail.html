@@ -73,6 +73,57 @@
 </section>
 <section class="section request-comments-section">
   <div class="card stack request-comments" data-comment-section>
+    <div class="request-chat-search" data-chat-search data-request-id="{{ request_id }}">
+      <div class="request-chat-search__header stack">
+        <h2 class="h5">Search imported Signal chat</h2>
+        <p class="muted small-text">Find specific promises, contacts, or logistics inside this chat.</p>
+      </div>
+      <form class="request-chat-search__form" method="get" action="{{ request.url.path }}" data-chat-search-form>
+        <input type="hidden" name="page" value="{{ pagination.current_page }}" />
+        <label class="request-chat-search__label">
+          <span class="sr-only">Chat keywords</span>
+          <input
+            type="search"
+            name="chat_q"
+            id="chat-search-input"
+            placeholder="Search by name, keyword, or topic"
+            value="{{ chat_search.query }}"
+            data-chat-search-input
+          />
+        </label>
+        <button type="submit" class="button button--ghost small">Search</button>
+      </form>
+      <div class="request-chat-search__status small-text" role="status" aria-live="polite" data-chat-search-status>
+        {% if chat_search.has_query and not chat_search.results %}
+          No matches yet
+        {% endif %}
+      </div>
+      <ul class="request-chat-search__results stack" data-chat-search-results>
+        {% if chat_search.results %}
+          {% for match in chat_search.results %}
+            <li class="card request-chat-search__result">
+              <a class="request-chat-search__result-link" href="#{{ match.anchor }}">
+                <span class="request-chat-search__result-author">@{{ match.username }}</span>
+                {% if match.created_at %}
+                  <time datetime="{{ match.created_at }}" class="request-chat-search__result-time">{{ match.created_at | friendly_time }}</time>
+                {% endif %}
+              </a>
+              <p class="request-chat-search__result-body">{{ match.body }}</p>
+              {% if match.topics or match.ai_topics %}
+                <div class="request-chat-search__tags">
+                  {% for topic in match.topics %}
+                    <span class="meta-chip meta-chip--small">{{ topic }}</span>
+                  {% endfor %}
+                  {% for topic in match.ai_topics %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">{{ topic }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        {% endif %}
+      </ul>
+    </div>
     {% if comments %}
       <ul class="request-comments__list" data-comment-list>
         {% for comment in comments %}
@@ -132,4 +183,5 @@
   </div>
 </section>
 <script src="/static/js/request-comments.js" defer></script>
+<script src="/static/js/request-chat-search.js" defer></script>
 {% endblock %}

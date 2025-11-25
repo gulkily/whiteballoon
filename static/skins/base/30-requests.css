@@ -168,6 +168,71 @@
   gap: 1rem;
 }
 
+.request-chat-search {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: var(--color-card);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.request-chat-search__form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.request-chat-search__form input[type="search"] {
+  flex: 1;
+}
+
+.request-chat-search__status {
+  min-height: 1.25rem;
+  color: var(--color-muted);
+}
+
+.request-chat-search__results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.request-chat-search__result {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.request-chat-search__result-link {
+  display: inline-flex;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.request-chat-search__result-link:hover,
+.request-chat-search__result-link:focus-visible {
+  text-decoration: underline;
+  color: var(--color-accent);
+}
+
+.request-chat-search__result-body {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.request-chat-search__result-time {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+}
+
+.request-chat-search__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .request-comments__list {
   list-style: none;
   margin: 0;

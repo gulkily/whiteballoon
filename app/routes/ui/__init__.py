@@ -134,9 +134,24 @@ def request_detail(
     db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
     page: int = Query(1, ge=1),
+    chat_q: str = Query("", alias="chat_q"),
+    chat_topic: list[str] | None = Query(None, alias="chat_topic"),
+    chat_participant: list[int] | None = Query(None, alias="chat_participant"),
 ) -> Response:
     help_request = request_services.get_request_by_id(db, request_id=request_id)
-    context = _build_request_detail_context(request, db, session_user, help_request, page=page)
+    chat_filters = {
+        "query": (chat_q or "").strip(),
+        "topics": [value.strip().lower() for value in (chat_topic or []) if value and value.strip()],
+        "participants": [pid for pid in (chat_participant or []) if pid],
+    }
+    context = _build_request_detail_context(
+        request,
+        db,
+        session_user,
+        help_request,
+        page=page,
+        chat_search_filters=chat_filters,
+    )
     return templates.TemplateResponse("requests/detail.html", context)
 
 
@@ -357,6 +372,7 @@ def _build_request_detail_context(
     comment_form_errors: Optional[list[str]] = None,
     comment_form_body: str = "",
     page: int = 1,
+    chat_search_filters: Optional[dict[str, object]] = None,
 ) -> dict[str, object]:
     viewer = session_user.user
     session_record = session_user.session
@@ -413,6 +429,27 @@ def _build_request_detail_context(
         "total_comments": total_comments,
     }
 
+    chat_filters = chat_search_filters or {}
+    chat_query = str(chat_filters.get("query", "") or "").strip()
+    participant_filters = [int(pid) for pid in chat_filters.get("participants", []) if pid]
+    topic_filters = [str(topic) for topic in chat_filters.get("topics", []) if topic]
+    chat_results: list[dict[str, object]] = []
+    chat_meta: dict[str, object] | None = None
+    if chat_query or participant_filters or topic_filters:
+        index, matches = request_chat_search_service.search_chat(
+            db,
+            help_request.id,
+            query=chat_query,
+            participant_ids=participant_filters,
+            topics=topic_filters,
+        )
+        chat_results = [request_chat_search_service.serialize_result(match) for match in matches]
+        chat_meta = {
+            "generated_at": index.generated_at,
+            "total_entries": index.entry_count,
+            "limit": request_chat_search_service.DEFAULT_RESULT_LIMIT,
+        }
+
     return {
         "request": request,
         "user": viewer,
@@ -431,6 +468,14 @@ def _build_request_detail_context(
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
         "request_id": help_request.id,
         "pagination": pagination,
+        "chat_search": {
+            "query": chat_query,
+            "participants": participant_filters,
+            "topics": topic_filters,
+            "results": chat_results,
+            "meta": chat_meta,
+            "has_query": bool(chat_query or participant_filters or topic_filters),
+        },
     }
 
 
