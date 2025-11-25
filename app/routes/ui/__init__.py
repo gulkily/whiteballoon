@@ -462,7 +462,19 @@ def _build_request_detail_context(
             participant_ids=participant_filters,
             topics=topic_filters,
         )
-        chat_results = [request_chat_search_service.serialize_result(match) for match in matches]
+        display_names_map = _load_signal_display_names_for_user_ids(
+            db,
+            {match.user_id for match in matches},
+            attr_key,
+        )
+        chat_results = [
+            {
+                **request_chat_search_service.serialize_result(match),
+                "display_name": display_names_map.get(match.user_id)
+                or display_names.get(match.user_id),
+            }
+            for match in matches
+        ]
         chat_meta = {
             "generated_at": index.generated_at,
             "total_entries": index.entry_count,

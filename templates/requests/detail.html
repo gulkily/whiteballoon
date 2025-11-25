@@ -72,6 +72,19 @@
     </div>
   </div>
 </section>
+<template id="chat-search-result-template">
+  <li class="comment-card request-chat-search__result">
+    <div class="request-chat-search__identity">
+      <a class="request-chat-search__result-author" data-author-link data-author></a>
+      <a class="request-chat-search__result-time" data-time-link>
+        <time data-time></time>
+      </a>
+    </div>
+    <p class="request-chat-search__result-body" data-body></p>
+    <div class="request-chat-search__tags" data-tags></div>
+  </li>
+</template>
+
 <section class="section request-comments-section">
   <div class="card stack request-comments" data-comment-section>
     <div class="request-chat-search" data-chat-search data-request-id="{{ request_id }}">
@@ -105,7 +118,7 @@
             {% set search_comment = {
               'id': match.comment_id,
               'username': match.username,
-              'display_name': comment_display_names.get(match.user_id),
+              'display_name': match.display_name or comment_display_names.get(match.user_id),
               'created_at': match.created_at,
               'created_at_iso': match.created_at,
               'body_html': match.body,
@@ -218,6 +231,19 @@
     {% endif %}
   </div>
 </section>
+<template id="chat-search-result-template">
+  <li class="comment-card request-chat-search__result">
+    <div class="request-chat-search__identity">
+      <a class="request-chat-search__result-author" data-author-link data-author></a>
+      <a class="request-chat-search__result-time" data-time-link>
+        <time data-time></time>
+      </a>
+    </div>
+    <p class="request-chat-search__result-body" data-body></p>
+    <div class="request-chat-search__tags" data-tags></div>
+  </li>
+</template>
+
 <script src="/static/js/request-comments.js" defer></script>
 <script src="/static/js/request-chat-search.js" defer></script>
 {% endblock %}
