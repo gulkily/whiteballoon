@@ -113,7 +113,9 @@
               'ai_topics': match.ai_topics,
               'comment_anchor': match.anchor
             } %}
-            {% include "partials/comment_card.html" with comment=search_comment, variant='search' %}
+            {% with comment = search_comment, variant = 'search' %}
+              {% include "partials/comment_card.html" %}
+            {% endwith %}
           {% endfor %}
         {% endif %}
       </ul>

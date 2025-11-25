@@ -30,7 +30,9 @@
             </header>
             <ul class="profile-recent-comments">
               {% for comment in group.comments %}
-                {% include "partials/comment_card.html" with comment=comment, variant='profile' %}
+                {% with variant = 'profile' %}
+                  {% include "partials/comment_card.html" %}
+                {% endwith %}
               {% endfor %}
             </ul>
           </section>
