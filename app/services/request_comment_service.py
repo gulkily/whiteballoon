@@ -5,11 +5,12 @@ from datetime import datetime
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.models import RequestComment, User
+from app.models import HelpRequest, RequestComment, User
 
 
 MAX_COMMENT_LENGTH = 2000
 DEFAULT_COMMENTS_PER_PAGE = 20
+RECENT_PROFILE_COMMENTS_LIMIT = 5
 
 
 def list_comments(
@@ -43,6 +44,26 @@ def list_comments(
     
     rows = session.exec(query).all()
     return rows, total_count
+
+
+def list_recent_comments_for_user(
+    session: Session,
+    user_id: int,
+    *,
+    limit: int | None = None,
+) -> list[tuple[RequestComment, HelpRequest]]:
+    """Return the newest comments authored by a user, joined with their requests."""
+    page_limit = limit if limit is not None else RECENT_PROFILE_COMMENTS_LIMIT
+    stmt = (
+        select(RequestComment, HelpRequest)
+        .join(HelpRequest, HelpRequest.id == RequestComment.help_request_id)
+        .where(RequestComment.user_id == user_id)
+        .where(RequestComment.deleted_at.is_(None))
+        .order_by(RequestComment.created_at.desc())
+    )
+    if page_limit:
+        stmt = stmt.limit(page_limit)
+    return session.exec(stmt).all()
 
 
 def add_comment(

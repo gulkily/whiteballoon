@@ -771,6 +771,25 @@ def profile_view(
         "avatar_url": avatar_url,
     }
 
+    recent_comments: list[dict[str, object]] = []
+    show_recent_comments = viewer.is_admin
+    if show_recent_comments:
+        rows = request_comment_service.list_recent_comments_for_user(db, person.id)
+        for comment, help_request in rows:
+            created_at_iso = comment.created_at.isoformat() if comment.created_at else None
+            recent_comments.append(
+                {
+                    "id": comment.id,
+                    "body": comment.body,
+                    "created_at": comment.created_at,
+                    "created_at_iso": created_at_iso,
+                    "request_id": help_request.id,
+                    "request_title": help_request.title or f"Request #{help_request.id}",
+                    "request_url": f"/requests/{help_request.id}",
+                    "scope": (comment.sync_scope or "private").title(),
+                }
+            )
+
     context = {
         "request": request,
         "viewer": viewer,
@@ -784,6 +803,10 @@ def profile_view(
         "session_role": viewer_session_role,
         "session_username": viewer.username,
         "session_avatar_url": session_user.avatar_url,
+        "show_recent_comments": show_recent_comments,
+        "recent_comments": recent_comments,
+        "recent_comments_limit": request_comment_service.RECENT_PROFILE_COMMENTS_LIMIT,
+        "recent_comments_url": f"/people/{person.username}/comments",
     }
     return templates.TemplateResponse("profile/show.html", context)
 
