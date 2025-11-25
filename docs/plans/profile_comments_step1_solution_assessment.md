@@ -2,14 +2,14 @@
 
 **Problem statement**: Members can view profile pages (including imported Signal chat personas) but cannot read any of that person’s past comments, making it hard to evaluate credibility or follow context.
 
-## Option A – Inline server-rendered comment stream
+## Option A – Inline server-rendered comment stream (most recent only)
 - Pros:
   - Reuses existing request/comment services, so no new APIs are required.
   - Works for both native WhiteBalloon accounts and mapped Signal profiles by funneling through the same server-render path.
   - Keeps everything accessible without JavaScript, matching current progressive-enhancement approach.
 - Cons:
-  - Initial page load grows heavier if a user has many comments.
-  - Requires careful pagination + permission checks inside the profile route.
+  - Even a small stream increases page weight; we should cap to the newest N comments.
+  - Still needs permission checks inside the profile route.
 
 ## Option B – Lazy-loaded comment panel via dedicated endpoint
 - Pros:
@@ -30,4 +30,4 @@
   - More templates + routes to maintain, and a risk that people miss the new page entirely.
 
 ## Recommendation
-Adopt **Option B**. A lazy-loaded panel balances performance with discoverability: the main profile remains quick, but comments (from both native and Signal sources) surface inline once requested. The API/endpoint also gives us a clean seam to layer filters and future activity types without rewriting the profile route every time.
+Hybridize **Option A** and **Option C**: server-render the handful of most recent comments inline for quick context, then link to a dedicated paginated “All comments” activity page that lists every comment (including Signal personas). This keeps the main profile lightweight and immediately useful while giving power users a full history view without complex client-side plumbing.
