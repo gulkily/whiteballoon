@@ -59,7 +59,6 @@
           <h2>Recent comments</h2>
           <p class="muted small-text">Showing up to {{ recent_comments_limit }} of the latest entries.</p>
         </div>
-        <a class="button button--ghost small" href="{{ recent_comments_url }}">View all comments</a>
       </div>
       {% if recent_comments %}
         <ul class="profile-recent-comments">
@@ -81,6 +80,9 @@
       {% else %}
         <p class="muted">No comments yet.</p>
       {% endif %}
+      <div class="profile-comments-card__footer">
+        <a class="button button--ghost small" href="{{ recent_comments_url }}">View all comments</a>
+      </div>
     </article>
   {% endif %}
 

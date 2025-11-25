@@ -187,6 +187,10 @@
   color: var(--color-muted);
 }
 
+.profile-comments-card__footer {
+  margin-top: 1rem;
+}
+
 .profile-comments-pagination {
   display: flex;
   flex-direction: column;
