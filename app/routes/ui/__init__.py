@@ -471,6 +471,7 @@ def _build_request_detail_context(
         "comment_form_body": comment_form_body,
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
         "request_id": help_request.id,
+        "comment_display_names": display_names,
         "pagination": pagination,
         "chat_search": {
             "query": chat_query,

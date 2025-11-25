@@ -104,7 +104,12 @@
           {% for match in chat_search.results %}
             <li class="card request-chat-search__result">
               <a class="request-chat-search__result-link" href="#{{ match.anchor }}">
-                <span class="request-chat-search__result-author">@{{ match.username }}</span>
+                {% set display_name = comment_display_names.get(match.user_id) %}
+                {% if display_name %}
+                  <span class="request-chat-search__result-author" title="@{{ match.username }}">{{ display_name }}</span>
+                {% else %}
+                  <span class="request-chat-search__result-author">@{{ match.username }}</span>
+                {% endif %}
                 {% if match.created_at %}
                   <time datetime="{{ match.created_at }}" class="request-chat-search__result-time">{{ match.created_at | friendly_time }}</time>
                 {% endif %}
