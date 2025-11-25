@@ -11,3 +11,7 @@
 ## Stage 3 – UI search widget
 - Changes: Added a “Search imported Signal chat” panel on the request detail page with a debounced search field, inline results list, and jump links to the matching comments. Results hydrate via the new `request-chat-search.js` module (AJAX, highlighting, status messages) while the server fallbacks render matches when `chat_q` query params are present. Updated request routes to pass chat search context and added skin-level styles + chip variants for inline tags.
 - Verification: Manually loaded a Signal-seeded request detail page, typed “housing” into the chat search field, saw the result count/status update live, and confirmed the jump link scrolled to the matching comment.
+
+## Stage 4 – Related snippet suggestions across requests (heuristic)
+- Changes: Added `request_chat_suggestions.suggest_related_requests` to scan cached chat indices, compute overlap across topics/participant names, and surface the top related requests with snippet bookmarks. Request detail pages (when no ad-hoc search is running) now render a “Related chat mentions” list linking to those matches, with topic/participant summaries.
+- Verification: After importing two Signal chats with overlapping names/topics, loaded Request A’s detail page, confirmed the suggestion list showed Request B with the expected tags, and followed the “Jump to chat” link to verify the anchor.

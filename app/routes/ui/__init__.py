@@ -36,6 +36,7 @@ from app.services import (
     invite_graph_service,
     invite_map_cache_service,
     request_chat_search_service,
+    request_chat_suggestions,
     request_comment_service,
     user_attribute_service,
     vouch_service,
@@ -435,6 +436,7 @@ def _build_request_detail_context(
     topic_filters = [str(topic) for topic in chat_filters.get("topics", []) if topic]
     chat_results: list[dict[str, object]] = []
     chat_meta: dict[str, object] | None = None
+    related_chats: list[dict[str, object]] = []
     if chat_query or participant_filters or topic_filters:
         index, matches = request_chat_search_service.search_chat(
             db,
@@ -449,6 +451,8 @@ def _build_request_detail_context(
             "total_entries": index.entry_count,
             "limit": request_chat_search_service.DEFAULT_RESULT_LIMIT,
         }
+    else:
+        related_chats = request_chat_suggestions.suggest_related_requests(db, help_request.id)
 
     return {
         "request": request,
@@ -476,6 +480,7 @@ def _build_request_detail_context(
             "meta": chat_meta,
             "has_query": bool(chat_query or participant_filters or topic_filters),
         },
+        "related_chat_suggestions": related_chats,
     }
 
 
