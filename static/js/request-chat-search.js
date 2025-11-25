@@ -52,28 +52,43 @@
     return highlighted;
   };
 
-  const renderResults = (results) => {
+  const renderResults = (results, displayNames) => {
     clearResults();
     if (!results || !results.length) {
       return;
     }
+    const nameMap = displayNames || {};
     results.forEach((match) => {
       const item = document.createElement('li');
       item.className = 'card request-chat-search__result';
 
-      const link = document.createElement('a');
-      link.className = 'request-chat-search__result-link';
-      link.href = `#${match.anchor}`;
-      link.textContent = `@${match.username}`;
-      item.appendChild(link);
+      const identity = document.createElement('div');
+      identity.className = 'request-chat-search__identity';
+
+      const authorLink = document.createElement('a');
+      authorLink.className = 'request-chat-search__result-author';
+      authorLink.href = `/people/${match.username}`;
+      const displayName = nameMap[String(match.user_id)];
+      if (displayName) {
+        authorLink.textContent = displayName;
+        authorLink.title = `@${match.username}`;
+      } else {
+        authorLink.textContent = `@${match.username}`;
+      }
+      identity.appendChild(authorLink);
 
       if (match.created_at) {
+        const timeLink = document.createElement('a');
+        timeLink.className = 'request-chat-search__result-time';
+        timeLink.href = `#${match.anchor}`;
         const time = document.createElement('time');
-        time.className = 'request-chat-search__result-time';
         time.dateTime = match.created_at;
         time.textContent = new Date(match.created_at).toLocaleString();
-        item.appendChild(time);
+        timeLink.appendChild(time);
+        identity.appendChild(timeLink);
       }
+
+      item.appendChild(identity);
 
       const body = document.createElement('p');
       body.className = 'request-chat-search__result-body';
@@ -126,7 +141,8 @@
       })
       .then((payload) => {
         const results = payload.results || [];
-        renderResults(results);
+        const displayNames = payload.display_names || {};
+        renderResults(results, displayNames);
         if (!results.length) {
           setStatus('No matches');
         } else {

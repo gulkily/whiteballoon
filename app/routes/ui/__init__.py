@@ -179,6 +179,12 @@ def request_chat_search(
         topics=topic_filters,
         limit=limit,
     )
+    attr_key = _signal_display_attr_key(help_request)
+    display_names = _load_signal_display_names_for_user_ids(
+        db,
+        {result.user_id for result in matches},
+        attr_key,
+    )
 
     payload = {
         "request_id": help_request.id,
@@ -190,6 +196,7 @@ def request_chat_search(
             "participants": index.participants,
             "limit": limit,
         },
+        "display_names": {str(user_id): name for user_id, name in display_names.items()},
     }
     return JSONResponse(payload)
 
@@ -511,10 +518,16 @@ def _load_signal_display_names(
     comment_rows: list[tuple[RequestComment, User]],
     attr_key: Optional[str],
 ) -> dict[int, str]:
-    if not attr_key:
-        return {}
     user_ids = {author.id for _, author in comment_rows}
-    if not user_ids:
+    return _load_signal_display_names_for_user_ids(db, user_ids, attr_key)
+
+
+def _load_signal_display_names_for_user_ids(
+    db: Session,
+    user_ids: set[int],
+    attr_key: Optional[str],
+) -> dict[int, str]:
+    if not attr_key or not user_ids:
         return {}
     rows = db.exec(
         select(UserAttribute.user_id, UserAttribute.value)
