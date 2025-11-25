@@ -187,6 +187,26 @@
   color: var(--color-muted);
 }
 
+.profile-comment-groups {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.profile-comment-group__header {
+  border-left: 3px solid var(--color-accent);
+  padding-left: 0.75rem;
+}
+
+.profile-comment-group__title {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.profile-comment-group__title:hover,
+.profile-comment-group__title:focus-visible {
+  color: var(--color-accent);
+}
+
 .profile-comments-card__footer {
   margin-top: 1rem;
 }

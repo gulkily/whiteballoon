@@ -19,23 +19,31 @@
   </header>
 
   <article class="card stack">
-    {% if comments %}
-      <ul class="profile-recent-comments">
-        {% for comment in comments %}
-          <li class="profile-recent-comment">
-            <div class="profile-recent-comment__meta">
-              <a href="{{ comment.request_url }}" class="profile-recent-comment__request">
-                Request #{{ comment.request_id }} · {{ comment.request_title or 'Untitled request' }}
+    {% if comment_groups %}
+      <div class="profile-comment-groups">
+        {% for group in comment_groups %}
+          <section class="profile-comment-group">
+            <header class="profile-comment-group__header">
+              <a href="{{ group.request_url }}" class="profile-comment-group__title">
+                Request #{{ group.request_id }} · {{ group.request_title or 'Untitled request' }}
               </a>
-              {% if comment.created_at %}
-                <time datetime="{{ comment.created_at_iso }}" class="profile-recent-comment__time">{{ comment.created_at | friendly_time }}</time>
-              {% endif %}
-            </div>
-            <p class="profile-recent-comment__body">{{ comment.body }}</p>
-            <span class="meta-chip meta-chip--small">{{ comment.scope }}</span>
-          </li>
+            </header>
+            <ul class="profile-recent-comments">
+              {% for comment in group.comments %}
+                <li class="profile-recent-comment">
+                  <div class="profile-recent-comment__meta">
+                    {% if comment.created_at %}
+                      <time datetime="{{ comment.created_at_iso }}" class="profile-recent-comment__time">{{ comment.created_at | friendly_time }}</time>
+                    {% endif %}
+                  </div>
+                  <p class="profile-recent-comment__body">{{ comment.body }}</p>
+                  <span class="meta-chip meta-chip--small">{{ comment.scope }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          </section>
         {% endfor %}
-      </ul>
+      </div>
       {% if pagination.total_pages > 1 %}
         <div class="profile-comments-pagination">
           <p class="muted small-text">Page {{ pagination.current_page }} of {{ pagination.total_pages }} · {{ pagination.total_comments }} total</p>

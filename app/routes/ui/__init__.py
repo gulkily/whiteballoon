@@ -833,18 +833,26 @@ def profile_comments(
         person.id,
         page=page,
     )
-    comments: list[dict[str, object]] = []
+    comment_groups: list[dict[str, object]] = []
     for comment, help_request in rows:
         created_at_iso = comment.created_at.isoformat() if comment.created_at else None
-        comments.append(
+        title = help_request.title or f"Request #{help_request.id}"
+        group_url = f"/requests/{help_request.id}"
+        if not comment_groups or comment_groups[-1]["request_id"] != help_request.id:
+            comment_groups.append(
+                {
+                    "request_id": help_request.id,
+                    "request_title": title,
+                    "request_url": group_url,
+                    "comments": [],
+                }
+            )
+        comment_groups[-1]["comments"].append(
             {
                 "id": comment.id,
                 "body": comment.body,
                 "created_at": comment.created_at,
                 "created_at_iso": created_at_iso,
-                "request_id": help_request.id,
-                "request_title": help_request.title or f"Request #{help_request.id}",
-                "request_url": f"/requests/{help_request.id}",
                 "scope": (comment.sync_scope or "private").title(),
             }
         )
@@ -870,7 +878,7 @@ def profile_comments(
     context = {
         "request": request,
         "person": person,
-        "comments": comments,
+        "comment_groups": comment_groups,
         "pagination": pagination,
         "user": viewer,
         "session": viewer_session,
