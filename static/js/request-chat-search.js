@@ -68,7 +68,7 @@
       const authorLink = document.createElement('a');
       authorLink.className = 'request-chat-search__result-author';
       authorLink.href = `/people/${match.username}`;
-      const displayName = nameMap[String(match.user_id)];
+      const displayName = match.display_name || nameMap[String(match.user_id)];
       if (displayName) {
         authorLink.textContent = displayName;
         authorLink.title = `@${match.username}`;
@@ -80,7 +80,8 @@
       if (match.created_at) {
         const timeLink = document.createElement('a');
         timeLink.className = 'request-chat-search__result-time';
-        timeLink.href = `#${match.anchor}`;
+        const anchor = match.comment_anchor || match.anchor;
+        timeLink.href = `#${anchor}`;
         const time = document.createElement('time');
         time.dateTime = match.created_at;
         time.textContent = new Date(match.created_at).toLocaleString();

@@ -193,6 +193,7 @@ def request_chat_search(
             {
                 **request_chat_search_service.serialize_result(result),
                 "display_name": display_names.get(result.user_id),
+                "comment_anchor": result.anchor,
             }
             for result in matches
         ],
@@ -202,6 +203,7 @@ def request_chat_search(
             "participants": index.participants,
             "limit": limit,
         },
+        "display_names": {str(user_id): name for user_id, name in display_names.items()},
     }
     return JSONResponse(payload)
 
