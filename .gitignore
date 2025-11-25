@@ -22,6 +22,8 @@ htmlcov/
 /data/app.db
 data/
 .sync/
+chats/
+signal_group_import.log
 
 *.egg-info/
 fonts-raw/

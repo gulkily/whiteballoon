@@ -35,7 +35,7 @@
             <time class="meta-chip__value" datetime="{{ request_item.created_at }}">{{ request_item.created_at | friendly_time }}</time>
           </span>
           {% if can_toggle_sync_scope %}
-            <form class="sync-scope-toggle" method="post" action="/sync/scope">
+            <form class="sync-scope-toggle" method="post" action="/sync/scope" data-sync-toggle>
               <input type="hidden" name="entity_type" value="request" />
               <input type="hidden" name="entity_id" value="{{ request_item.id }}" />
               <input type="hidden" name="next" value="{{ request.url.path }}" />
@@ -43,14 +43,15 @@
               {% set is_public = request_item.sync_scope == 'public' %}
               <button
                 type="submit"
-                class="meta-chip meta-chip--action"
+                class="meta-chip meta-chip--action meta-chip--status meta-chip--{{ 'success' if is_public else 'muted' }}"
                 aria-pressed="{{ 'true' if is_public else 'false' }}"
                 aria-label="{{ 'Sharing publicly — activate to keep private' if is_public else 'Sharing privately — activate to share publicly' }}"
+                data-sync-button
               >
                 <span class="meta-chip__label">Sharing</span>
                 <span class="meta-chip__value meta-chip__value--stacked">
-                  {{ 'Public' if is_public else 'Private' }}
-                  <span class="meta-chip__hint">{{ 'Tap to keep private' if is_public else 'Tap to share publicly' }}</span>
+                  <span data-scope-label>{{ 'Public' if is_public else 'Private' }}</span>
+                  <span class="meta-chip__hint" data-scope-hint>{{ 'Tap to keep private' if is_public else 'Tap to share publicly' }}</span>
                 </span>
               </button>
             </form>
@@ -73,12 +74,120 @@
 </section>
 <section class="section request-comments-section">
   <div class="card stack request-comments" data-comment-section>
+    <div class="request-chat-search" data-chat-search data-request-id="{{ request_id }}">
+      <div class="request-chat-search__header stack">
+        <h2 class="h5">Search imported Signal chat</h2>
+        <p class="muted small-text">Find specific promises, contacts, or logistics inside this chat.</p>
+      </div>
+      <form class="request-chat-search__form" method="get" action="{{ request.url.path }}" data-chat-search-form>
+        <input type="hidden" name="page" value="{{ pagination.current_page }}" />
+        <label class="request-chat-search__label">
+          <span class="sr-only">Chat keywords</span>
+          <input
+            type="search"
+            name="chat_q"
+            id="chat-search-input"
+            placeholder="Search by name, keyword, or topic"
+            value="{{ chat_search.query }}"
+            data-chat-search-input
+          />
+        </label>
+        <button type="submit" class="button button--ghost small">Search</button>
+      </form>
+      <div class="request-chat-search__status small-text" role="status" aria-live="polite" data-chat-search-status>
+        {% if chat_search.has_query and not chat_search.results %}
+          No matches yet
+        {% endif %}
+      </div>
+      <ul class="request-chat-search__results stack" data-chat-search-results>
+        {% if chat_search.results %}
+          {% for match in chat_search.results %}
+            <li class="card request-chat-search__result">
+              <a class="request-chat-search__result-link" href="#{{ match.anchor }}">
+                <span class="request-chat-search__result-author">@{{ match.username }}</span>
+                {% if match.created_at %}
+                  <time datetime="{{ match.created_at }}" class="request-chat-search__result-time">{{ match.created_at | friendly_time }}</time>
+                {% endif %}
+              </a>
+              <p class="request-chat-search__result-body">{{ match.body }}</p>
+              {% if match.topics or match.ai_topics %}
+                <div class="request-chat-search__tags">
+                  {% for topic in match.topics %}
+                    <span class="meta-chip meta-chip--small">{{ topic }}</span>
+                  {% endfor %}
+                  {% for topic in match.ai_topics %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">{{ topic }}</span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </li>
+          {% endfor %}
+        {% endif %}
+      </ul>
+      {% if not chat_search.has_query and related_chat_suggestions %}
+        <div class="request-chat-suggestions stack">
+          <h3 class="h6">Related chat mentions</h3>
+          <p class="muted small-text">We found nearby requests mentioning similar people, topics, or overall phrasing.</p>
+          <ul class="stack" data-chat-suggestions>
+            {% for suggestion in related_chat_suggestions %}
+              <li class="card request-chat-suggestions__item">
+                <div class="request-chat-suggestions__heading">
+                  <a href="/requests/{{ suggestion.request_id }}" class="request-chat-suggestions__link">Request #{{ suggestion.request_id }} · {{ suggestion.request.title }}</a>
+                  {% if suggestion.request.status %}
+                    <span class="meta-chip meta-chip--small meta-chip--status">{{ suggestion.request.status | title }}</span>
+                  {% endif %}
+                  {% if suggestion.match_type == 'semantic' %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">Semantic match</span>
+                  {% elif suggestion.match_type == 'hybrid' %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">Hybrid match</span>
+                  {% endif %}
+                  {% if suggestion.embedding_similarity and suggestion.embedding_similarity > 0 %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">≈{{ (suggestion.embedding_similarity * 100) | round(0) }}% similar</span>
+                  {% endif %}
+                </div>
+                <p class="request-chat-suggestions__summary">
+                  {% if suggestion.topics %}
+                    Topics: {{ suggestion.topics | join(', ') }}
+                  {% endif %}
+                  {% if suggestion.participants %}
+                    · Participants: {{ suggestion.participants | join(', ') }}
+                  {% endif %}
+                </p>
+                {% if suggestion.snippet %}
+                  <blockquote class="request-chat-suggestions__snippet">
+                    “{{ suggestion.snippet.body }}” — @{{ suggestion.snippet.username }}
+                    <a href="/requests/{{ suggestion.request_id }}#{{ suggestion.snippet.anchor }}" class="small-text">Jump to chat</a>
+                  </blockquote>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
     {% if comments %}
       <ul class="request-comments__list" data-comment-list>
         {% for comment in comments %}
           {% include "requests/partials/comment.html" %}
         {% endfor %}
       </ul>
+      {% if pagination.total_pages > 1 %}
+        <div class="request-comments__pagination">
+          <p class="muted small-text">Showing page {{ pagination.current_page }} of {{ pagination.total_pages }} · {{ pagination.total_comments }} total comment{{ 's' if pagination.total_comments != 1 else '' }}</p>
+          <div class="request-comments__pagination-actions">
+            {% if pagination.has_prev %}
+              <a class="button button--ghost" href="{{ pagination.prev_url }}">Previous</a>
+            {% else %}
+              <span class="button button--ghost button--disabled" aria-disabled="true">Previous</span>
+            {% endif %}
+            {% if pagination.has_next %}
+              <a class="button button--ghost" href="{{ pagination.next_url }}">Next</a>
+            {% else %}
+              <span class="button button--ghost button--disabled" aria-disabled="true">Next</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
     {% else %}
       <ul class="request-comments__list" data-comment-list hidden></ul>
     {% endif %}
@@ -115,4 +224,5 @@
   </div>
 </section>
 <script src="/static/js/request-comments.js" defer></script>
+<script src="/static/js/request-chat-search.js" defer></script>
 {% endblock %}

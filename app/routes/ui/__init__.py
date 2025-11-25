@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 from typing import Annotated, Optional
 from uuid import uuid4
@@ -11,6 +12,7 @@ from fastapi import (
     File,
     Form,
     HTTPException,
+    Query,
     Request,
     Response,
     UploadFile,
@@ -26,13 +28,15 @@ from app.dependencies import (
     require_authenticated_user,
     require_session_user,
 )
-from app.models import AuthenticationRequest, HelpRequest, RequestComment, User, UserSession
+from app.models import AuthenticationRequest, HelpRequest, RequestComment, User, UserAttribute, UserSession
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
     auth_service,
     invite_graph_service,
     invite_map_cache_service,
+    request_chat_search_service,
+    request_chat_suggestions,
     request_comment_service,
     user_attribute_service,
     vouch_service,
@@ -130,10 +134,64 @@ def request_detail(
     request_id: int,
     db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
+    page: int = Query(1, ge=1),
+    chat_q: str = Query("", alias="chat_q"),
+    chat_topic: list[str] | None = Query(None, alias="chat_topic"),
+    chat_participant: list[int] | None = Query(None, alias="chat_participant"),
 ) -> Response:
     help_request = request_services.get_request_by_id(db, request_id=request_id)
-    context = _build_request_detail_context(request, db, session_user, help_request)
+    chat_filters = {
+        "query": (chat_q or "").strip(),
+        "topics": [value.strip().lower() for value in (chat_topic or []) if value and value.strip()],
+        "participants": [pid for pid in (chat_participant or []) if pid],
+    }
+    context = _build_request_detail_context(
+        request,
+        db,
+        session_user,
+        help_request,
+        page=page,
+        chat_search_filters=chat_filters,
+    )
     return templates.TemplateResponse("requests/detail.html", context)
+
+
+@router.get("/requests/{request_id}/chat-search")
+def request_chat_search(
+    request_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    q: str = Query("", max_length=200),
+    participant_id: list[int] | None = Query(None, alias="participant"),
+    topic: list[str] | None = Query(None),
+    limit: int = Query(request_chat_search_service.DEFAULT_RESULT_LIMIT, ge=1, le=100),
+) -> Response:
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    query = (q or "").strip()
+    participant_ids = [pid for pid in (participant_id or []) if pid]
+    topic_filters = [value.strip().lower() for value in (topic or []) if value and value.strip()]
+
+    index, matches = request_chat_search_service.search_chat(
+        db,
+        help_request.id,
+        query=query,
+        participant_ids=participant_ids,
+        topics=topic_filters,
+        limit=limit,
+    )
+
+    payload = {
+        "request_id": help_request.id,
+        "query": query,
+        "results": [request_chat_search_service.serialize_result(result) for result in matches],
+        "meta": {
+            "generated_at": index.generated_at,
+            "total_entries": index.entry_count,
+            "participants": index.participants,
+            "limit": limit,
+        },
+    }
+    return JSONResponse(payload)
 
 
 @router.post("/requests/{request_id}/comments")
@@ -186,6 +244,11 @@ async def create_request_comment(
 
     db.commit()
     db.refresh(comment)
+
+    try:
+        request_chat_search_service.refresh_chat_index(db, help_request.id)
+    except Exception:  # pragma: no cover - best-effort cache update
+        logger.warning("Failed to refresh chat search index for request %s", help_request.id, exc_info=True)
 
     comment_payload = request_comment_service.serialize_comment(comment, viewer)
     fragment = templates.get_template("requests/partials/comment.html").render(
@@ -309,6 +372,8 @@ def _build_request_detail_context(
     *,
     comment_form_errors: Optional[list[str]] = None,
     comment_form_body: str = "",
+    page: int = 1,
+    chat_search_filters: Optional[dict[str, object]] = None,
 ) -> dict[str, object]:
     viewer = session_user.user
     session_record = session_user.session
@@ -328,10 +393,66 @@ def _build_request_detail_context(
     readonly = not session_record.is_fully_authenticated
     session_role = describe_session_role(viewer, session_record)
 
-    comment_rows = request_comment_service.list_comments(db, help_request_id=help_request.id)
-    comments = [request_comment_service.serialize_comment(comment, author) for comment, author in comment_rows]
+    # Pagination
+    comments_per_page = request_comment_service.DEFAULT_COMMENTS_PER_PAGE
+    offset = (page - 1) * comments_per_page
+    comment_rows, total_comments = request_comment_service.list_comments(
+        db, help_request_id=help_request.id, limit=comments_per_page, offset=offset
+    )
+    attr_key = _signal_display_attr_key(help_request)
+    display_names = _load_signal_display_names(db, comment_rows, attr_key)
+    comments = [
+        request_comment_service.serialize_comment(
+            comment,
+            author,
+            display_name=display_names.get(author.id),
+        )
+        for comment, author in comment_rows
+    ]
     can_moderate = viewer.is_admin
     can_toggle_sync_scope = viewer.is_admin
+
+    # Calculate pagination info
+    total_pages = max(1, (total_comments + comments_per_page - 1) // comments_per_page) if total_comments else 1
+    current_page = min(page, total_pages) if total_pages else 1
+    
+    def _page_url(target_page: int) -> str:
+        url = request.url.include_query_params(page=target_page)
+        return str(url)
+    
+    pagination = {
+        "has_prev": current_page > 1,
+        "has_next": current_page < total_pages,
+        "prev_url": _page_url(current_page - 1) if current_page > 1 else None,
+        "next_url": _page_url(current_page + 1) if current_page < total_pages else None,
+        "current_page": current_page,
+        "total_pages": total_pages,
+        "total_comments": total_comments,
+    }
+
+    chat_filters = chat_search_filters or {}
+    chat_query = str(chat_filters.get("query", "") or "").strip()
+    participant_filters = [int(pid) for pid in chat_filters.get("participants", []) if pid]
+    topic_filters = [str(topic) for topic in chat_filters.get("topics", []) if topic]
+    chat_results: list[dict[str, object]] = []
+    chat_meta: dict[str, object] | None = None
+    related_chats: list[dict[str, object]] = []
+    if chat_query or participant_filters or topic_filters:
+        index, matches = request_chat_search_service.search_chat(
+            db,
+            help_request.id,
+            query=chat_query,
+            participant_ids=participant_filters,
+            topics=topic_filters,
+        )
+        chat_results = [request_chat_search_service.serialize_result(match) for match in matches]
+        chat_meta = {
+            "generated_at": index.generated_at,
+            "total_entries": index.entry_count,
+            "limit": request_chat_search_service.DEFAULT_RESULT_LIMIT,
+        }
+    else:
+        related_chats = request_chat_suggestions.suggest_related_requests(db, help_request.id)
 
     return {
         "request": request,
@@ -350,7 +471,56 @@ def _build_request_detail_context(
         "comment_form_body": comment_form_body,
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
         "request_id": help_request.id,
+        "pagination": pagination,
+        "chat_search": {
+            "query": chat_query,
+            "participants": participant_filters,
+            "topics": topic_filters,
+            "results": chat_results,
+            "meta": chat_meta,
+            "has_query": bool(chat_query or participant_filters or topic_filters),
+        },
+        "related_chat_suggestions": related_chats,
     }
+
+
+_SLUG_PATTERN = re.compile(r"[^a-z0-9]+")
+
+
+def _slugify(value: str) -> str:
+    return _SLUG_PATTERN.sub("-", value.strip().lower()).strip("-")
+
+
+def _signal_display_attr_key(help_request: HelpRequest) -> Optional[str]:
+    title = (help_request.title or "").strip()
+    if not title.startswith("[Signal]"):
+        return None
+    _, _, group_name = title.partition("]")
+    group_name = group_name.strip()
+    if not group_name:
+        return None
+    slug = _slugify(group_name)
+    if not slug:
+        return None
+    return f"signal_display_name:{slug}"
+
+
+def _load_signal_display_names(
+    db: Session,
+    comment_rows: list[tuple[RequestComment, User]],
+    attr_key: Optional[str],
+) -> dict[int, str]:
+    if not attr_key:
+        return {}
+    user_ids = {author.id for _, author in comment_rows}
+    if not user_ids:
+        return {}
+    rows = db.exec(
+        select(UserAttribute.user_id, UserAttribute.value)
+        .where(UserAttribute.user_id.in_(user_ids))
+        .where(UserAttribute.key == attr_key)
+    ).all()
+    return {user_id: value for user_id, value in rows if value}
 
 
 def _validate_contact_email(value: str) -> Optional[str]:
@@ -601,6 +771,25 @@ def profile_view(
         "avatar_url": avatar_url,
     }
 
+    recent_comments: list[dict[str, object]] = []
+    show_recent_comments = viewer.is_admin
+    if show_recent_comments:
+        rows = request_comment_service.list_recent_comments_for_user(db, person.id)
+        for comment, help_request in rows:
+            created_at_iso = comment.created_at.isoformat() if comment.created_at else None
+            recent_comments.append(
+                {
+                    "id": comment.id,
+                    "body": comment.body,
+                    "created_at": comment.created_at,
+                    "created_at_iso": created_at_iso,
+                    "request_id": help_request.id,
+                    "request_title": help_request.title or f"Request #{help_request.id}",
+                    "request_url": f"/requests/{help_request.id}",
+                    "scope": (comment.sync_scope or "private").title(),
+                }
+            )
+
     context = {
         "request": request,
         "viewer": viewer,
@@ -614,8 +803,92 @@ def profile_view(
         "session_role": viewer_session_role,
         "session_username": viewer.username,
         "session_avatar_url": session_user.avatar_url,
+        "show_recent_comments": show_recent_comments,
+        "recent_comments": recent_comments,
+        "recent_comments_limit": request_comment_service.RECENT_PROFILE_COMMENTS_LIMIT,
+        "recent_comments_url": f"/people/{person.username}/comments",
     }
     return templates.TemplateResponse("profile/show.html", context)
+
+
+@router.get("/people/{username}/comments")
+def profile_comments(
+    username: str,
+    request: Request,
+    db: SessionDep,
+    page: int = Query(1, ge=1),
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    viewer = session_user.user
+    if not viewer.is_admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+
+    normalized = auth_service.normalize_username(username)
+    person = db.exec(select(User).where(User.username == normalized)).first()
+    if not person:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    rows, total_count = request_comment_service.paginate_comments_for_user(
+        db,
+        person.id,
+        page=page,
+    )
+    comment_groups: list[dict[str, object]] = []
+    for comment, help_request in rows:
+        created_at_iso = comment.created_at.isoformat() if comment.created_at else None
+        title = help_request.title or f"Request #{help_request.id}"
+        group_url = f"/requests/{help_request.id}"
+        if not comment_groups or comment_groups[-1]["request_id"] != help_request.id:
+            comment_groups.append(
+                {
+                    "request_id": help_request.id,
+                    "request_title": title,
+                    "request_url": group_url,
+                    "comments": [],
+                }
+            )
+        comment_groups[-1]["comments"].append(
+            {
+                "id": comment.id,
+                "body": comment.body,
+                "created_at": comment.created_at,
+                "created_at_iso": created_at_iso,
+                "scope": (comment.sync_scope or "private").title(),
+                "comment_url": f"{group_url}#comment-{comment.id}",
+            }
+        )
+
+    per_page = request_comment_service.PROFILE_COMMENTS_PER_PAGE
+    total_pages = max(1, (total_count + per_page - 1) // per_page) if per_page else 1
+    current_page = min(page, total_pages)
+
+    def _page_url(target_page: int) -> str:
+        return str(request.url.include_query_params(page=target_page))
+
+    pagination = {
+        "has_prev": current_page > 1,
+        "has_next": current_page < total_pages,
+        "prev_url": _page_url(current_page - 1) if current_page > 1 else None,
+        "next_url": _page_url(current_page + 1) if current_page < total_pages else None,
+        "current_page": current_page,
+        "total_pages": total_pages,
+        "total_comments": total_count,
+    }
+
+    viewer_session = session_user.session
+    context = {
+        "request": request,
+        "person": person,
+        "comment_groups": comment_groups,
+        "pagination": pagination,
+        "user": viewer,
+        "session": viewer_session,
+        "session_role": describe_session_role(viewer, viewer_session),
+        "session_username": viewer.username,
+        "session_avatar_url": session_user.avatar_url,
+        "profile_url": f"/people/{person.username}",
+    }
+    return templates.TemplateResponse("profile/comments.html", context)
 
 
 @router.post("/requests")

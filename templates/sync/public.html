@@ -256,47 +256,4 @@
     </div>
   </div>
 </section>
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const forms = document.querySelectorAll('[data-sync-toggle]');
-    forms.forEach((form) => {
-      form.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const button = form.querySelector('[data-sync-button]');
-        const scopeInput = form.querySelector('input[name="scope"]');
-        const labelEl = form.querySelector('[data-scope-label]');
-        const hintEl = form.querySelector('[data-scope-hint]');
-        const formData = new FormData(form);
-        button.disabled = true;
-        try {
-          const response = await fetch(form.action, {
-            method: 'POST',
-            headers: { Accept: 'application/json' },
-            body: formData,
-          });
-          if (!response.ok) {
-            throw new Error('Scope update failed');
-          }
-          const payload = await response.json();
-          const isPublic = payload.scope === 'public';
-          button.classList.toggle('meta-chip--success', isPublic);
-          button.classList.toggle('meta-chip--muted', !isPublic);
-          button.setAttribute('aria-pressed', isPublic ? 'true' : 'false');
-          if (labelEl) {
-            labelEl.textContent = isPublic ? 'Public' : 'Private';
-          }
-          if (hintEl) {
-            hintEl.textContent = isPublic ? 'Tap to keep private' : 'Tap to share publicly';
-          }
-          scopeInput.value = isPublic ? 'private' : 'public';
-        } catch (error) {
-          console.error(error);
-          button.setAttribute('title', 'Unable to update sharing scope. Try again.');
-        } finally {
-          button.disabled = false;
-        }
-      });
-    });
-  });
-</script>
 {% endblock %}

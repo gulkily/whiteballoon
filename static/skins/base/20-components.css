@@ -479,6 +479,22 @@ textarea::placeholder {
   line-height: 1.1;
 }
 
+.meta-chip--small {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  gap: 0.1rem;
+}
+
+.meta-chip--ghost {
+  background: transparent;
+  color: var(--color-muted);
+  border: 1px dashed rgba(15, 23, 42, 0.2);
+}
+
+[data-theme="dark"] .meta-chip--ghost {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 .meta-chip__hint {
   font-size: 0.7rem;
   font-weight: 500;

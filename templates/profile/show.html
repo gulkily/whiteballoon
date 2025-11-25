@@ -52,6 +52,40 @@
     </dl>
   </article>
 
+  {% if show_recent_comments %}
+    <article class="card stack profile-comments-card">
+      <div class="profile-comments-card__header">
+        <div>
+          <h2>Recent comments</h2>
+          <p class="muted small-text">Showing up to {{ recent_comments_limit }} of the latest entries.</p>
+        </div>
+      </div>
+      {% if recent_comments %}
+        <ul class="profile-recent-comments">
+          {% for comment in recent_comments %}
+            <li class="profile-recent-comment">
+              <div class="profile-recent-comment__meta">
+                <a href="{{ comment.request_url }}" class="profile-recent-comment__request">
+                  Request #{{ comment.request_id }} · {{ comment.request_title or 'Untitled request' }}
+                </a>
+                {% if comment.created_at %}
+                  <time datetime="{{ comment.created_at_iso }}" class="profile-recent-comment__time">{{ comment.created_at | friendly_time }}</time>
+                {% endif %}
+              </div>
+              <p class="profile-recent-comment__body">{{ comment.body }}</p>
+              <span class="meta-chip meta-chip--small">{{ comment.scope }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">No comments yet.</p>
+      {% endif %}
+      <div class="profile-comments-card__footer">
+        <a class="button button--ghost small" href="{{ recent_comments_url }}">View all comments</a>
+      </div>
+    </article>
+  {% endif %}
+
   <div>
     <a class="button button--ghost" href="/">Back to requests</a>
   </div>

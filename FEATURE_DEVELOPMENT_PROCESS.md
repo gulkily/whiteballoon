@@ -11,10 +11,10 @@ Four-step process for feature development with optional solution assessment.
 **Format**: Ultra-concise comparison document (≤1 page) in `docs/plans/`
 **Filename**: `{feature_name}_solution_assessment.md`
 - Problem statement (1 sentence)
-- 2-4 solution options with key pros/cons (bullet points only)
+- ≥2 solution options, each tagged sequentially as Option A/B/C/etc., with key pros/cons (bullet points only)
 - Clear recommendation with brief reasoning
 
-**Avoid**: Long explanations, implementation details, >4 options, verbose prose
+**Avoid**: Long explanations, implementation details, verbose prose
 
 ---
 
@@ -55,7 +55,9 @@ Four-step process for feature development with optional solution assessment.
 - Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work.
 - Complete stages atomically (<2 hours each)
 - Manual smoke verification is sufficient for each stage; do not write automated tests.
-- Update the Step 4 implementation summary document after every stage and commit those updates as you go.
+- Avoid seeding adhoc data fixtures or writing temporary scripts; verify using existing UI/CLI flows only.
+- Update the Step 4 implementation summary document immediately after finishing each stage (document what shipped + how it was verified).
+- Commit the code + documentation for each stage (including the Step 4 summary update) before starting the next stage.
 - Conclude Step 4 by finalizing the implementation summary document.
 
 **Completion Criteria**:

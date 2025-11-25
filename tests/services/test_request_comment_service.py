@@ -45,8 +45,9 @@ def test_add_and_list_comments(session: Session) -> None:
 
     assert comment.body == "First!"
 
-    rows = request_comment_service.list_comments(session, help_request_id=request.id)
+    rows, total_count = request_comment_service.list_comments(session, help_request_id=request.id)
     assert len(rows) == 1
+    assert total_count == 1
     stored_comment, stored_user = rows[0]
     assert stored_comment.id == comment.id
     assert stored_user.id == author.id
@@ -71,3 +72,74 @@ def test_add_comment_validates_body(session: Session) -> None:
             user_id=author.id,
             body="x" * (request_comment_service.MAX_COMMENT_LENGTH + 1),
         )
+
+
+def test_list_recent_comments_for_user(session: Session) -> None:
+    author = create_user(session, "author")
+    other = create_user(session, "other")
+    request_one = create_request(session, author)
+    request_two = create_request(session, author)
+
+    first = request_comment_service.add_comment(
+        session,
+        help_request_id=request_one.id,
+        user_id=author.id,
+        body="First",
+    )
+    second = request_comment_service.add_comment(
+        session,
+        help_request_id=request_two.id,
+        user_id=author.id,
+        body="Second",
+    )
+    _ = request_comment_service.add_comment(
+        session,
+        help_request_id=request_one.id,
+        user_id=other.id,
+        body="Other",
+    )
+
+    rows = request_comment_service.list_recent_comments_for_user(session, author.id, limit=2)
+    assert len(rows) == 2
+    ids = [comment.id for comment, _ in rows]
+    assert ids == [second.id, first.id]
+    help_request_ids = [request.id for _, request in rows]
+    assert help_request_ids == [request_two.id, request_one.id]
+
+
+def test_list_recent_comments_for_user_defaults_limit(session: Session) -> None:
+    author = create_user(session, "author2")
+    request = create_request(session, author)
+    for index in range(request_comment_service.RECENT_PROFILE_COMMENTS_LIMIT + 2):
+        request_comment_service.add_comment(
+            session,
+            help_request_id=request.id,
+            user_id=author.id,
+            body=f"Body {index}",
+        )
+
+    rows = request_comment_service.list_recent_comments_for_user(session, author.id)
+    assert len(rows) == request_comment_service.RECENT_PROFILE_COMMENTS_LIMIT
+
+
+def test_paginate_comments_for_user(session: Session) -> None:
+    author = create_user(session, "author3")
+    request = create_request(session, author)
+    for index in range(5):
+        request_comment_service.add_comment(
+            session,
+            help_request_id=request.id,
+            user_id=author.id,
+            body=f"Body {index}",
+        )
+
+    rows, total = request_comment_service.paginate_comments_for_user(
+        session,
+        author.id,
+        page=2,
+        per_page=2,
+    )
+    assert total == 5
+    assert len(rows) == 2
+    bodies = [comment.body for comment, _ in rows]
+    assert bodies == ["Body 2", "Body 1"]
