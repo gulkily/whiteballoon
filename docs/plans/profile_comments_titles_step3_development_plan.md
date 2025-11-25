@@ -4,7 +4,7 @@
 - **Goal**: Render grouping headers per request on `/people/{username}/comments`.
 - **Dependencies**: Existing `profile_comments` route and template.
 - **Changes**: Update the route to annotate each serialized comment with a boolean when the request changes (has_new_header). Adjust the template to emit a heading/summary for that group and move the request link/title into the header.
-- **Verification**: Create seed data with mixed requests, load comments page, confirm only one heading per request on a page; ensure pagination boundaries still show headings as expected.
+- **Verification**: Use existing dev data (no manual seeding) to load a profile comments page with mixed requests; confirm only one heading per request on a page and that pagination boundaries still show headings correctly.
 - **Risks**: Wrong grouping when consecutive comments share IDs across page boundaries; need to ensure headers show even when the first comment on a page is a continuation.
 
 ## Stage 2 – Styling polish + README blurb (optional)
