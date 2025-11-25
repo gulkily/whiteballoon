@@ -60,7 +60,7 @@
     const nameMap = displayNames || {};
     results.forEach((match) => {
       const item = document.createElement('li');
-      item.className = 'card request-chat-search__result';
+      item.className = 'comment-card request-chat-search__result';
 
       const identity = document.createElement('div');
       identity.className = 'request-chat-search__identity';
