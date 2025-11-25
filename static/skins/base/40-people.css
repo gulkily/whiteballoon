@@ -186,3 +186,16 @@
   font-size: var(--font-size-xs);
   color: var(--color-muted);
 }
+
+.profile-comments-pagination {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.profile-comments-pagination__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

@@ -11,6 +11,7 @@ from app.models import HelpRequest, RequestComment, User
 MAX_COMMENT_LENGTH = 2000
 DEFAULT_COMMENTS_PER_PAGE = 20
 RECENT_PROFILE_COMMENTS_LIMIT = 5
+PROFILE_COMMENTS_PER_PAGE = 15
 
 
 def list_comments(
@@ -64,6 +65,41 @@ def list_recent_comments_for_user(
     if page_limit:
         stmt = stmt.limit(page_limit)
     return session.exec(stmt).all()
+
+
+def paginate_comments_for_user(
+    session: Session,
+    user_id: int,
+    *,
+    page: int = 1,
+    per_page: int | None = None,
+) -> tuple[list[tuple[RequestComment, HelpRequest]], int]:
+    """Return paginated comments authored by a user with their requests."""
+    page_size = per_page if per_page is not None else PROFILE_COMMENTS_PER_PAGE
+    safe_page = max(1, page)
+    offset = (safe_page - 1) * page_size
+
+    count_stmt = (
+        select(func.count())
+        .select_from(RequestComment)
+        .where(RequestComment.user_id == user_id)
+        .where(RequestComment.deleted_at.is_(None))
+    )
+    total_count = session.exec(count_stmt).one() or 0
+
+    query = (
+        select(RequestComment, HelpRequest)
+        .join(HelpRequest, HelpRequest.id == RequestComment.help_request_id)
+        .where(RequestComment.user_id == user_id)
+        .where(RequestComment.deleted_at.is_(None))
+        .order_by(RequestComment.created_at.desc())
+        .offset(offset)
+    )
+    if page_size:
+        query = query.limit(page_size)
+
+    rows = session.exec(query).all()
+    return rows, total_count
 
 
 def add_comment(

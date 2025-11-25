@@ -59,7 +59,7 @@
           <h2>Recent comments</h2>
           <p class="muted small-text">Showing up to {{ recent_comments_limit }} of the latest entries.</p>
         </div>
-        <span class="button button--ghost button--disabled" aria-disabled="true">Full history coming soon</span>
+        <a class="button button--ghost small" href="{{ recent_comments_url }}">View all comments</a>
       </div>
       {% if recent_comments %}
         <ul class="profile-recent-comments">

@@ -120,3 +120,26 @@ def test_list_recent_comments_for_user_defaults_limit(session: Session) -> None:
 
     rows = request_comment_service.list_recent_comments_for_user(session, author.id)
     assert len(rows) == request_comment_service.RECENT_PROFILE_COMMENTS_LIMIT
+
+
+def test_paginate_comments_for_user(session: Session) -> None:
+    author = create_user(session, "author3")
+    request = create_request(session, author)
+    for index in range(5):
+        request_comment_service.add_comment(
+            session,
+            help_request_id=request.id,
+            user_id=author.id,
+            body=f"Body {index}",
+        )
+
+    rows, total = request_comment_service.paginate_comments_for_user(
+        session,
+        author.id,
+        page=2,
+        per_page=2,
+    )
+    assert total == 5
+    assert len(rows) == 2
+    bodies = [comment.body for comment, _ in rows]
+    assert bodies == ["Body 2", "Body 1"]

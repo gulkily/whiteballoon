@@ -811,6 +811,77 @@ def profile_view(
     return templates.TemplateResponse("profile/show.html", context)
 
 
+@router.get("/people/{username}/comments")
+def profile_comments(
+    username: str,
+    request: Request,
+    db: SessionDep,
+    page: int = Query(1, ge=1),
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    viewer = session_user.user
+    if not viewer.is_admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Profile not found")
+
+    normalized = auth_service.normalize_username(username)
+    person = db.exec(select(User).where(User.username == normalized)).first()
+    if not person:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    rows, total_count = request_comment_service.paginate_comments_for_user(
+        db,
+        person.id,
+        page=page,
+    )
+    comments: list[dict[str, object]] = []
+    for comment, help_request in rows:
+        created_at_iso = comment.created_at.isoformat() if comment.created_at else None
+        comments.append(
+            {
+                "id": comment.id,
+                "body": comment.body,
+                "created_at": comment.created_at,
+                "created_at_iso": created_at_iso,
+                "request_id": help_request.id,
+                "request_title": help_request.title or f"Request #{help_request.id}",
+                "request_url": f"/requests/{help_request.id}",
+                "scope": (comment.sync_scope or "private").title(),
+            }
+        )
+
+    per_page = request_comment_service.PROFILE_COMMENTS_PER_PAGE
+    total_pages = max(1, (total_count + per_page - 1) // per_page) if per_page else 1
+    current_page = min(page, total_pages)
+
+    def _page_url(target_page: int) -> str:
+        return str(request.url.include_query_params(page=target_page))
+
+    pagination = {
+        "has_prev": current_page > 1,
+        "has_next": current_page < total_pages,
+        "prev_url": _page_url(current_page - 1) if current_page > 1 else None,
+        "next_url": _page_url(current_page + 1) if current_page < total_pages else None,
+        "current_page": current_page,
+        "total_pages": total_pages,
+        "total_comments": total_count,
+    }
+
+    viewer_session = session_user.session
+    context = {
+        "request": request,
+        "person": person,
+        "comments": comments,
+        "pagination": pagination,
+        "user": viewer,
+        "session": viewer_session,
+        "session_role": describe_session_role(viewer, viewer_session),
+        "session_username": viewer.username,
+        "session_avatar_url": session_user.avatar_url,
+        "profile_url": f"/people/{person.username}",
+    }
+    return templates.TemplateResponse("profile/comments.html", context)
+
+
 @router.post("/requests")
 def create_request(
     request: Request,
