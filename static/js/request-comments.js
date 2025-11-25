@@ -69,37 +69,78 @@
 
   commentSection.addEventListener('submit', async (event) => {
     const target = event.target;
-    if (!target.matches('[data-comment-delete-form]')) return;
-
     if (!window.fetch) {
       return;
     }
 
-    event.preventDefault();
+    if (target.matches('[data-comment-delete-form]')) {
+      event.preventDefault();
+      const commentEl = target.closest('[data-comment-id]');
+      const deleteButton = target.querySelector('[data-comment-delete]');
+      deleteButton?.setAttribute('disabled', 'disabled');
 
-    const commentEl = target.closest('[data-comment-id]');
-    const deleteButton = target.querySelector('[data-comment-delete]');
-    deleteButton?.setAttribute('disabled', 'disabled');
+      try {
+        const response = await fetch(target.action, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'Fetch', Accept: 'application/json' },
+        });
 
-    try {
-      const response = await fetch(target.action, {
-        method: 'POST',
-        headers: { 'X-Requested-With': 'Fetch', Accept: 'application/json' },
-      });
+        if (!response.ok) {
+          target.submit();
+          return;
+        }
 
-      if (!response.ok) {
+        commentEl?.remove();
+        if (list && !list.children.length) {
+          list.setAttribute('hidden', 'hidden');
+        }
+      } catch (error) {
         target.submit();
-        return;
+      } finally {
+        deleteButton?.removeAttribute('disabled');
       }
+      return;
+    }
 
-      commentEl?.remove();
-      if (list && !list.children.length) {
-        list.setAttribute('hidden', 'hidden');
+    if (target.matches('[data-comment-scope-form]')) {
+      event.preventDefault();
+      const commentEl = target.closest('[data-comment-id]');
+      const scopeChip = commentEl?.querySelector('.request-comment__scope');
+      const scopeInput = target.querySelector('input[name="scope"]');
+      const button = target.querySelector('button');
+      button?.setAttribute('disabled', 'disabled');
+
+      try {
+        const response = await fetch(target.action, {
+          method: 'POST',
+          headers: { 'X-Requested-With': 'Fetch', Accept: 'application/json' },
+          body: new FormData(target),
+        });
+
+        if (!response.ok) {
+          target.submit();
+          return;
+        }
+
+        const payload = await response.json().catch(() => ({}));
+        const nextScope = (payload.scope || '').toLowerCase();
+        const fallbackScope = (scopeInput?.value || '').toLowerCase() === 'public' ? 'private' : 'public';
+        const scope = nextScope || fallbackScope;
+        const isPublic = scope === 'public';
+        if (scopeChip) {
+          scopeChip.textContent = isPublic ? 'Public' : 'Private';
+        }
+        if (button) {
+          button.textContent = isPublic ? 'Make private' : 'Share';
+        }
+        if (scopeInput) {
+          scopeInput.value = isPublic ? 'private' : 'public';
+        }
+      } catch (error) {
+        target.submit();
+      } finally {
+        button?.removeAttribute('disabled');
       }
-    } catch (error) {
-      target.submit();
-    } finally {
-      deleteButton?.removeAttribute('disabled');
     }
   });
 })();

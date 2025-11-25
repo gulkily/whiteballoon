@@ -35,7 +35,7 @@
             <time class="meta-chip__value" datetime="{{ request_item.created_at }}">{{ request_item.created_at | friendly_time }}</time>
           </span>
           {% if can_toggle_sync_scope %}
-            <form class="sync-scope-toggle" method="post" action="/sync/scope">
+            <form class="sync-scope-toggle" method="post" action="/sync/scope" data-sync-toggle>
               <input type="hidden" name="entity_type" value="request" />
               <input type="hidden" name="entity_id" value="{{ request_item.id }}" />
               <input type="hidden" name="next" value="{{ request.url.path }}" />
@@ -43,14 +43,15 @@
               {% set is_public = request_item.sync_scope == 'public' %}
               <button
                 type="submit"
-                class="meta-chip meta-chip--action"
+                class="meta-chip meta-chip--action meta-chip--status meta-chip--{{ 'success' if is_public else 'muted' }}"
                 aria-pressed="{{ 'true' if is_public else 'false' }}"
                 aria-label="{{ 'Sharing publicly — activate to keep private' if is_public else 'Sharing privately — activate to share publicly' }}"
+                data-sync-button
               >
                 <span class="meta-chip__label">Sharing</span>
                 <span class="meta-chip__value meta-chip__value--stacked">
-                  {{ 'Public' if is_public else 'Private' }}
-                  <span class="meta-chip__hint">{{ 'Tap to keep private' if is_public else 'Tap to share publicly' }}</span>
+                  <span data-scope-label>{{ 'Public' if is_public else 'Private' }}</span>
+                  <span class="meta-chip__hint" data-scope-hint>{{ 'Tap to keep private' if is_public else 'Tap to share publicly' }}</span>
                 </span>
               </button>
             </form>
