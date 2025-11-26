@@ -7,10 +7,10 @@
 - **Notes**: The helper forces WAL/NORMAL pragmas for safer concurrent reads; future stages can reuse `open_connection()` for writers/readers.
 
 ## Stage 2 – CLI writer integration
-- **Status**: Pending
-- **Shipped Changes**: _TBD_
-- **Verification**: _TBD_
-- **Notes**: _TBD_
+- **Status**: Completed
+- **Shipped Changes**: `comment_llm_processing` now opens `data/comment_llm_insights.db`, records run metadata, and upserts per-comment analyses (JSON arrays serialized) alongside the existing JSONL store. Each batch logs its insert counts and the run row tracks completed vs total batches.
+- **Verification**: Ran `python -m app.tools.comment_llm_processing --limit 3 --execute --provider mock --include-processed --output-path storage/comment_llm_runs/mock_db_test.json`, then queried the SQLite DB to confirm one run row (`completed_batches=1`) and three analysis rows were written.
+- **Notes**: Writer still emits JSONL for backup; future stages can read from the DB while JSON files provide audit/backfill.
 
 ## Stage 3 – Backend read service
 - **Status**: Pending

@@ -18,6 +18,7 @@ from app.config import get_settings
 from app.db import get_engine
 from app.models import RequestComment
 from app.services import comment_llm_store
+from app.services import comment_llm_insights_db
 
 
 MIN_BATCH_SIZE = 1
@@ -573,6 +574,31 @@ def persist_execution_results(
     return output_path
 
 
+def _rows_for_insights_db(analyses: Sequence[CommentAnalysis], run_id: str, recorded_at: str) -> list[tuple]:
+    rows: list[tuple] = []
+    for analysis in analyses:
+        rows.append(
+            (
+                analysis.comment_id,
+                run_id,
+                analysis.help_request_id,
+                analysis.summary,
+                json.dumps(analysis.resource_tags),
+                json.dumps(analysis.request_tags),
+                analysis.audience,
+                analysis.residency_stage,
+                analysis.location,
+                analysis.location_precision,
+                analysis.urgency,
+                analysis.sentiment,
+                json.dumps(analysis.tags),
+                analysis.notes,
+                recorded_at,
+            )
+        )
+    return rows
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m app.tools.comment_llm_processing",
@@ -834,69 +860,111 @@ def main(argv: list[str] | None = None) -> int:
     batches_per_minute = ns.batches_per_minute if ns.batches_per_minute and ns.batches_per_minute > 0 else None
     rate_interval = (60.0 / batches_per_minute) if batches_per_minute else None
     next_allowed_time = time.monotonic() if rate_interval else None
+    total_batches = len(batch_payloads)
+    with comment_llm_insights_db.open_connection() as db_conn:
+        comment_llm_insights_db.insert_run(
+            db_conn,
+            comment_llm_insights_db.RunRecord(
+                run_id=run_id,
+                snapshot_label=summary.snapshot_label,
+                provider=ns.provider,
+                model=ns.model,
+                started_at=run_started_at.isoformat(),
+                completed_batches=0,
+                total_batches=total_batches,
+            ),
+        )
 
-    for idx, batch_comments in enumerate(batch_payloads, start=1):
-        if rate_interval and next_allowed_time is not None:
-            now = time.monotonic()
-            if now < next_allowed_time:
-                delay = next_allowed_time - now
-                print(
-                    f"[batch {idx:03d}] Pausing {delay:.2f}s to honor {batches_per_minute:.1f} batches/min rate."
-                )
-                time.sleep(delay)
-            next_allowed_time = time.monotonic() + rate_interval
-        estimate = summary.batches[idx - 1] if idx - 1 < len(summary.batches) else None
-        est_input = estimate.estimated_input_tokens if estimate else 0
-        est_output = estimate.estimated_output_tokens if estimate else 0
-        est_cost = (
-            estimate_cost_amount(est_input, est_output, config) if estimate else 0.0
-        )
-        projected_cost = cumulative_estimated_cost + est_cost
-        if max_spend is not None and projected_cost > max_spend + 1e-9:
-            print(
-                f"[batch {idx:03d}] Stopping before execution: projected spend ${projected_cost:.4f} would exceed max ${max_spend:.4f}."
+        for idx, batch_comments in enumerate(batch_payloads, start=1):
+            if rate_interval and next_allowed_time is not None:
+                now = time.monotonic()
+                if now < next_allowed_time:
+                    delay = next_allowed_time - now
+                    print(
+                        f"[batch {idx:03d}] Pausing {delay:.2f}s to honor {batches_per_minute:.1f} batches/min rate."
+                    )
+                    time.sleep(delay)
+                next_allowed_time = time.monotonic() + rate_interval
+            estimate = summary.batches[idx - 1] if idx - 1 < len(summary.batches) else None
+            est_input = estimate.estimated_input_tokens if estimate else 0
+            est_output = estimate.estimated_output_tokens if estimate else 0
+            est_cost = (
+                estimate_cost_amount(est_input, est_output, config) if estimate else 0.0
             )
-            break
-        cumulative_estimated_cost = projected_cost
-        print(
-            f"[batch {idx:03d}] Sending {len(batch_comments)} comments "
-            f"(~{est_input} in / ~{est_output} out tokens, est cost ${est_cost:.4f})"
+            projected_cost = cumulative_estimated_cost + est_cost
+            if max_spend is not None and projected_cost > max_spend + 1e-9:
+                print(
+                    f"[batch {idx:03d}] Stopping before execution: projected spend ${projected_cost:.4f} would exceed max ${max_spend:.4f}."
+                )
+                break
+            cumulative_estimated_cost = projected_cost
+            print(
+                f"[batch {idx:03d}] Sending {len(batch_comments)} comments "
+                f"(~{est_input} in / ~{est_output} out tokens, est cost ${est_cost:.4f})"
+            )
+            result = client.analyze_batch(batch_index=idx, comments=batch_comments)
+            print(
+                f"[batch {idx:03d}] Received {len(result.analyses)} analyses; cumulative est cost ${cumulative_estimated_cost:.4f}"
+            )
+            stats = comment_llm_store.save_comment_analyses(
+                analyses=result.analyses,
+                snapshot_label=summary.snapshot_label,
+                provider=ns.provider,
+                model=ns.model,
+                run_id=run_id,
+                batch_index=idx,
+                overwrite=ns.include_processed,
+            )
+            if stats.written or stats.skipped:
+                print(
+                    f"[batch {idx:03d}] Stored {stats.written} analyses ({stats.skipped} skipped)."
+                )
+            recorded_at = datetime.utcnow().isoformat()
+            rows = _rows_for_insights_db(result.analyses, run_id, recorded_at)
+            if rows:
+                comment_llm_insights_db.insert_analyses(db_conn, rows)
+            execution_results.append(result)
+            comment_llm_insights_db.insert_run(
+                db_conn,
+                comment_llm_insights_db.RunRecord(
+                    run_id=run_id,
+                    snapshot_label=summary.snapshot_label,
+                    provider=ns.provider,
+                    model=ns.model,
+                    started_at=run_started_at.isoformat(),
+                    completed_batches=len(execution_results),
+                    total_batches=total_batches,
+                ),
+            )
+
+        output_path = (
+            Path(ns.output_path)
+            if ns.output_path
+            else _default_output_path(summary.snapshot_label, started_at=run_started_at)
         )
-        result = client.analyze_batch(batch_index=idx, comments=batch_comments)
-        print(
-            f"[batch {idx:03d}] Received {len(result.analyses)} analyses; cumulative est cost ${cumulative_estimated_cost:.4f}"
-        )
-        stats = comment_llm_store.save_comment_analyses(
-            analyses=result.analyses,
-            snapshot_label=summary.snapshot_label,
+        saved_path = persist_execution_results(
+            summary=summary,
+            results=execution_results,
+            output_path=output_path,
             provider=ns.provider,
             model=ns.model,
             run_id=run_id,
-            batch_index=idx,
-            overwrite=ns.include_processed,
         )
-        if stats.written or stats.skipped:
-            print(
-                f"[batch {idx:03d}] Stored {stats.written} analyses ({stats.skipped} skipped)."
-            )
-        execution_results.append(result)
-
-    output_path = (
-        Path(ns.output_path)
-        if ns.output_path
-        else _default_output_path(summary.snapshot_label, started_at=run_started_at)
-    )
-    saved_path = persist_execution_results(
-        summary=summary,
-        results=execution_results,
-        output_path=output_path,
-        provider=ns.provider,
-        model=ns.model,
-        run_id=run_id,
-    )
-    print(
-        f"\nSaved structured batch output to {saved_path} (processed {len(execution_results)} / {len(batch_payloads)} batches, est spend ${cumulative_estimated_cost:.4f})."
-    )
+        print(
+            f"\nSaved structured batch output to {saved_path} (processed {len(execution_results)} / {len(batch_payloads)} batches, est spend ${cumulative_estimated_cost:.4f})."
+        )
+        comment_llm_insights_db.insert_run(
+            db_conn,
+            comment_llm_insights_db.RunRecord(
+                run_id=run_id,
+                snapshot_label=summary.snapshot_label,
+                provider=ns.provider,
+                model=ns.model,
+                started_at=run_started_at.isoformat(),
+                completed_batches=len(execution_results),
+                total_batches=total_batches,
+            ),
+        )
     return 0
 
 

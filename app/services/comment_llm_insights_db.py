@@ -112,6 +112,7 @@ def insert_run(conn: sqlite3.Connection, record: RunRecord) -> None:
             record.total_batches,
         ),
     )
+    conn.commit()
 
 
 def insert_analyses(conn: sqlite3.Connection, rows: Iterable[tuple]) -> None:
