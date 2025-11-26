@@ -21,10 +21,12 @@ This log captures the implementation progress for each development stage defined
 - **Notes**: Store keeps `storage/comment_llm_runs/comment_analyses.jsonl` + `comment_index.json`; reruns with `--include-processed` overwrite entries while default runs remain idempotent.
 
 ## Stage 4 – Monitoring, operator controls, and cost ceilings
-- **Status**: Pending
-- **Shipped Changes**: _TBD_
-- **Verification**: _TBD_
-- **Notes**: _TBD_
+- **Status**: Completed
+- **Shipped Changes**: Added execution guardrails to `comment_llm_processing` (max spend ceiling, batches-per-minute throttle, per-batch pause logging, run-level IDs, and richer progress summaries) plus on-the-fly persistence/skip reporting so operators always see spend-to-date vs limits.
+- **Verification**: 
+  - `python -m app.tools.comment_llm_processing --limit 3 --execute --provider mock --include-processed --max-spend-usd 0.0002` confirmed the CLI stops before violating the spend ceiling and still writes a run artifact.
+  - `python -m app.tools.comment_llm_processing --limit 3 --batch-size 1 --execute --provider mock --include-processed --batches-per-minute 30 --output-path storage/comment_llm_runs/mock_rate.json` showed the rate-limit pauses, per-batch spend reporting, and successful storage after throttled execution.
+- **Notes**: Spend ceiling currently leverages estimated token costs; hook into real invoices later if needed. Rate limiter is coarse (sleep-based) but keeps Dedalus calls comfortably under provider thresholds.
 
 ## Stage 5 – Classification review + adjustments
 - **Status**: Pending

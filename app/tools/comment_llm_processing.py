@@ -663,6 +663,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--output-path",
         help="Where to write structured JSON results when executing batches (default: storage/comment_llm_runs/{snapshot_label}_<timestamp>.json)",
     )
+    parser.add_argument(
+        "--max-spend-usd",
+        type=float,
+        default=None,
+        help="Ceiling for estimated spend; execution stops before the next batch would exceed it",
+    )
+    parser.add_argument(
+        "--batches-per-minute",
+        type=float,
+        default=0.0,
+        help="Throttle batch submissions to this rate (0 disables throttling)",
+    )
     return parser
 
 
@@ -813,14 +825,34 @@ def main(argv: list[str] | None = None) -> int:
     run_started_at = datetime.utcnow()
     run_id = f"{summary.snapshot_label}-{run_started_at.strftime('%Y%m%d-%H%M%S')}"
     cumulative_estimated_cost = 0.0
+    max_spend = ns.max_spend_usd if ns.max_spend_usd and ns.max_spend_usd > 0 else None
+    batches_per_minute = ns.batches_per_minute if ns.batches_per_minute and ns.batches_per_minute > 0 else None
+    rate_interval = (60.0 / batches_per_minute) if batches_per_minute else None
+    next_allowed_time = time.monotonic() if rate_interval else None
+
     for idx, batch_comments in enumerate(batch_payloads, start=1):
+        if rate_interval and next_allowed_time is not None:
+            now = time.monotonic()
+            if now < next_allowed_time:
+                delay = next_allowed_time - now
+                print(
+                    f"[batch {idx:03d}] Pausing {delay:.2f}s to honor {batches_per_minute:.1f} batches/min rate."
+                )
+                time.sleep(delay)
+            next_allowed_time = time.monotonic() + rate_interval
         estimate = summary.batches[idx - 1] if idx - 1 < len(summary.batches) else None
         est_input = estimate.estimated_input_tokens if estimate else 0
         est_output = estimate.estimated_output_tokens if estimate else 0
         est_cost = (
             estimate_cost_amount(est_input, est_output, config) if estimate else 0.0
         )
-        cumulative_estimated_cost += est_cost
+        projected_cost = cumulative_estimated_cost + est_cost
+        if max_spend is not None and projected_cost > max_spend + 1e-9:
+            print(
+                f"[batch {idx:03d}] Stopping before execution: projected spend ${projected_cost:.4f} would exceed max ${max_spend:.4f}."
+            )
+            break
+        cumulative_estimated_cost = projected_cost
         print(
             f"[batch {idx:03d}] Sending {len(batch_comments)} comments "
             f"(~{est_input} in / ~{est_output} out tokens, est cost ${est_cost:.4f})"
@@ -857,7 +889,9 @@ def main(argv: list[str] | None = None) -> int:
         model=ns.model,
         run_id=run_id,
     )
-    print(f"\nSaved structured batch output to {saved_path}")
+    print(
+        f"\nSaved structured batch output to {saved_path} (processed {len(execution_results)} / {len(batch_payloads)} batches, est spend ${cumulative_estimated_cost:.4f})."
+    )
     return 0
 
 
