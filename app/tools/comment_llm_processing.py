@@ -575,7 +575,11 @@ def persist_execution_results(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="python -m app.tools.comment_llm_processing",
-        description="Plan batched LLM processing for help-request comments.",
+        description=(
+            "Plan batched LLM processing for help-request comments.\n\n"
+            "Example:\n  wb comment-llm --snapshot-label hacker-houses-apr --limit 200 --batch-size 10 "
+            "--execute --provider dedalus --max-spend-usd 5 --show-batches"
+        ),
     )
     parser.add_argument("--snapshot-label", default="default", help="Label recorded with this run plan")
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE, help="Comments per batch (1-25)")
