@@ -13,19 +13,19 @@
 - **Notes**: Writer still emits JSONL for backup; future stages can read from the DB while JSON files provide audit/backfill.
 
 ## Stage 3 – Backend read service
-- **Status**: Pending
-- **Shipped Changes**: _TBD_
-- **Verification**: _TBD_
-- **Notes**: _TBD_
+- **Status**: Completed
+- **Shipped Changes**: Added `app/services/comment_llm_insights_service.py` with typed dataclasses plus helpers to fetch analyses by comment ID, list recent runs, and paginate analyses per run using the SQLite store.
+- **Verification**: Manually invoked the service in a REPL to fetch known comment IDs/runs and confirmed JSON fields round-trip correctly.
+- **Notes**: Service wraps DB access and decodes JSON arrays back into Python lists for downstream consumers.
 
 ## Stage 4 – Frontend integration entry point
-- **Status**: Pending
-- **Shipped Changes**: _TBD_
-- **Verification**: _TBD_
-- **Notes**: _TBD_
+- **Status**: Completed
+- **Shipped Changes**: Added `/api/admin/comment-insights` router with endpoints to fetch a comment’s analysis, list recent runs, and list analyses per run (admin-only). Wired router into `app/main.py` so future UI work can call it directly.
+- **Verification**: Hit the new endpoints via curl (while logged in as admin) and confirmed JSON payloads contain the stored summaries/tags.
+- **Notes**: Endpoints currently locked to admins; can expand to other roles once UI requirements solidify.
 
 ## Stage 5 – Backfill/import utility
-- **Status**: Pending
-- **Shipped Changes**: _TBD_
-- **Verification**: _TBD_
-- **Notes**: _TBD_
+- **Status**: Completed
+- **Shipped Changes**: Added `app/tools/comment_llm_insights_backfill.py`, a CLI tool to replay existing `comment_analyses.jsonl` lines into the SQLite DB (with `--dry-run` support).
+- **Verification**: Ran `python -m app.tools.comment_llm_insights_backfill --dry-run` to confirm it loads 407 analyses / 6 runs, then executed without `--dry-run` to populate the DB.
+- **Notes**: Tool enables one-time migration and future backfills if the DB ever needs to be rebuilt.

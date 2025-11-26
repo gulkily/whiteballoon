@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.modules import register_modules
-from app.routes import admin_jobs_api, auth, ui
+from app.routes import admin_jobs_api, auth, comment_insights_api, ui
 
 
 def create_app() -> FastAPI:
@@ -17,6 +17,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(ui.router)
     app.include_router(admin_jobs_api.router)
+    app.include_router(comment_insights_api.router)
     register_modules(app)
 
     return app
