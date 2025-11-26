@@ -350,14 +350,6 @@ def cmd_chat_embed(args: list[str]) -> int:
 
 
 def cmd_comment_llm(args: list[str]) -> int:
-    parser = argparse.ArgumentParser(
-        prog="wb comment-llm",
-        description="Plan or execute batched LLM processing for request comments",
-    )
-    if not args or args[0] in {"-h", "--help", "help"}:
-        parser.print_help()
-        return 0
-
     vpy = python_in_venv()
     if not vpy.exists():
         warn("Virtualenv missing. Run './wb setup' first.")
@@ -366,7 +358,13 @@ def cmd_comment_llm(args: list[str]) -> int:
         warn("Dependencies missing. Run './wb setup' first.")
         return 1
 
-    cmd = [str(vpy), "-m", COMMENT_LLM_MODULE, *args]
+    passthrough = list(args)
+    if not passthrough:
+        passthrough = ["--help"]
+    elif passthrough[0] in {"-h", "--help", "help"}:
+        passthrough = ["--help", *passthrough[1:]]
+
+    cmd = [str(vpy), "-m", COMMENT_LLM_MODULE, *passthrough]
     info("Running comment LLM batch planner/executor")
     return _run_process(cmd)
 
