@@ -1,11 +1,10 @@
 {% set variant = variant or 'request' %}
+{% set display_name = comment.display_name or '' %}
 {% if variant == 'request' %}
 <li class="request-comment" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
   <div class="request-comment__meta">
-    {% if comment.display_name %}
-      <a class="request-comment__author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">
-        {{ comment.display_name }}
-      </a>
+    {% if display_name %}
+      <a class="request-comment__author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ display_name }}</a>
     {% else %}
       <a class="request-comment__author" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
     {% endif %}
@@ -26,8 +25,8 @@
 {% elif variant == 'profile' %}
 <li class="profile-recent-comment" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
   <div class="profile-recent-comment__meta">
-    {% if comment.display_name %}
-      <a class="profile-recent-comment__request" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ comment.display_name }}</a>
+    {% if display_name %}
+      <a class="profile-recent-comment__request" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ display_name }}</a>
     {% else %}
       <a class="profile-recent-comment__request" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
     {% endif %}
@@ -41,10 +40,10 @@
   <span class="meta-chip meta-chip--small">{{ comment.scope }}</span>
 </li>
 {% elif variant == 'search' %}
-<li class="comment-card request-chat-search__result">
+<li class="request-chat-search__result" data-comment-id="{{ comment.id }}">
   <div class="request-chat-search__identity">
-    {% if comment.display_name %}
-      <a class="request-chat-search__result-author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ comment.display_name }}</a>
+    {% if display_name %}
+      <a class="request-chat-search__result-author" href="/people/{{ comment.username }}" title="@{{ comment.username }}">{{ display_name }}</a>
     {% else %}
       <a class="request-chat-search__result-author" href="/people/{{ comment.username }}">@{{ comment.username }}</a>
     {% endif %}

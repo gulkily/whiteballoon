@@ -1,8 +1,10 @@
-{% set actions = [] %}
+{% set comment_actions = [] %}
 {% if can_toggle_sync_scope %}
-  {% set _ = actions.append('<form method="post" action="/sync/scope" data-comment-scope-form><input type="hidden" name="entity_type" value="comment" /><input type="hidden" name="entity_id" value="' ~ comment.id ~ '" /><input type="hidden" name="next" value="' ~ request.url.path ~ '" /><input type="hidden" name="scope" value="' ~ ('public' if comment.sync_scope == 'private' else 'private') ~ '" /><button type="submit" class="button button--ghost request-comment__delete">' ~ ('Share' if comment.sync_scope == 'private' else 'Make private') ~ '</button></form>') %}
+  {% set _ = comment_actions.append('<form method="post" action="/sync/scope" data-comment-scope-form><input type="hidden" name="entity_type" value="comment" /><input type="hidden" name="entity_id" value="' ~ comment.id ~ '" /><input type="hidden" name="next" value="' ~ request.url.path ~ '" /><input type="hidden" name="scope" value="' ~ ('public' if comment.sync_scope == 'private' else 'private') ~ '" /><button type="submit" class="button button--ghost request-comment__delete">' ~ ('Share' if comment.sync_scope == 'private' else 'Make private') ~ '</button></form>') %}
 {% endif %}
 {% if can_moderate_comments %}
-  {% set _ = actions.append('<form method="post" action="/requests/' ~ request_id ~ '/comments/' ~ comment.id ~ '/delete" data-comment-delete-form><button type="submit" class="button button--ghost request-comment__delete" data-comment-delete>Delete</button></form>') %}
+  {% set _ = comment_actions.append('<form method="post" action="/requests/' ~ request_id ~ '/comments/' ~ comment.id ~ '/delete" data-comment-delete-form><button type="submit" class="button button--ghost request-comment__delete" data-comment-delete>Delete</button></form>') %}
 {% endif %}
-{% include "partials/comment_card.html" with context %}
+{% with actions = comment_actions, variant = 'request' %}
+  {% include "partials/comment_card.html" %}
+{% endwith %}

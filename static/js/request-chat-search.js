@@ -17,6 +17,34 @@
   let debounceTimer;
   let currentAbort;
 
+  const escapeHTML = (value) => {
+    return String(value || '').replace(/[&<>]/g, (char) => {
+      switch (char) {
+        case '&':
+          return '&amp;';
+        case '<':
+          return '&lt;';
+        case '>':
+          return '&gt;';
+        default:
+          return char;
+      }
+    });
+  };
+
+  const highlightBody = (body, tokens) => {
+    let html = escapeHTML(body);
+    (tokens || []).forEach((token) => {
+      if (!token) {
+        return;
+      }
+      const escapedToken = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(`(${escapedToken})`, 'gi');
+      html = html.replace(pattern, '<mark>$1</mark>');
+    });
+    return html;
+  };
+
   const setStatus = (message) => {
     if (statusEl) {
       statusEl.textContent = message || '';
@@ -65,7 +93,6 @@
         const results = payload.results || [];
         results.forEach((entry) => {
           const fragment = template.content.cloneNode(true);
-          const author = fragment.querySelector('[data-author]');
           const profileLink = fragment.querySelector('[data-author-link]');
           const timeLink = fragment.querySelector('[data-time-link]');
           const time = fragment.querySelector('[data-time]');
@@ -77,17 +104,13 @@
             profileLink.textContent = entry.display_name || `@${entry.username}`;
             profileLink.title = entry.display_name ? `@${entry.username}` : '';
           }
-          if (author && profileLink) {
-            author.replaceWith(profileLink);
-          }
-
           if (timeLink && time) {
             time.textContent = new Date(entry.created_at).toLocaleString();
             time.dateTime = entry.created_at || '';
             timeLink.href = `#${entry.comment_anchor || entry.anchor}`;
           }
           if (body) {
-            body.innerHTML = entry.body;
+            body.innerHTML = highlightBody(entry.body, entry.matched_tokens);
           }
           if (tags) {
             tags.innerHTML = '';
