@@ -423,9 +423,6 @@ def _build_request_detail_context(
         )
         for comment, author in comment_rows
     ]
-    for comment in comments:
-        if not comment.get("display_name"):
-            comment["display_name"] = display_names.get(comment["user_id"])
     can_moderate = viewer.is_admin
     can_toggle_sync_scope = viewer.is_admin
 
