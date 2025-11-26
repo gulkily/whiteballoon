@@ -17,6 +17,7 @@ from sqlmodel import Session, select
 from app.config import get_settings
 from app.db import get_engine
 from app.models import RequestComment
+from app.services import comment_llm_store
 
 
 MIN_BATCH_SIZE = 1
@@ -149,6 +150,7 @@ class CommentBatchPlanner:
         max_comments: int | None,
         estimation_config: EstimationConfig,
         snapshot_label: str,
+        exclude_comment_ids: Sequence[int] | None = None,
     ) -> None:
         if not MIN_BATCH_SIZE <= batch_size <= MAX_BATCH_SIZE:
             raise ValueError(f"Batch size must be between {MIN_BATCH_SIZE} and {MAX_BATCH_SIZE}")
@@ -159,6 +161,7 @@ class CommentBatchPlanner:
         self.estimation_config = estimation_config
         self.snapshot_label = snapshot_label
         self._cached_rows: list[CommentPayload] | None = None
+        self.exclude_comment_ids = {int(comment_id) for comment_id in (exclude_comment_ids or [])}
 
     def plan(self) -> RunSummary:
         rows = self._comment_rows()
@@ -191,7 +194,10 @@ class CommentBatchPlanner:
         stmt = self._apply_filters(stmt)
         if self.max_comments:
             stmt = stmt.limit(self.max_comments)
+        excluded = self.exclude_comment_ids
         for comment in self.session.exec(stmt):
+            if excluded and comment.id in excluded:
+                continue
             yield CommentPayload(
                 id=comment.id or 0,
                 help_request_id=comment.help_request_id,
@@ -517,10 +523,10 @@ def build_llm_client(
     return DedalusBatchLLMClient(model=model, max_retries=max_retries, retry_wait=retry_wait)
 
 
-def _default_output_path(snapshot_label: str) -> Path:
+def _default_output_path(snapshot_label: str, *, started_at: datetime | None = None) -> Path:
     slug = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in snapshot_label.lower())
     slug = slug.strip("-") or "snapshot"
-    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    timestamp = (started_at or datetime.utcnow()).strftime("%Y%m%d-%H%M%S")
     return OUTPUT_DIR / f"{slug}_{timestamp}.json"
 
 
@@ -531,6 +537,7 @@ def persist_execution_results(
     output_path: Path,
     provider: str,
     model: str,
+    run_id: str,
 ) -> Path:
     estimate_lookup = {batch.batch_index: batch for batch in summary.batches}
     payload = {
@@ -538,6 +545,7 @@ def persist_execution_results(
         "generated_at": datetime.utcnow().isoformat(),
         "provider": provider,
         "model": model,
+        "run_id": run_id,
         "batch_size": summary.batch_size,
         "total_planned_comments": summary.total_comments,
         "total_planned_batches": summary.total_batches,
@@ -585,6 +593,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Restrict processing to specific help request IDs (repeatable)",
     )
     parser.add_argument("--include-deleted", action="store_true", help="Include comments marked as deleted")
+    parser.add_argument(
+        "--include-processed",
+        action="store_true",
+        help="Process comments even if analyses already exist for them",
+    )
     parser.add_argument(
         "--execute",
         action="store_true",
@@ -721,6 +734,14 @@ def main(argv: list[str] | None = None) -> int:
         output_cost_per_1k=ns.output_cost_per_1k,
     )
 
+    exclude_ids: set[int] = set()
+    if not ns.include_processed:
+        exclude_ids = comment_llm_store.recorded_comment_ids()
+        if exclude_ids:
+            print(
+                f"Skipping {len(exclude_ids)} comments with stored analyses (use --include-processed to override)."
+            )
+
     engine = get_engine()
     with Session(engine) as session:
         planner = CommentBatchPlanner(
@@ -730,6 +751,7 @@ def main(argv: list[str] | None = None) -> int:
             max_comments=ns.limit,
             estimation_config=config,
             snapshot_label=ns.snapshot_label,
+            exclude_comment_ids=exclude_ids,
         )
         summary = planner.plan()
 
@@ -788,6 +810,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print("\nExecuting LLM batches...")
     execution_results: list[BatchLLMResult] = []
+    run_started_at = datetime.utcnow()
+    run_id = f"{summary.snapshot_label}-{run_started_at.strftime('%Y%m%d-%H%M%S')}"
     cumulative_estimated_cost = 0.0
     for idx, batch_comments in enumerate(batch_payloads, start=1):
         estimate = summary.batches[idx - 1] if idx - 1 < len(summary.batches) else None
@@ -805,15 +829,33 @@ def main(argv: list[str] | None = None) -> int:
         print(
             f"[batch {idx:03d}] Received {len(result.analyses)} analyses; cumulative est cost ${cumulative_estimated_cost:.4f}"
         )
+        stats = comment_llm_store.save_comment_analyses(
+            analyses=result.analyses,
+            snapshot_label=summary.snapshot_label,
+            provider=ns.provider,
+            model=ns.model,
+            run_id=run_id,
+            batch_index=idx,
+            overwrite=ns.include_processed,
+        )
+        if stats.written or stats.skipped:
+            print(
+                f"[batch {idx:03d}] Stored {stats.written} analyses ({stats.skipped} skipped)."
+            )
         execution_results.append(result)
 
-    output_path = Path(ns.output_path) if ns.output_path else _default_output_path(summary.snapshot_label)
+    output_path = (
+        Path(ns.output_path)
+        if ns.output_path
+        else _default_output_path(summary.snapshot_label, started_at=run_started_at)
+    )
     saved_path = persist_execution_results(
         summary=summary,
         results=execution_results,
         output_path=output_path,
         provider=ns.provider,
         model=ns.model,
+        run_id=run_id,
     )
     print(f"\nSaved structured batch output to {saved_path}")
     return 0

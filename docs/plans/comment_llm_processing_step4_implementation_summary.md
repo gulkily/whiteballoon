@@ -15,10 +15,10 @@ This log captures the implementation progress for each development stage defined
 - **Notes**: Dedalus provider requires the `dedalus-labs` SDK and `DEDALUS_API_KEY`; mock provider offers a deterministic offline path for development/tests.
 
 ## Stage 3 – Persistence + idempotency guardrails
-- **Status**: Pending
-- **Shipped Changes**: _TBD_
-- **Verification**: _TBD_
-- **Notes**: _TBD_
+- **Status**: Completed
+- **Shipped Changes**: Added `app/services/comment_llm_store.py` (JSONL-based store + index) and enhanced the CLI to skip already-processed comments, resume runs, and upsert per-comment analyses immediately after each batch while still writing per-run artifacts.
+- **Verification**: Executed `python -m app.tools.comment_llm_processing --limit 3 --execute --provider mock --output-path storage/comment_llm_runs/mock_test.json` twice—first run populated the new store and second dry-run confirmed those comments were skipped unless `--include-processed` is provided.
+- **Notes**: Store keeps `storage/comment_llm_runs/comment_analyses.jsonl` + `comment_index.json`; reruns with `--include-processed` overwrite entries while default runs remain idempotent.
 
 ## Stage 4 – Monitoring, operator controls, and cost ceilings
 - **Status**: Pending
