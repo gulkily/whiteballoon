@@ -185,15 +185,16 @@ class CommentBatchPlanner:
     def _comment_rows(self) -> list[CommentPayload]:
         if self._cached_rows is not None:
             return self._cached_rows
-        self._cached_rows = list(self._load_comments())
+        rows = list(self._load_comments())
+        if self.max_comments is not None:
+            rows = rows[: self.max_comments]
+        self._cached_rows = rows
         return self._cached_rows
 
     def _load_comments(self) -> Iterable[CommentPayload]:
         stmt = select(RequestComment)
         stmt = stmt.order_by(RequestComment.created_at.asc(), RequestComment.id.asc())
         stmt = self._apply_filters(stmt)
-        if self.max_comments:
-            stmt = stmt.limit(self.max_comments)
         excluded = self.exclude_comment_ids
         for comment in self.session.exec(stmt):
             if excluded and comment.id in excluded:
