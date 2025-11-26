@@ -27,6 +27,7 @@ This log captures the implementation progress for each development stage defined
   - `python -m app.tools.comment_llm_processing --limit 3 --execute --provider mock --include-processed --max-spend-usd 0.0002` confirmed the CLI stops before violating the spend ceiling and still writes a run artifact.
   - `python -m app.tools.comment_llm_processing --limit 3 --batch-size 1 --execute --provider mock --include-processed --batches-per-minute 30 --output-path storage/comment_llm_runs/mock_rate.json` showed the rate-limit pauses, per-batch spend reporting, and successful storage after throttled execution.
 - **Notes**: Spend ceiling currently leverages estimated token costs; hook into real invoices later if needed. Rate limiter is coarse (sleep-based) but keeps Dedalus calls comfortably under provider thresholds.
+- **Notes**: Exposed via `wb comment-llm`, so operators can run the planner/executor without remembering module paths. Spend ceiling currently leverages estimated token costs; hook into real invoices later if needed. Rate limiter is coarse (sleep-based) but keeps Dedalus calls comfortably under provider thresholds.
 
 ## Stage 5 – Classification review + adjustments
 - **Status**: Pending

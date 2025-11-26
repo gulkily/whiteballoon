@@ -57,6 +57,7 @@ DEDALUS_LOG_MAINT = SCRIPT_DIR / "tools" / "dedalus_log_maintenance.py"
 SIGNAL_IMPORT_MODULE = "app.tools.signal_import"
 CHAT_INDEX_MODULE = "app.tools.request_chat_index"
 CHAT_EMBED_MODULE = "app.tools.request_chat_embeddings"
+COMMENT_LLM_MODULE = "app.tools.comment_llm_processing"
 
 
 def python_in_venv() -> Path:
@@ -348,6 +349,28 @@ def cmd_chat_embed(args: list[str]) -> int:
     return _run_process(cmd)
 
 
+def cmd_comment_llm(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="wb comment-llm",
+        description="Plan or execute batched LLM processing for request comments",
+    )
+    if not args or args[0] in {"-h", "--help", "help"}:
+        parser.print_help()
+        return 0
+
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+
+    cmd = [str(vpy), "-m", COMMENT_LLM_MODULE, *args]
+    info("Running comment LLM batch planner/executor")
+    return _run_process(cmd)
+
+
 def cmd_dedalus(args: list[str]) -> int:
     if not args or args[0] in {"-h", "--help", "help"}:
         print("Usage: wb dedalus <subcommand> [options]")
@@ -543,6 +566,7 @@ def print_help() -> None:
     print("  import-signal-group   Import a Signal Desktop group export (local seed)")
     print("  chat-index [opts]     Reindex request chats + optional LLM tagging")
     print("  chat-embed [opts]     Build semantic embeddings for request chats")
+    print("  comment-llm [opts]    Plan or run batched comment processing via LLM")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
@@ -572,6 +596,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("import-signal-group")
     subparsers.add_parser("chat-index")
     subparsers.add_parser("chat-embed")
+    subparsers.add_parser("comment-llm")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
@@ -608,6 +633,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_chat_index(passthrough)
     if ns.command == "chat-embed":
         return cmd_chat_embed(passthrough)
+    if ns.command == "comment-llm":
+        return cmd_comment_llm(passthrough)
 
     # Known commands path
     if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "sync", "skins"}:
