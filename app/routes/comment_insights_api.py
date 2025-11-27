@@ -20,7 +20,7 @@ def _require_admin(session_user: SessionUser) -> None:
 def fetch_comment_insight(
     comment_id: int,
     session_user: SessionUser = Depends(require_session_user),
-    db: SessionDep = Depends(),
+    db: SessionDep,
 ) -> dict:
     _require_admin(session_user)
     insight = comment_llm_insights_service.get_analysis_by_comment_id(comment_id)
