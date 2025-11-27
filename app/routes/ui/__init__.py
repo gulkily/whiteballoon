@@ -432,6 +432,11 @@ def _build_request_detail_context(
         for item in comments:
             analysis = comment_llm_insights_service.get_analysis_by_comment_id(item["id"])
             if analysis:
+                page = request_comment_service.get_comment_page(
+                    db,
+                    help_request_id=analysis.help_request_id,
+                    comment_id=analysis.comment_id,
+                )
                 comment_insights_map[item["id"]] = {
                     "summary": analysis.summary,
                     "resource_tags": analysis.resource_tags,
@@ -446,6 +451,7 @@ def _build_request_detail_context(
                     "notes": analysis.notes,
                     "run_id": analysis.run_id,
                     "recorded_at": analysis.recorded_at,
+                    "page": page,
                 }
     can_moderate = viewer.is_admin
     can_toggle_sync_scope = viewer.is_admin

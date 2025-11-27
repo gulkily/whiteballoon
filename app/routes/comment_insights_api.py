@@ -5,8 +5,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.dependencies import SessionUser, require_session_user
-from app.services import comment_llm_insights_service
+from app.dependencies import SessionDep, SessionUser, require_session_user
+from app.services import comment_llm_insights_service, request_comment_service
 
 router = APIRouter(prefix="/api/admin/comment-insights", tags=["comment-insights"])
 
@@ -20,12 +20,20 @@ def _require_admin(session_user: SessionUser) -> None:
 def fetch_comment_insight(
     comment_id: int,
     session_user: SessionUser = Depends(require_session_user),
+    db: SessionDep = Depends(),
 ) -> dict:
     _require_admin(session_user)
     insight = comment_llm_insights_service.get_analysis_by_comment_id(comment_id)
     if not insight:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment analysis not found")
-    return insight.to_dict()
+    result = insight.to_dict()
+    page = request_comment_service.get_comment_page(
+        db,
+        help_request_id=insight.help_request_id,
+        comment_id=insight.comment_id,
+    )
+    result["page"] = page
+    return result
 
 
 @router.get("/runs")

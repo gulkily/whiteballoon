@@ -34,7 +34,7 @@ from app.realtime import (
     update_job as update_realtime_job,
 )
 from app.routes.ui.helpers import describe_session_role, templates
-from app.services import comment_llm_insights_service, user_attribute_service
+from app.services import comment_llm_insights_service, request_comment_service, user_attribute_service
 from starlette.datastructures import URL
 
 router = APIRouter(tags=["ui"])
@@ -781,9 +781,20 @@ def admin_comment_insights_run_detail(
     run_id: str,
     limit: int = Query(default=200, ge=1, le=500),
     session_user: SessionUser = Depends(require_session_user),
+    db: SessionDep = Depends(),
 ):
     _require_admin(session_user)
-    analyses = comment_llm_insights_service.list_analyses_for_run(run_id, limit=limit)
+    raw_analyses = comment_llm_insights_service.list_analyses_for_run(run_id, limit=limit)
+    analyses = []
+    for item in raw_analyses:
+        page = request_comment_service.get_comment_page(
+            db,
+            help_request_id=item.help_request_id,
+            comment_id=item.comment_id,
+        )
+        payload = item.to_dict()
+        payload["page"] = page
+        analyses.append(payload)
     context = {
         "request": request,
         "analyses": analyses,
