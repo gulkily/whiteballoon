@@ -19,8 +19,8 @@ def _require_admin(session_user: SessionUser) -> None:
 @router.get("/comments/{comment_id}")
 def fetch_comment_insight(
     comment_id: int,
-    session_user: SessionUser = Depends(require_session_user),
     db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
 ) -> dict:
     _require_admin(session_user)
     insight = comment_llm_insights_service.get_analysis_by_comment_id(comment_id)
