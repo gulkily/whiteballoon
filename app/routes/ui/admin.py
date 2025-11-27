@@ -755,10 +755,10 @@ def admin_comment_insights(
 @router.get("/admin/comment-insights/runs")
 def admin_comment_insights_runs(
     request: Request,
+    db: SessionDep,
     snapshot_label: str | None = Query(default=None),
     provider: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=200),
-    db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
