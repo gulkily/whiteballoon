@@ -1,3 +1,4 @@
+- Explore extending comment LLM rubric to capture supportive/affirming signals and aggregate them into auto-generated public profiles.
 todo
 ====
 
