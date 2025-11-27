@@ -21,8 +21,8 @@
 
 ## Key Components / Contracts
 - API: `/api/admin/comment-insights` (existing), ensure JSON shape stable.
-- UI: new template (Jinja/HTMX) under `templates/admin/comment_insights.html` with sections: run list, run detail table, comment detail modal.
-- JS: small HTMX endpoints to fetch run detail and comment summary to avoid full page reloads.
+- UI: new template (Jinja + vanilla JS) under `templates/admin/comment_insights.html` with sections: run list, run detail table, comment detail modal.
+- JS: lightweight fetch helpers to pull run detail/comment summary without full page reloads (no HTMX or extra libs).
 
 ## Open Questions / Unknowns
 - Pagination strategy: server-side vs client-side (likely server pagination via query params).

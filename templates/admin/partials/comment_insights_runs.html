@@ -19,7 +19,7 @@
         <td title="{{ run.started_at }}">{{ run.started_at_friendly }}</td>
         <td>{{ run.completed_batches }} / {{ run.total_batches }}</td>
         <td>
-          <button class="btn btn-link" hx-get="/admin/comment-insights/runs/{{ run.run_id }}/analyses" hx-target="#run-{{ run.run_id }}-details" hx-swap="innerHTML">View analyses</button>
+          <button class="btn btn-link" data-run-detail="{{ run.run_id }}" data-target="run-{{ run.run_id }}-details">View analyses</button>
         </td>
       </tr>
       <tr>

@@ -7,7 +7,7 @@
   <h1>Comment Insights</h1>
   <p class="text-muted">Browse LLM-generated runs and drill into comment summaries.</p>
 
-  <form class="form-inline" id="comment-insights-filters" hx-get="/admin/comment-insights/runs" hx-target="#comment-insights-run-list" hx-swap="innerHTML" hx-indicator="#runs-loading">
+  <form class="form-inline" id="comment-insights-filters" data-comment-insights-filters>
     <div class="form-group mr-2">
       <label for="snapshot_label" class="sr-only">Snapshot</label>
       <input type="text" id="snapshot_label" name="snapshot_label" class="form-control" placeholder="Snapshot label" value="{{ snapshot_label or '' }}">
@@ -17,11 +17,12 @@
       <input type="text" id="provider" name="provider" class="form-control" placeholder="Provider" value="{{ provider or '' }}">
     </div>
     <button type="submit" class="btn btn-primary">Apply filters</button>
-    <span id="runs-loading" class="htmx-indicator ml-2">Loading…</span>
+    <span id="runs-loading" class="text-muted ml-2" hidden>Loading…</span>
   </form>
 
   <div id="comment-insights-run-list" class="mt-4">
     {% include "admin/partials/comment_insights_runs.html" %}
   </div>
 </section>
+<script src="/static/js/comment-insights.js" defer></script>
 {% endblock %}

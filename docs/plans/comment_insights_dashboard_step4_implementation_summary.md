@@ -8,13 +8,13 @@
 
 ## Stage 2 – Run list integration
 - **Status**: Completed
-- **Shipped Changes**: Added HTMX filter form + `/admin/comment-insights/runs` endpoint (server-rendered partial `admin/partials/comment_insights_runs.html`) that pulls data via `comment_llm_insights_service.list_recent_runs`.
-- **Verification**: Visiting the page loads initial run list; submitting filters issues HTMX request updating the table.
+- **Shipped Changes**: Added vanilla-JS-powered filter form plus `/admin/comment-insights/runs` endpoint (server-rendered partial `admin/partials/comment_insights_runs.html`) that pulls data via `comment_llm_insights_service.list_recent_runs`.
+- **Verification**: Visiting the page loads initial run list; submitting filters triggers a fetch request updating the table.
 - **Notes**: Filters currently support snapshot label + provider text fields.
 
 ## Stage 3 – Run detail + analyses table
 - **Status**: Completed
-- **Shipped Changes**: Added `/admin/comment-insights/runs/{run_id}/analyses` HTMX endpoint + partial (`admin/partials/comment_insights_run_detail.html`) showing summaries/tags and request links. Run list “View analyses” buttons load detail panels inline.
+- **Shipped Changes**: Added `/admin/comment-insights/runs/{run_id}/analyses` endpoint + partial (`admin/partials/comment_insights_run_detail.html`) showing summaries/tags and request links. Run list “View analyses” buttons use vanilla JS fetch to load detail panels inline.
 - **Verification**: Clicking “View analyses” fetches detail table; links open request pages.
 - **Notes**: Currently limited to 200 rows per run for performance.
 

@@ -1,14 +1,14 @@
 # Stage 3 – Implementation Playbook: Comment LLM Insights Frontend
 
 ## Capability 1 – Admin Insights Dashboard
-1. Add `/admin/comment-insights` route + template (HTMX shell). Display run list table (snapshot_label, provider, model, started/completed batches). [~60 LoC]
-2. Hook table to `/api/admin/comment-insights/runs?limit=50` via HTMX GET; show spinner + error state. [~40 LoC]
-3. Add filter form (snapshot label text + provider select) that triggers HTMX request. Backend: extend API to accept optional filter params. [~50 LoC]
+1. Add `/admin/comment-insights` route + template shell (vanilla JS-enhanced). Display run list table (snapshot_label, provider, model, started/completed batches). [~60 LoC]
+2. Hook table to `/admin/comment-insights/runs?limit=50` via `fetch` (returns server-rendered partial HTML); show spinner + error state. [~40 LoC]
+3. Add filter form (snapshot label text + provider select) handled via JS (prevent default, `fetch` partial). Backend: extend endpoint to accept optional filter params. [~50 LoC]
    - Verification: manual load confirms runs appear, filters work, API logs expected queries.
 
 ## Capability 2 – Run Detail & Comment Drilldown
-1. Add HTMX endpoint `/admin/comment-insights/runs/{run_id}` returning analyses table (summary, tags, comment link). [~70 LoC]
-2. Embed trigger in run list rows (click loads detail card below row). [~30 LoC]
+1. Add lightweight endpoint `/admin/comment-insights/runs/{run_id}/analyses` returning HTML partial (summary, tags, comment link). [~70 LoC]
+2. Embed trigger in run list rows (JS `fetch` loads detail card below row). [~30 LoC]
 3. Include “view original comment” link (opens request detail in new tab) + “show summary” modal/tooltip. [~40 LoC]
 4. Add search/filter within analyses table (client-side filter by tag keyword). [~30 LoC JS]
    - Verification: run detail loads under 2s, comment links open correct page, search filters entries live.

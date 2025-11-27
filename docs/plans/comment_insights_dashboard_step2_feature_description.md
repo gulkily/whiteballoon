@@ -11,14 +11,14 @@ Admin stakeholders cannot browse the LLM-generated comment insights without runn
 ## Core Requirements
 - Add new admin UI route + template that consumes the existing `/api/admin/comment-insights` endpoints.
 - Display run list with columns: snapshot_label, provider, model, started_at (friendly), completed/total batches, and a CTA to load analyses.
-- Inline run detail table (HTMX/JS) that loads analyses via the API and shows summary, tags, link to comment/request.
+- Inline run detail table (vanilla JS fetch) that loads analyses via the API and shows summary, tags, link to comment/request.
 - Basic filters (snapshot label text, provider dropdown) backed by API query parameters.
 - No data mutation; read-only view for admins only.
 
 ## User Flow
 1. Admin visits `/admin/comment-insights`.
 2. Page loads recent runs (default 20) and shows filter inputs.
-3. Admin selects a run (click row or button) → HTMX request fetches analyses table below that row.
+3. Admin selects a run (click row or button) → JS fetch call retrieves analyses table below that row.
 4. Within the analyses table, each row links to the original request/comment (new tab).
 5. Admin adjusts filters to refresh the run list as needed.
 
