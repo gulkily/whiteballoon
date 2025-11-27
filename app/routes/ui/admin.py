@@ -34,7 +34,7 @@ from app.realtime import (
     update_job as update_realtime_job,
 )
 from app.routes.ui.helpers import describe_session_role, templates
-from app.services import user_attribute_service
+from app.services import comment_llm_insights_service, user_attribute_service
 from starlette.datastructures import URL
 
 router = APIRouter(tags=["ui"])
@@ -145,6 +145,11 @@ def admin_panel(
             "title": "Dedalus activity",
             "description": "Review prompts, responses, and MCP tool calls for every Dedalus run.",
             "href": "/admin/dedalus/logs",
+        },
+        {
+            "title": "Comment insights",
+            "description": "Browse LLM-generated summaries/tags for request comments.",
+            "href": "/admin/comment-insights",
         },
     ]
 
@@ -731,3 +736,81 @@ async def admin_dedalus_settings_submit(
     }
     status_code = 500 if status == "error" else 200
     return templates.TemplateResponse("admin/dedalus_settings.html", context, status_code=status_code)
+@router.get("/admin/comment-insights")
+def admin_comment_insights(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    runs = _format_runs(comment_llm_insights_service.list_recent_runs(limit=20))
+    context = {
+        "request": request,
+        "runs": runs,
+        "snapshot_label": None,
+        "provider": None,
+    }
+    return templates.TemplateResponse("admin/comment_insights.html", context)
+
+
+@router.get("/admin/comment-insights/runs")
+def admin_comment_insights_runs(
+    request: Request,
+    snapshot_label: str | None = Query(default=None),
+    provider: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=200),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    runs = _format_runs(
+        comment_llm_insights_service.list_recent_runs(
+            limit=limit, snapshot_label=snapshot_label, provider=provider
+        )
+    )
+    context = {
+        "request": request,
+        "runs": runs,
+        "snapshot_label": snapshot_label,
+        "provider": provider,
+    }
+    return templates.TemplateResponse("admin/partials/comment_insights_runs.html", context)
+
+
+@router.get("/admin/comment-insights/runs/{run_id}/analyses")
+def admin_comment_insights_run_detail(
+    request: Request,
+    run_id: str,
+    limit: int = Query(default=200, ge=1, le=500),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    analyses = comment_llm_insights_service.list_analyses_for_run(run_id, limit=limit)
+    context = {
+        "request": request,
+        "analyses": analyses,
+        "run_id": run_id,
+    }
+    return templates.TemplateResponse("admin/partials/comment_insights_run_detail.html", context)
+
+
+def _format_runs(runs):
+    formatted = []
+    for run in runs:
+        started_at = run.started_at
+        friendly = started_at
+        try:
+            friendly = friendly_time(datetime.fromisoformat(started_at))
+        except Exception:  # pragma: no cover - fallback for legacy strings
+            pass
+        formatted.append(
+            {
+                "run_id": run.run_id,
+                "snapshot_label": run.snapshot_label,
+                "provider": run.provider,
+                "model": run.model,
+                "started_at": started_at,
+                "started_at_friendly": friendly,
+                "completed_batches": run.completed_batches,
+                "total_batches": run.total_batches,
+            }
+        )
+    return formatted

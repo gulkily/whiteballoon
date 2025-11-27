@@ -31,10 +31,17 @@ def fetch_comment_insight(
 @router.get("/runs")
 def list_runs(
     limit: int = Query(default=20, ge=1, le=200),
+    snapshot_label: str | None = Query(default=None),
+    provider: str | None = Query(default=None),
     session_user: SessionUser = Depends(require_session_user),
 ) -> dict:
     _require_admin(session_user)
-    runs = [run.to_dict() for run in comment_llm_insights_service.list_recent_runs(limit=limit)]
+    runs = [
+        run.to_dict()
+        for run in comment_llm_insights_service.list_recent_runs(
+            limit=limit, snapshot_label=snapshot_label, provider=provider
+        )
+    ]
     return {"runs": runs}
 
 

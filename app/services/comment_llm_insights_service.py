@@ -106,17 +106,31 @@ def get_analysis_by_comment_id(comment_id: int) -> Optional[CommentInsight]:
     )
 
 
-def list_recent_runs(limit: int = 20) -> list[RunSummary]:
+def list_recent_runs(
+    limit: int = 20,
+    *,
+    snapshot_label: str | None = None,
+    provider: str | None = None,
+) -> list[RunSummary]:
+    query = (
+        "SELECT run_id, snapshot_label, provider, model, started_at, completed_batches, total_batches "
+        "FROM comment_llm_runs "
+    )
+    clauses = []
+    params: list[object] = []
+    if snapshot_label:
+        clauses.append("snapshot_label LIKE ?")
+        params.append(f"%{snapshot_label}%")
+    if provider:
+        clauses.append("provider = ?")
+        params.append(provider)
+    if clauses:
+        query += " WHERE " + " AND ".join(clauses)
+    query += " ORDER BY started_at DESC LIMIT ?"
+    params.append(limit)
+
     with comment_llm_insights_db.open_connection() as conn:
-        rows = conn.execute(
-            """
-            SELECT run_id, snapshot_label, provider, model, started_at, completed_batches, total_batches
-            FROM comment_llm_runs
-            ORDER BY started_at DESC
-            LIMIT ?
-            """,
-            (limit,),
-        ).fetchall()
+        rows = conn.execute(query, params).fetchall()
     summaries = [
         RunSummary(
             run_id=row[0],
