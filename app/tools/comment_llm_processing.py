@@ -56,6 +56,7 @@ class SnapshotFilters:
     created_after: datetime | None = None
     created_before: datetime | None = None
     help_request_ids: tuple[int, ...] = tuple()
+    user_ids: tuple[int, ...] = tuple()
     include_deleted: bool = False
     resume_after_id: int | None = None
 
@@ -222,6 +223,8 @@ class CommentBatchPlanner:
             stmt = stmt.where(RequestComment.created_at <= filters.created_before)
         if filters.help_request_ids:
             stmt = stmt.where(RequestComment.help_request_id.in_(filters.help_request_ids))
+        if filters.user_ids:
+            stmt = stmt.where(RequestComment.user_id.in_(filters.user_ids))
         if not filters.include_deleted:
             stmt = stmt.where(RequestComment.deleted_at.is_(None))
         return stmt
@@ -282,6 +285,7 @@ def serialize_filters(filters: SnapshotFilters) -> dict[str, object]:
         "created_after": filters.created_after.isoformat() if filters.created_after else None,
         "created_before": filters.created_before.isoformat() if filters.created_before else None,
         "help_request_ids": list(filters.help_request_ids),
+        "user_ids": list(filters.user_ids),
         "include_deleted": filters.include_deleted,
     }
 
@@ -623,6 +627,13 @@ def build_parser() -> argparse.ArgumentParser:
         dest="help_request_ids",
         help="Restrict processing to specific help request IDs (repeatable)",
     )
+    parser.add_argument(
+        "--user-id",
+        action="append",
+        type=int,
+        dest="user_ids",
+        help="Restrict processing to specific commenter user IDs (repeatable)",
+    )
     parser.add_argument("--include-deleted", action="store_true", help="Include comments marked as deleted")
     parser.add_argument(
         "--include-processed",
@@ -738,6 +749,8 @@ def human_summary(summary: RunSummary, snapshot_label: str) -> str:
         filter_bits.append(f"created_before={filters.created_before.isoformat()}")
     if filters.help_request_ids:
         filter_bits.append(f"help_request_ids={','.join(map(str, filters.help_request_ids))}")
+    if filters.user_ids:
+        filter_bits.append(f"user_ids={','.join(map(str, filters.user_ids))}")
     if not filters.include_deleted:
         filter_bits.append("excluding deleted")
     lines.append("Filters: " + (", ".join(filter_bits) if filter_bits else "(none)"))
@@ -766,6 +779,7 @@ def main(argv: list[str] | None = None) -> int:
         created_after=ns.created_after,
         created_before=ns.created_before,
         help_request_ids=tuple(sorted(set(ns.help_request_ids or []))),
+        user_ids=tuple(sorted(set(ns.user_ids or []))),
         include_deleted=ns.include_deleted,
         resume_after_id=ns.resume_after_id,
     )

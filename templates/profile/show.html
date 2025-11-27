@@ -101,9 +101,9 @@
                   <a
                     href="{{ point.href }}"
                     class="profile-proof-link"
-                    data-profile-glaze-link
-                    data-ref="{{ point.reference }}"
-                    {% if point.external %}target="_blank" rel="noopener"{% endif %}
+                    data-glaze-event="proof_click"
+                    data-glaze-ref="{{ point.reference }}"
+                    {% if point.external %}target="_blank" rel="noopener noreferrer"{% endif %}
                   >
                     {{ point.display_ref }}
                   </a>
@@ -113,6 +113,44 @@
               </li>
             {% endfor %}
           </ul>
+        {% endif %}
+        {% if profile_snapshot_links %}
+          <div class="profile-highlight-links">
+            <h3 class="small-text">Receipts</h3>
+            <div class="profile-highlight-links__chips">
+              {% for link in profile_snapshot_links %}
+                <a
+                  href="{{ link.href }}"
+                  class="meta-chip meta-chip--action meta-chip--small"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-glaze-event="snapshot_link"
+                  data-glaze-ref="{{ link.href }}"
+                >
+                  <span class="meta-chip__label">{{ link.domain }}</span>
+                  <span class="meta-chip__value">×{{ link.count }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        {% if profile_request_ctas %}
+          <div class="profile-highlight-requests">
+            <h3 class="small-text">Dive deeper</h3>
+            <div class="profile-highlight-requests__chips">
+              {% for item in profile_request_ctas %}
+                <a
+                  href="{{ item.href }}"
+                  class="meta-chip meta-chip--action meta-chip--small"
+                  data-glaze-event="request_cta"
+                  data-glaze-ref="{{ item.request_id }}"
+                >
+                  <span class="meta-chip__label">Request</span>
+                  <span class="meta-chip__value">#{{ item.request_id }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
         {% endif %}
         {% if profile_highlight.quotes %}
           <div class="profile-quotes">
@@ -175,21 +213,29 @@
       if (!card) return;
       var personId = Number(card.dataset.personId || 0);
       if (!personId) return;
-      function send(eventName, ref) {
+      var isManual = card.dataset.highlightManual === 'true';
+      function send(eventName, metadata) {
         try {
-          fetch('/api/profile-glaze/events', {
+          fetch('/api/metrics', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({event: eventName, person_id: personId, reference: ref || ''}),
+            body: JSON.stringify({
+              category: 'profile_glaze',
+              event: eventName,
+              subject_id: personId,
+              metadata: Object.assign({manual_override: isManual}, metadata || {}),
+            }),
           });
         } catch (err) {
           // no-op
         }
       }
       send('view');
-      document.querySelectorAll('[data-profile-glaze-link]').forEach(function (el) {
+      document.querySelectorAll('[data-glaze-event]').forEach(function (el) {
         el.addEventListener('click', function () {
-          send('proof_click', el.dataset.ref || '');
+          var eventName = el.getAttribute('data-glaze-event');
+          var ref = el.getAttribute('data-glaze-ref') || '';
+          send(eventName || 'interaction', {reference: ref});
         });
       });
     })();

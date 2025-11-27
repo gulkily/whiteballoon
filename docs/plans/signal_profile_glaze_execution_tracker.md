@@ -18,11 +18,11 @@ Use this checklist to track Feature Development Process progress for each capabi
    - Step 4: [x] In Progress [x] Completed
    - Notes: Highlights schema/service, glaze persistence, freshness scan, admin UI shipped.
    - Dependency: Bio Generator complete
-
+ 
 4. **Glazed Profile Presentation**
-   - Step 3: [ ] Submitted   [ ] Approved
-   - Step 4: [ ] In Progress [ ] Completed
-   - Notes: ________________________________________
+   - Step 3: [x] Submitted   [x] Approved
+   - Step 4: [x] In Progress [ ] Completed
+   - Notes: Stage 4 (receipts + analytics + run pipeline) now includes link chips, CTA filters, /api/metrics logging, and the `wb profile-glaze` orchestration command.
    - Dependency: Insight Store complete
 
 *Reminder*: Log each completed stage in the Stage 4 execution log once implementation begins.

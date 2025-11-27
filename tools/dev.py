@@ -31,7 +31,7 @@ from app.config import get_settings
 from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
 from app.schema_utils import ensure_schema_integrity
-from app.services import auth_service, vouch_service
+from app.services import auth_service, comment_llm_insights_db, vouch_service
 from app.url_utils import build_invite_link
 from app.sync.export_import import export_sync_data, import_sync_data
 from app.sync.peers import Peer, get_peer, load_peers, save_peers
@@ -632,6 +632,17 @@ def init_db_command() -> None:
     if report.has_errors:
         raise click.ClickException(
             "Schema integrity check found issues requiring manual attention."
+        )
+
+    click.echo("Initializing auxiliary databases...")
+    try:
+        comment_llm_insights_db.init_db()
+    except Exception as exc:  # pragma: no cover - protective logging
+        click.secho("  Failed to prepare comment LLM insights DB.", fg="red", err=True)
+        raise click.ClickException(str(exc))
+    else:
+        click.echo(
+            f"  comment_llm_insights.db ready at {comment_llm_insights_db.DB_PATH}"
         )
 
     if pre_existing is True:

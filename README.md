@@ -72,6 +72,8 @@ Requires Python 3.10+.
 >
 > **Profile reviews**: Administrators can open `/people/<username>` to see the latest comments inline and follow the “View all comments” link for a full history when auditing members or Signal personas.
 >
+> **Signal profile glazing**: Run `./wb profile-glaze --username <member>` to analyze that member’s Signal comments (LLM sentiment/tags) and immediately regenerate their bio. Add `--all` to sweep every Signal-linked account or pass `--dry-run` to preview the comment batches without spending tokens.
+>
 > **Frontend skins**: Whenever you change files under `static/skins/` or adjust shared design tokens, run `./wb skins build` (or `./wb skins watch` during development) so the hashed bundles in `static/build/skins/` stay in sync. Skipping the rebuild leaves browsers serving the previous CSS and makes refreshed layouts look broken.
 
 ## Manual sync bundles & signatures

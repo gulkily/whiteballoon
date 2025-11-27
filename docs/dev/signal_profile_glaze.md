@@ -32,6 +32,53 @@ If `STATSD_HOST` is set, the CLI emits:
 
 Use these counters to alert on high fallback rates or unexpected volume.
 
+### Frontend engagement events
+Member profile pages send lightweight analytics via `POST /api/metrics` with payloads like:
+
+```
+{
+  "category": "profile_glaze",
+  "event": "snapshot_link",
+  "subject_id": 42,
+  "metadata": {"reference": "https://partiful.com/...", "manual_override": false}
+}
+```
+
+The endpoint simply logs the event/category, viewer ID, subject ID, and metadata (stringified) so Ops can correlate proof-click activity without storing PII.
+
+## CLI Quick Reference
+- Build or refresh Signal snapshots:
+  ```
+  ./wb signal-profile snapshot --all
+  ```
+
+- Generate positivity-tuned bios from existing snapshots:
+  ```
+  ./wb signal-profile glaze --all --model openai/gpt-5-mini --glaze-dir storage/signal_profiles/glazed
+  ```
+
+- Re-evaluate freshness after new Signal imports:
+  ```
+  ./wb signal-profile freshness --all
+  ```
+
+> Note: `./wb comment-llm --snapshot-label ...` is part of the comment insights labeling workflow. It does **not** create Signal profile bios. Always run the three `signal-profile` subcommands above when you need member profiles to update.
+
+### One-touch pipeline
+Use the orchestration command to run comment analyses and glazing together:
+
+```
+./wb profile-glaze --username alice --comment-model openai/gpt-4o-mini --glaze-model openai/gpt-5-mini
+```
+
+Options:
+- `--username` / `--user-id` / `--all` – choose who to process (repeatable).
+- `--comment-provider` / `--comment-model` / `--comment-batch-size` / `--comment-max-spend-usd` – forwarded to the comment insights LLM runner (defaults match `wb comment-llm`).
+- `--glaze-model` and `--group-slug` – passed to the glazing step.
+- `--dry-run` – plan comment batches only; skip LLM execution and glaze writes.
+
+Under the hood the command calls `wb comment-llm` with `--user-id` filters (added for this workflow) so only the specified member’s comments are labeled before their snapshot + glaze run.
+
 ## Failure Handling & Runbook
 - Guardrail violations or LLM errors automatically fall back to deterministic bios while recording the issue list inside each JSON output.
 - Resume files make reruns idempotent; delete the resume file to force a full regeneration.

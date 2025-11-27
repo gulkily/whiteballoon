@@ -40,6 +40,7 @@ from app.services import (
     request_chat_search_service,
     request_chat_suggestions,
     request_comment_service,
+    signal_profile_snapshot_service,
     user_attribute_service,
     user_profile_highlight_service,
     vouch_service,
@@ -104,6 +105,47 @@ def _format_proof_receipts(proof_points: list[dict[str, str]] | None) -> list[di
             }
         )
     return receipts
+
+
+def _format_snapshot_links(entries) -> list[dict[str, object]]:  # noqa: ANN001
+    links: list[dict[str, object]] = []
+    if not entries:
+        return links
+    for entry in entries:
+        url = str(getattr(entry, "url", "") or "").strip()
+        if not url:
+            continue
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"}:
+            continue
+        domain = (getattr(entry, "domain", "") or parsed.netloc or url).lower()
+        safe_url = parsed.geturl()
+        links.append(
+            {
+                "domain": domain,
+                "href": safe_url,
+                "count": getattr(entry, "count", 0) or 0,
+            }
+        )
+    return links
+
+
+def _build_request_ctas(request_ids: list[int], user_id: int) -> list[dict[str, object]]:
+    chips: list[dict[str, object]] = []
+    seen: set[int] = set()
+    for request_id in request_ids:
+        if request_id in seen:
+            continue
+        seen.add(request_id)
+        chips.append(
+            {
+                "request_id": request_id,
+                "href": f"/requests/{request_id}?chat_participant={user_id}",
+            }
+        )
+        if len(chips) >= 3:
+            break
+    return chips
 
 @router.get("/")
 def home(
@@ -898,10 +940,20 @@ def profile_view(
     settings = config.get_settings()
     highlight = None
     highlight_receipts: list[dict[str, object]] = []
+    snapshot_links: list[dict[str, object]] = []
+    snapshot_request_ctas: list[dict[str, object]] = []
     if settings.profile_signal_glaze_enabled:
         highlight = user_profile_highlight_service.get(db, person.id)
         if highlight:
             highlight_receipts = _format_proof_receipts(highlight.proof_points)
+        snapshot = signal_profile_snapshot_service.build_snapshot(
+            db,
+            person.id,
+            group_slug=highlight.source_group if highlight and highlight.source_group else None,
+        )
+        if snapshot:
+            snapshot_links = _format_snapshot_links(snapshot.top_links)
+            snapshot_request_ctas = _build_request_ctas(snapshot.request_ids, person.id)
 
     context = {
         "request": request,
@@ -923,12 +975,14 @@ def profile_view(
         "profile_glaze_enabled": settings.profile_signal_glaze_enabled,
         "profile_highlight": highlight,
         "profile_highlight_receipts": highlight_receipts,
+        "profile_snapshot_links": snapshot_links,
+        "profile_request_ctas": snapshot_request_ctas,
     }
     return templates.TemplateResponse("profile/show.html", context)
 
 
-@router.post("/api/profile-glaze/events")
-async def profile_glaze_event(
+@router.post("/api/metrics")
+async def ingest_metric(
     request: Request,
     session_user: SessionUser = Depends(require_session_user),
 ):
@@ -937,20 +991,24 @@ async def profile_glaze_event(
     except Exception:  # pragma: no cover - malformed bodies
         raise HTTPException(status_code=400, detail="Invalid payload")
 
+    category = str(payload.get("category", "")).strip().lower()
     event = str(payload.get("event", "")).strip().lower()
-    if event not in {"view", "proof_click"}:
-        return JSONResponse({"ok": True})
-    person_id = payload.get("person_id")
-    if not isinstance(person_id, int):
-        raise HTTPException(status_code=400, detail="person_id required")
+    if not category or not event:
+        raise HTTPException(status_code=400, detail="category and event required")
 
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    sanitized_metadata = {str(key): str(value) for key, value in metadata.items()}
+    subject_id = payload.get("subject_id")
     logger.info(
-        "profile_glaze_event",
+        "metric_event",
         extra={
+            "category": category,
             "event": event,
             "viewer_id": session_user.user.id,
-            "person_id": person_id,
-            "reference": payload.get("reference", ""),
+            "subject_id": subject_id,
+            "metadata": sanitized_metadata,
         },
     )
     return JSONResponse({"ok": True})

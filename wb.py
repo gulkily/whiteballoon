@@ -59,6 +59,7 @@ CHAT_INDEX_MODULE = "app.tools.request_chat_index"
 CHAT_EMBED_MODULE = "app.tools.request_chat_embeddings"
 COMMENT_LLM_MODULE = "app.tools.comment_llm_processing"
 SIGNAL_PROFILE_MODULE = "app.tools.signal_profile_snapshot_cli"
+PROFILE_GLAZE_MODULE = "app.tools.profile_glaze_cli"
 
 
 def python_in_venv() -> Path:
@@ -335,6 +336,16 @@ def cmd_signal_profile(args: list[str]) -> int:
     return _run_process(cmd)
 
 
+def cmd_profile_glaze(args: list[str]) -> int:
+    vpy = python_in_venv()
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+    cmd = [str(vpy), "-m", PROFILE_GLAZE_MODULE, *args]
+    info("Running profile glazing pipeline")
+    return _run_process(cmd)
+
+
 def cmd_chat_index(args: list[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="wb chat-index",
@@ -595,6 +606,7 @@ def print_help() -> None:
     print("  chat-index [opts]     Reindex request chats + optional LLM tagging")
     print("  chat-embed [opts]     Build semantic embeddings for request chats")
     print("  comment-llm [opts]    Plan or run batched comment processing via LLM")
+    print("  profile-glaze [opts]  Analyze comments + glaze Signal bios in one shot")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
@@ -625,6 +637,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("chat-index")
     subparsers.add_parser("chat-embed")
     subparsers.add_parser("comment-llm")
+    subparsers.add_parser("profile-glaze")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
@@ -666,6 +679,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_chat_embed(passthrough)
     if ns.command == "comment-llm":
         return cmd_comment_llm(passthrough)
+    if ns.command == "profile-glaze":
+        return cmd_profile_glaze(passthrough)
 
     # Known commands path
     if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "sync", "skins"}:

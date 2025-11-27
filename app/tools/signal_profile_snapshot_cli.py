@@ -15,7 +15,7 @@ from typing import Callable, Iterable
 from sqlmodel import Session, select
 
 from app.db import get_engine
-from app.models import RequestComment, UserAttribute
+from app.models import RequestComment, User, UserAttribute
 from app.services import (
     comment_llm_insights_service,
     signal_profile_snapshot_service,
@@ -33,6 +33,7 @@ STATSD_GUARDRAIL_METRIC = "signal_glaze.guardrail_fallbacks"
 STATSD_STALE_METRIC = "signal_glaze.highlights_stale"
 GLAZE_DIR = Path("storage/signal_profiles/glazed")
 GLAZE_LOG_PATH = Path("storage/signal_profile_glaze.log")
+MAX_ANALYSIS_COMMENTS = 12
 
 
 @dataclass
@@ -235,6 +236,7 @@ def glaze_users(
         targets = targets[: max(0, max_users)]
     if not dry_run:
         glaze_dir.mkdir(parents=True, exist_ok=True)
+    user_map = _load_usernames(session, targets)
 
     try:
         client = SignalProfileBioLLM(model=model)
@@ -243,14 +245,15 @@ def glaze_users(
 
     processed: list[int] = []
     for user_id in targets:
+        user_label = _format_user_label(user_id, user_map)
         if user_id in resume_skip:
             stats.skipped += 1
-            print(f"  · user {user_id}: skipped (already glazed via resume file)")
+            print(f"  · {user_label}: skipped (already glazed via resume file)")
             continue
         highlight = user_profile_highlight_service.get(session, user_id)
         if highlight and highlight.manual_override and not highlight.is_stale:
             stats.skipped += 1
-            print(f"  · user {user_id}: manual override active; skipping glaze")
+            print(f"  · {user_label}: manual override active; skipping glaze")
             continue
         stats.attempted += 1
         snapshot = signal_profile_snapshot_service.build_snapshot(
@@ -260,7 +263,7 @@ def glaze_users(
         )
         if not snapshot:
             stats.skipped += 1
-            print(f"  · user {user_id}: no snapshot available for glazing")
+            print(f"  · {user_label}: no snapshot available for glazing")
             continue
         comment_ids = _recent_comment_ids(session, user_id, snapshot.request_ids)
         analyses = _load_analyses(comment_ids)
@@ -270,7 +273,7 @@ def glaze_users(
         if dry_run:
             preview = result.payload.bio_paragraphs[0] if result.payload.bio_paragraphs else "(no copy)"
             print(
-                f"  · user {user_id}: would glaze → {preview[:80]}... | issues={result.guardrail_issues}"
+                f"  · {user_label}: would glaze → {preview[:80]}... | issues={result.guardrail_issues}"
             )
             stats.generated += 1
             processed.append(user_id)
@@ -285,7 +288,7 @@ def glaze_users(
             "raw_response": result.raw_response,
         }
         output_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-        print(f"  · user {user_id}: glazed → {output_path}")
+        print(f"  · {user_label}: glazed → {output_path}")
         stats.generated += 1
         processed.append(user_id)
         highlight_meta = user_profile_highlight_service.HighlightMeta(
@@ -407,6 +410,22 @@ def _load_resume_ids(path: Path | None) -> set[int]:
     return set()
 
 
+def _load_usernames(session: Session, user_ids: Iterable[int]) -> dict[int, str]:
+    ids = [int(uid) for uid in user_ids if uid]
+    if not ids:
+        return {}
+    stmt = select(User.id, User.username).where(User.id.in_(ids))
+    rows = session.exec(stmt).all()
+    return {user_id: username or "" for user_id, username in rows}
+
+
+def _format_user_label(user_id: int, user_map: dict[int, str]) -> str:
+    username = user_map.get(user_id)
+    if username:
+        return f"user {user_id} (@{username})"
+    return f"user {user_id}"
+
+
 def _update_resume_file(path: Path, existing: set[int], processed: list[int]) -> None:
     combined = sorted(existing.union(processed))
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -427,7 +446,7 @@ def _recent_comment_ids(
         .order_by(RequestComment.created_at.desc(), RequestComment.id.desc())
         .limit(MAX_ANALYSIS_COMMENTS)
     )
-    return [comment_id for (comment_id,) in session.exec(stmt).all()]
+    return [int(comment_id) for comment_id in session.exec(stmt).all()]
 
 
 def _load_analyses(comment_ids: Iterable[int]):
@@ -472,4 +491,3 @@ def _emit_statsd(metric: str, value: int) -> None:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-MAX_ANALYSIS_COMMENTS = 12
