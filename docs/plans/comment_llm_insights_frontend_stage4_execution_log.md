@@ -12,3 +12,4 @@
 | 2025-11-26 | Inline indicators Stage 3 – tooltip fetcher | static/js/comment-insight-badges.js, templates/partials/comment_card.html, templates/requests/detail.html | Badge click now fetches summary/tags inline | Uses vanilla fetch + containers per comment |
 | 2025-11-26 | Inline indicators Stage 4 – dashboard link bridge | static/js/comment-insights.js, static/js/comment-insight-badges.js | Query param `run_id` auto-loads run detail; tooltip link opens dashboard | Deep-linking path established |
 | 2025-11-26 | Inline indicators Stage 5 – docs & QA | DEV_CHEATSHEET.md | Flag doc added; manual flag on/off test | Ready for rollout toggle |
+| 2025-11-26 | Dashboard Stage 3 – link fix | templates/admin/partials/comment_insights_run_detail.html | “View comment” links jump to /requests/{id}#comment-id | anchor ensures precise location |

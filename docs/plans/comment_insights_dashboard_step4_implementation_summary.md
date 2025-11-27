@@ -14,8 +14,8 @@
 
 ## Stage 3 – Run detail + analyses table
 - **Status**: Completed
-- **Shipped Changes**: Added `/admin/comment-insights/runs/{run_id}/analyses` endpoint + partial (`admin/partials/comment_insights_run_detail.html`) showing summaries/tags and request links. Run list “View analyses” buttons use vanilla JS fetch to load detail panels inline.
-- **Verification**: Clicking “View analyses” fetches detail table; links open request pages.
+- **Shipped Changes**: Added `/admin/comment-insights/runs/{run_id}/analyses` endpoint + partial (`admin/partials/comment_insights_run_detail.html`) showing summaries/tags and direct comment links (anchors). Run list “View analyses” buttons use vanilla JS fetch to load detail panels inline.
+- **Verification**: Clicking “View analyses” fetches detail table; “View comment” links open `/requests/{id}#comment-{comment_id}` correctly.
 - **Notes**: Currently limited to 200 rows per run for performance.
 
 ## Stage 4 – Polish + tests

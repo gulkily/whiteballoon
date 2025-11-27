@@ -18,7 +18,7 @@
         {% for tag in item.request_tags %}<span class="badge badge-warning">{{ tag }}</span>{% endfor %}
       </td>
       <td>
-        <a class="btn btn-link" href="/admin/requests/{{ item.help_request_id }}" target="_blank">View request</a>
+        <a class="btn btn-link" href="/requests/{{ item.help_request_id }}#comment-{{ item.comment_id }}" target="_blank">View comment</a>
       </td>
     </tr>
     {% endfor %}
