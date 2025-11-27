@@ -106,6 +106,10 @@ def get_analysis_by_comment_id(comment_id: int) -> Optional[CommentInsight]:
     )
 
 
+def has_analysis(comment_id: int) -> bool:
+    return get_analysis_by_comment_id(comment_id) is not None
+
+
 def list_recent_runs(
     limit: int = 20,
     *,

@@ -33,6 +33,7 @@ from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
     auth_service,
+    comment_llm_insights_service,
     invite_graph_service,
     invite_map_cache_service,
     request_chat_search_service,
@@ -41,6 +42,7 @@ from app.services import (
     user_attribute_service,
     vouch_service,
 )
+from app import config
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 from .helpers import describe_session_role, templates
 
@@ -423,6 +425,28 @@ def _build_request_detail_context(
         )
         for comment, author in comment_rows
     ]
+    settings = config.get_settings()
+    show_comment_insights = settings.comment_insights_indicator_enabled and viewer.is_admin
+    comment_insights_map: dict[int, dict[str, object]] = {}
+    if show_comment_insights:
+        for item in comments:
+            analysis = comment_llm_insights_service.get_analysis_by_comment_id(item["id"])
+            if analysis:
+                comment_insights_map[item["id"]] = {
+                    "summary": analysis.summary,
+                    "resource_tags": analysis.resource_tags,
+                    "request_tags": analysis.request_tags,
+                    "audience": analysis.audience,
+                    "residency_stage": analysis.residency_stage,
+                    "location": analysis.location,
+                    "location_precision": analysis.location_precision,
+                    "urgency": analysis.urgency,
+                    "sentiment": analysis.sentiment,
+                    "tags": analysis.tags,
+                    "notes": analysis.notes,
+                    "run_id": analysis.run_id,
+                    "recorded_at": analysis.recorded_at,
+                }
     can_moderate = viewer.is_admin
     can_toggle_sync_scope = viewer.is_admin
 
@@ -508,6 +532,8 @@ def _build_request_detail_context(
             "has_query": bool(chat_query or participant_filters or topic_filters),
         },
         "related_chat_suggestions": related_chats,
+        "comment_insights_enabled": show_comment_insights,
+        "comment_insights_map": comment_insights_map,
     }
 
 

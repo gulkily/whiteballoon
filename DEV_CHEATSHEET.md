@@ -58,6 +58,7 @@ COOKIE_SECURE=false                 # Set true in production
 
 # Optional features
 ENABLE_CONTACT_EMAIL=true           # Allow users to store a contact email
+COMMENT_INSIGHTS_INDICATOR=false    # Show LLM insight badges inline (admin-only, default off)
 ```
 
 ## Module Playbook (High-Level)

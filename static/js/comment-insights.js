@@ -16,6 +16,8 @@
     var form = document.getElementById('comment-insights-filters');
     var runList = document.getElementById('comment-insights-run-list');
     var loadingIndicator = document.getElementById('runs-loading');
+    var params = new URLSearchParams(window.location.search);
+    var runToOpen = params.get('run_id');
     if (!form || !runList) {
       return;
     }
@@ -27,11 +29,14 @@
       loadingIndicator.hidden = !state;
     }
 
-    function loadRuns(url) {
+    function loadRuns(url, opts) {
       setLoading(true);
       fetchHtml(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
         .then(function (html) {
           runList.innerHTML = html;
+          if (opts && opts.runToOpen) {
+            openRunDetail(opts.runToOpen);
+          }
         })
         .catch(function (err) {
           console.error('Failed to load runs', err);
@@ -47,7 +52,7 @@
       var formData = new FormData(form);
       var params = new URLSearchParams(formData);
       var url = '/admin/comment-insights/runs?' + params.toString();
-      loadRuns(url);
+      loadRuns(url, { runToOpen: runToOpen });
     });
 
     runList.addEventListener('click', function (event) {
@@ -65,6 +70,10 @@
       if (!target) {
         return;
       }
+      loadRunDetail(runId, target);
+    });
+
+    function loadRunDetail(runId, target) {
       target.innerHTML = '<p>Loading…</p>';
       var detailUrl = '/admin/comment-insights/runs/' + encodeURIComponent(runId) + '/analyses';
       fetchHtml(detailUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
@@ -74,7 +83,23 @@
         .catch(function () {
           target.innerHTML = '<p class="text-danger">Failed to load analyses.</p>';
         });
-    });
+    }
+
+    function openRunDetail(runId) {
+      if (!runId) {
+        return;
+      }
+      var button = runList.querySelector('[data-run-detail="' + runId + '"]');
+      var targetId = button && button.getAttribute('data-target');
+      var target = targetId && document.getElementById(targetId);
+      if (button && target) {
+        loadRunDetail(runId, target);
+      }
+    }
+
+    if (runToOpen) {
+      openRunDetail(runToOpen);
+    }
   }
 
   document.addEventListener('DOMContentLoaded', init);
