@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
 from datetime import datetime
 import csv
 import io
@@ -802,6 +803,82 @@ def admin_comment_insights_run_detail(
         "run_id": run_id,
     }
     return templates.TemplateResponse("admin/partials/comment_insights_run_detail.html", context)
+
+
+@router.get("/admin/comment-insights/runs/{run_id}/export")
+def admin_comment_insights_run_export(
+    run_id: str,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    analyses = comment_llm_insights_service.list_analyses_for_run(run_id)
+    if not analyses:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
+    def iter_rows():
+        import csv
+        from io import StringIO
+        header = [
+            "run_id",
+            "snapshot_label",
+            "provider",
+            "model",
+            "comment_id",
+            "help_request_id",
+            "summary",
+            "resource_tags",
+            "request_tags",
+            "audience",
+            "residency_stage",
+            "location",
+            "location_precision",
+            "urgency",
+            "sentiment",
+            "tags",
+            "notes",
+            "recorded_at",
+        ]
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(header)
+        yield buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate(0)
+        for item in analyses:
+            writer.writerow(
+                [
+                    item.run_id,
+                    item.snapshot_label,
+                    item.provider,
+                    item.model,
+                    item.comment_id,
+                    item.help_request_id,
+                    item.summary,
+                    json.dumps(item.resource_tags),
+                    json.dumps(item.request_tags),
+                    item.audience,
+                    item.residency_stage,
+                    item.location,
+                    item.location_precision,
+                    item.urgency,
+                    item.sentiment,
+                    json.dumps(item.tags),
+                    item.notes,
+                    item.recorded_at,
+                ]
+            )
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+    filename = f"comment-insights-{run_id}.csv"
+    return StreamingResponse(
+        iter_rows(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
 
 
 def _format_runs(runs):

@@ -13,3 +13,6 @@
 | 2025-11-26 | Inline indicators Stage 4 – dashboard link bridge | static/js/comment-insights.js, static/js/comment-insight-badges.js | Query param `run_id` auto-loads run detail; tooltip link opens dashboard | Deep-linking path established |
 | 2025-11-26 | Inline indicators Stage 5 – docs & QA | DEV_CHEATSHEET.md | Flag doc added; manual flag on/off test | Ready for rollout toggle |
 | 2025-11-26 | Dashboard Stage 3 – link fix | templates/admin/partials/comment_insights_run_detail.html | “View comment” links jump to /requests/{id}#comment-id | anchor ensures precise location |
+| 2025-11-26 | Export Stage 1 – CSV endpoint | app/routes/ui/admin.py | Curl download returns CSV with headers | Admin-only streaming endpoint |
+| 2025-11-26 | Export Stage 2 – UI wiring | templates/admin/partials/comment_insights_run_detail.html | Button downloads CSV successfully | Visible only when analyses exist |
+| 2025-11-26 | Export Stage 3 – filename/polish | app/routes/ui/admin.py | CSV downloads named comment-insights-<run_id>.csv | Handles empty runs with 404 |
