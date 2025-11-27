@@ -1,4 +1,3 @@
-- Explore extending comment LLM rubric to capture supportive/affirming signals and aggregate them into auto-generated public profiles.
 todo
 ====
 
@@ -23,3 +22,7 @@ add ability to promote a comment to a request
 sub-comments
 
 surface most interesting/insightful/kind comments
+
+extend comment LLM rubric to capture signals about the author
+	aggregate them into auto-generated public profiles.
+	be positive in the profiles only
