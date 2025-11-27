@@ -780,8 +780,8 @@ def admin_comment_insights_runs(
 def admin_comment_insights_run_detail(
     request: Request,
     run_id: str,
-    limit: int = Query(default=200, ge=1, le=500),
     db: SessionDep,
+    limit: int = Query(default=200, ge=1, le=500),
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
