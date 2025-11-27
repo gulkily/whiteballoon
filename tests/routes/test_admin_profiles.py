@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from fastapi.testclient import TestClient
 from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
@@ -7,6 +9,7 @@ from sqlmodel import Session, SQLModel, create_engine
 from app.db import get_session
 from app.main import create_app
 from app.models import User, UserSession
+from app.services import user_profile_highlight_service
 from app.services.auth_service import SESSION_COOKIE_NAME
 
 
@@ -89,5 +92,63 @@ def test_admin_profiles_lists_users_with_filters() -> None:
     assert "profile-name-link" in response.text
     assert "/admin/profiles/" in response.text
     assert "echo@example.org" not in response.text
+
+    app.dependency_overrides.clear()
+
+
+def test_admin_profile_detail_shows_highlight() -> None:
+    app, engine = _build_test_app()
+    client = TestClient(app)
+    target_user_id, _ = _create_user_with_session(engine, username="target", is_admin=False)
+    _, admin_session_id = _create_user_with_session(engine, username="admin", is_admin=True)
+
+    with Session(engine) as session:
+        meta = user_profile_highlight_service.HighlightMeta(
+            source_group="harvard",
+            llm_model="test",
+            snapshot_last_seen_at=datetime.utcnow(),
+            guardrail_issues=[],
+        )
+        user_profile_highlight_service.upsert_auto(
+            session,
+            user_id=target_user_id,
+            bio_paragraphs=["Connector"],
+            proof_points=[],
+            quotes=[],
+            confidence_note="Based on test data",
+            snapshot_hash="hash",
+            meta=meta,
+        )
+        session.commit()
+
+    client.cookies.set(SESSION_COOKIE_NAME, admin_session_id)
+    response = client.get(f"/admin/profiles/{target_user_id}")
+
+    assert response.status_code == 200
+    assert "Signal profile highlight" in response.text
+    assert "Connector" in response.text
+
+    app.dependency_overrides.clear()
+
+
+def test_admin_profile_highlight_override_action() -> None:
+    app, engine = _build_test_app()
+    client = TestClient(app)
+    target_user_id, _ = _create_user_with_session(engine, username="target", is_admin=False)
+    _, admin_session_id = _create_user_with_session(engine, username="admin", is_admin=True)
+
+    client.cookies.set(SESSION_COOKIE_NAME, admin_session_id)
+    response = client.post(
+        f"/admin/profiles/{target_user_id}/highlight",
+        data={"action": "override", "override_text": "Manual text"},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 303
+    with Session(engine) as session:
+        record = user_profile_highlight_service.get(session, target_user_id)
+        assert record is not None
+        assert record.manual_override is True
+        assert record.override_text == "Manual text"
 
     app.dependency_overrides.clear()

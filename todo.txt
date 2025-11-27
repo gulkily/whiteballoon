@@ -26,3 +26,5 @@ surface most interesting/insightful/kind comments
 extend comment LLM rubric to capture signals about the author
 	aggregate them into auto-generated public profiles.
 	be positive in the profiles only
+
+user directory page

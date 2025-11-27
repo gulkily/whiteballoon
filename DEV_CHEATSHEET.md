@@ -3,6 +3,9 @@
 ## Project Snapshot
 Modular FastAPI/SQLModel application with authentication, request feed, server-rendered templates, and progressive enhancement via light JavaScript helpers. Future capabilities will be delivered as atomic modules packaged under `app/modules/`.
 
+## Working Agreements
+- Never run `pytest` (or any automated test suite) during development unless the user explicitly asks for it in that moment. Capture verification needs in notes instead of burning time on test runs.
+
 ## Quick Start Commands
 ```bash
 # Setup

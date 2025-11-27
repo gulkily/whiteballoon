@@ -4,6 +4,7 @@ import logging
 import re
 from pathlib import Path
 from typing import Annotated, Optional
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from fastapi import (
@@ -40,6 +41,7 @@ from app.services import (
     request_chat_suggestions,
     request_comment_service,
     user_attribute_service,
+    user_profile_highlight_service,
     vouch_service,
 )
 from app import config
@@ -64,6 +66,44 @@ def _serialize_requests(db: Session, items, viewer: Optional[User] = None):
             ).model_dump()
         )
     return serialized
+
+
+def _format_proof_receipts(proof_points: list[dict[str, str]] | None) -> list[dict[str, object]]:
+    receipts: list[dict[str, object]] = []
+    if not proof_points:
+        return receipts
+    for point in proof_points:
+        label = str(point.get("label", "")).strip()
+        detail = str(point.get("detail", "")).strip()
+        reference = str(point.get("reference", "")).strip()
+        href: Optional[str] = None
+        display_ref = reference
+        external = False
+        ref_lower = reference.lower()
+        if ref_lower.startswith("http"):
+            href = reference
+            external = True
+            parsed = urlparse(reference)
+            display_ref = parsed.netloc or reference
+        elif ref_lower.startswith("request#"):
+            digits = "".join(ch for ch in reference if ch.isdigit())
+            if digits:
+                href = f"/requests/{digits}"
+                display_ref = f"Request #{digits}"
+        elif reference.isdigit():
+            href = f"/requests/{reference}"
+            display_ref = f"Request #{reference}"
+        receipts.append(
+            {
+                "label": label,
+                "detail": detail,
+                "reference": reference,
+                "href": href,
+                "display_ref": display_ref,
+                "external": external,
+            }
+        )
+    return receipts
 
 @router.get("/")
 def home(
@@ -855,6 +895,14 @@ def profile_view(
                 }
             )
 
+    settings = config.get_settings()
+    highlight = None
+    highlight_receipts: list[dict[str, object]] = []
+    if settings.profile_signal_glaze_enabled:
+        highlight = user_profile_highlight_service.get(db, person.id)
+        if highlight:
+            highlight_receipts = _format_proof_receipts(highlight.proof_points)
+
     context = {
         "request": request,
         "viewer": viewer,
@@ -872,8 +920,40 @@ def profile_view(
         "recent_comments": recent_comments,
         "recent_comments_limit": request_comment_service.RECENT_PROFILE_COMMENTS_LIMIT,
         "recent_comments_url": f"/people/{person.username}/comments",
+        "profile_glaze_enabled": settings.profile_signal_glaze_enabled,
+        "profile_highlight": highlight,
+        "profile_highlight_receipts": highlight_receipts,
     }
     return templates.TemplateResponse("profile/show.html", context)
+
+
+@router.post("/api/profile-glaze/events")
+async def profile_glaze_event(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    try:
+        payload = await request.json()
+    except Exception:  # pragma: no cover - malformed bodies
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    event = str(payload.get("event", "")).strip().lower()
+    if event not in {"view", "proof_click"}:
+        return JSONResponse({"ok": True})
+    person_id = payload.get("person_id")
+    if not isinstance(person_id, int):
+        raise HTTPException(status_code=400, detail="person_id required")
+
+    logger.info(
+        "profile_glaze_event",
+        extra={
+            "event": event,
+            "viewer_id": session_user.user.id,
+            "person_id": person_id,
+            "reference": payload.get("reference", ""),
+        },
+    )
+    return JSONResponse({"ok": True})
 
 
 @router.get("/people/{username}/comments")

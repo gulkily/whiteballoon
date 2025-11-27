@@ -58,6 +58,7 @@ SIGNAL_IMPORT_MODULE = "app.tools.signal_import"
 CHAT_INDEX_MODULE = "app.tools.request_chat_index"
 CHAT_EMBED_MODULE = "app.tools.request_chat_embeddings"
 COMMENT_LLM_MODULE = "app.tools.comment_llm_processing"
+SIGNAL_PROFILE_MODULE = "app.tools.signal_profile_snapshot_cli"
 
 
 def python_in_venv() -> Path:
@@ -302,6 +303,35 @@ def cmd_import_signal_group(args: list[str]) -> int:
     if ns.dry_run:
         cmd.append("--dry-run")
     info("Launching Signal group importer (stub)")
+    return _run_process(cmd)
+
+
+def cmd_signal_profile(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="wb signal-profile",
+        description="Manage Signal profile snapshot utilities",
+    )
+    parser.add_argument(
+        "subcommand",
+        nargs="?",
+        default="snapshot",
+        help="Subcommand to run (default: snapshot)",
+    )
+    if not args or args[0] in {"-h", "--help", "help"}:
+        parser.print_help()
+        return 0
+
+    ns = parser.parse_args(args[:1])
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+
+    cmd = [str(vpy), "-m", SIGNAL_PROFILE_MODULE, ns.subcommand, *args[1:]]
+    info("Launching Signal profile utility")
     return _run_process(cmd)
 
 
@@ -599,6 +629,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
     subparsers.add_parser("update-env")
+    subparsers.add_parser("signal-profile")
 
     # Parse only the command; leave the rest as passthrough
     known, passthrough = (argv[:1], argv[1:]) if argv else ([], [])
@@ -626,6 +657,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.command == "import-signal-group":
         return cmd_import_signal_group(passthrough)
+    if ns.command == "signal-profile":
+        return cmd_signal_profile(passthrough)
 
     if ns.command == "chat-index":
         return cmd_chat_index(passthrough)

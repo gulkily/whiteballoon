@@ -10,6 +10,12 @@
 <section class="section stack" data-page="admin-profile-detail">
   <a class="button button--ghost" href="{{ directory_url }}">← Back to directory</a>
 
+  {% if flash_message %}
+    <div class="alert {{ 'alert--error' if flash_severity == 'error' else 'alert--success' if flash_severity == 'success' else '' }}">
+      {{ flash_message }}
+    </div>
+  {% endif %}
+
   <header class="stack">
     <p class="muted small-text">Admin-only</p>
     <h1>{{ profile.username }}</h1>
@@ -63,6 +69,81 @@
       </form>
     </div>
   </div>
+
+  <section class="card stack">
+    <header class="stack">
+      <h2>Signal profile highlight</h2>
+      {% if highlight %}
+        <p class="muted small-text">
+          Updated {{ highlight.generated_at | friendly_time if highlight.generated_at else 'Unknown' }} ·
+          Snapshot {{ highlight.snapshot_last_seen_at | friendly_time if highlight.snapshot_last_seen_at else 'Unknown' }}
+        </p>
+      {% else %}
+        <p class="muted small-text">No highlight stored yet.</p>
+      {% endif %}
+    </header>
+
+    {% if highlight %}
+      <div class="stack">
+        {% if highlight.manual_override %}
+          <span class="meta-chip meta-chip--status meta-chip--accent">Manual override active</span>
+        {% endif %}
+        {% if highlight.is_stale %}
+          <span class="meta-chip meta-chip--status meta-chip--warning">
+            Needs refresh{% if highlight.stale_reason %} ({{ highlight.stale_reason }}){% endif %}
+          </span>
+        {% endif %}
+        {% for paragraph in highlight.bio_paragraphs %}
+          <p>{{ paragraph }}</p>
+        {% endfor %}
+        {% if not highlight.bio_paragraphs %}
+          <p class="muted">No auto-generated copy stored yet.</p>
+        {% endif %}
+      </div>
+      {% if highlight.proof_points %}
+        <div>
+          <h3 class="small-text">Proof points</h3>
+          <ul>
+            {% for point in highlight.proof_points %}
+              <li><strong>{{ point.label }}</strong>: {{ point.detail }} · <span class="muted">{{ point.reference }}</span></li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      {% if highlight.quotes %}
+        <div>
+          <h3 class="small-text">Quotes</h3>
+          <ul>
+            {% for quote in highlight.quotes %}
+              <li>“{{ quote }}”</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+      {% if highlight.confidence_note %}
+        <p class="muted small-text">{{ highlight.confidence_note }}</p>
+      {% endif %}
+      <div class="stack">
+        <form method="post" action="/admin/profiles/{{ profile.id }}/highlight">
+          <input type="hidden" name="action" value="mark_stale" />
+          <button class="button button--secondary small" type="submit">Mark stale</button>
+        </form>
+      </div>
+    {% else %}
+      <p class="muted">Run <code>wb signal-profile glaze --user {{ profile.id }}</code> to seed the highlight automatically or add a manual note below.</p>
+    {% endif %}
+
+    <form method="post" action="/admin/profiles/{{ profile.id }}/highlight" class="stack profile-highlight-form">
+      <label for="override-text" class="small-text">Manual override</label>
+      <textarea id="override-text" name="override_text" rows="4" placeholder="Add or edit manual copy">{{ highlight.override_text if highlight and highlight.override_text else '' }}</textarea>
+      <div class="form-actions">
+        <button type="submit" name="action" value="override" class="button button--primary small">Save manual text</button>
+        {% if highlight and highlight.manual_override %}
+          <button type="submit" name="action" value="clear_override" class="button button--ghost small">Clear manual override</button>
+        {% endif %}
+      </div>
+    </form>
+  </section>
 
   <section id="requests" class="card stack">
     <header class="stack">

@@ -9,6 +9,7 @@ from . import (
     request_chat_suggestions,
     request_comment_service,
     user_attribute_service,
+    user_profile_highlight_service,
     vouch_service,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "request_chat_suggestions",
     "request_comment_service",
     "user_attribute_service",
+    "user_profile_highlight_service",
     "vouch_service",
 ]

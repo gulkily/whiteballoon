@@ -17,7 +17,7 @@ from fastapi.responses import PlainTextResponse, RedirectResponse
 from sqlalchemy import func
 from sqlmodel import select
 
-from app.dependencies import SessionDep, SessionUser, require_session_user
+from app.dependencies import SessionDep, SessionUser, get_session, require_session_user
 from app.models import HelpRequest, InviteToken, User
 from app import config
 from app.routes.ui.helpers import friendly_time
@@ -35,7 +35,12 @@ from app.realtime import (
     update_job as update_realtime_job,
 )
 from app.routes.ui.helpers import describe_session_role, templates
-from app.services import comment_llm_insights_service, request_comment_service, user_attribute_service
+from app.services import (
+    comment_llm_insights_service,
+    request_comment_service,
+    user_attribute_service,
+    user_profile_highlight_service,
+)
 from starlette.datastructures import URL
 
 router = APIRouter(tags=["ui"])
@@ -586,6 +591,10 @@ def admin_profile_detail(
         key=user_attribute_service.INVITE_TOKEN_USED_KEY,
     )
 
+    highlight = user_profile_highlight_service.get(db, profile.id)
+    flash_message = request.query_params.get("message")
+    flash_severity = request.query_params.get("severity", "info")
+
     context = {
         "request": request,
         "user": viewer,
@@ -601,8 +610,64 @@ def admin_profile_detail(
         "invited_by_user": invited_by_user,
         "invite_token_used": invite_token_value,
         "now_utc": datetime.utcnow(),
+        "highlight": highlight,
+        "flash_message": flash_message,
+        "flash_severity": flash_severity,
     }
     return templates.TemplateResponse("admin/profile_detail.html", context)
+
+
+@router.post("/admin/profiles/{user_id}/highlight")
+def admin_profile_highlight_action(
+    request: Request,
+    user_id: int,
+    db: SessionDep,
+    action: str = Form(...),
+    override_text: str = Form(""),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    message = ""
+    severity = "success"
+    text_value = override_text.strip()
+
+    if action == "override":
+        if not text_value:
+            message = "Provide text for the manual override."
+            severity = "error"
+        else:
+            user_profile_highlight_service.set_manual_override(
+                db,
+                user_id=user_id,
+                text=text_value,
+            )
+            db.commit()
+            message = "Saved manual override; echos immediately in profile view."
+    elif action == "clear_override":
+        record = user_profile_highlight_service.clear_manual_override(db, user_id=user_id)
+        if record is None:
+            severity = "error"
+            message = "No highlight to clear."
+        else:
+            db.commit()
+            message = "Manual override cleared; run glaze to refresh copy."
+    elif action == "mark_stale":
+        user_profile_highlight_service.mark_stale(
+            db,
+            user_id=user_id,
+            reason="admin-request",
+        )
+        db.commit()
+        message = "Marked highlight stale; queue a glaze run to regenerate."
+    else:
+        severity = "error"
+        message = "Unknown action."
+
+    target = URL(request.url_for("admin_profile_detail", user_id=user_id)).include_query_params(
+        message=message,
+        severity=severity,
+    )
+    return RedirectResponse(str(target), status_code=303)
 
 
 @router.get("/admin/dedalus")
