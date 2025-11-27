@@ -1,17 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <title>Plan Status Report</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 2rem; }
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff;
+      --fg: #111111;
+      --table-border: #cccccc;
+      --header-bg: #f2f2f2;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #1d1f21;
+        --fg: #f7f7f7;
+        --table-border: #555;
+        --header-bg: #2a2d30;
+      }
+    }
+    [data-theme="dark"] {
+      --bg: #1d1f21;
+      --fg: #f7f7f7;
+      --table-border: #555;
+      --header-bg: #2a2d30;
+    }
+    body { background: var(--bg); color: var(--fg); font-family: Arial, sans-serif; margin: 2rem; transition: background 0.3s ease, color 0.3s ease; }
     table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
-    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
-    th { background: #f2f2f2; }
+    th, td { border: 1px solid var(--table-border); padding: 0.5rem; text-align: left; }
+    th { background: var(--header-bg); }
     h2 { margin-top: 2rem; }
+    .toggle-wrapper { text-align: right; margin-bottom: 1rem; }
+    .toggle-wrapper button { padding: 0.4rem 0.8rem; }
   </style>
 </head>
 <body>
+  <div class="toggle-wrapper">
+    <button id="theme-toggle" aria-label="Toggle theme">Toggle theme</button>
+  </div>
   <h1>Plan Status Report</h1>
   <h2>Active Plans</h2>
   <ul>
@@ -26,7 +52,6 @@
     <li><a href="archive/account_profile_edit/">account_profile_edit</a></li>
     <li><a href="archive/admin_init_db_output/">admin_init_db_output</a></li>
     <li><a href="archive/admin_profiles_directory/">admin_profiles_directory</a></li>
-    <!-- More archived entries can be listed here -->
   </ul>
   <h2>Todo Items</h2>
   <ol>
@@ -38,5 +63,21 @@
     <li>surface most interesting/insightful comments</li>
     <li>extend LLM rubric for supportive profiles</li>
   </ol>
+  <script>
+    const toggleBtn = document.getElementById('theme-toggle');
+    const root = document.documentElement;
+    const stored = localStorage.getItem('plan_theme');
+    if (stored) {
+      root.setAttribute('data-theme', stored);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      root.setAttribute('data-theme', 'dark');
+    }
+    toggleBtn.addEventListener('click', () => {
+      const current = root.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('plan_theme', next);
+    });
+  </script>
 </body>
 </html>
