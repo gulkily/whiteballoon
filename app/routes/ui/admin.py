@@ -758,6 +758,7 @@ def admin_comment_insights_runs(
     snapshot_label: str | None = Query(default=None),
     provider: str | None = Query(default=None),
     limit: int = Query(default=20, ge=1, le=200),
+    db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
@@ -780,8 +781,8 @@ def admin_comment_insights_run_detail(
     request: Request,
     run_id: str,
     limit: int = Query(default=200, ge=1, le=500),
-    session_user: SessionUser = Depends(require_session_user),
     db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
     raw_analyses = comment_llm_insights_service.list_analyses_for_run(run_id, limit=limit)
