@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Members · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="members-directory">
+  <header class="stack">
+    <p class="muted small-text">Members-only</p>
+    <h1>Members</h1>
+    <p class="muted">Browse everyone who has opted into sharing plus the folks you invited directly.</p>
+  </header>
+
+  <div class="card stack" data-section="members-directory">
+    <form method="get" class="members-filter">
+      <input type="hidden" name="page" value="1" />
+      <label class="stack" for="members-username">
+        <span>Username</span>
+        <input
+          id="members-username"
+          type="text"
+          name="username"
+          value="{{ username_query }}"
+          placeholder="e.g., aurora"
+        />
+      </label>
+      <label class="stack" for="members-contact">
+        <span>Contact email</span>
+        <input
+          id="members-contact"
+          type="text"
+          name="contact"
+          value="{{ contact_query }}"
+          placeholder="name@example.org"
+        />
+      </label>
+      <div class="members-filter__actions">
+        <button type="submit" class="button button--secondary">Apply filters</button>
+        {% if filters_active %}
+          <a class="button button--ghost" href="{{ clear_filters_url }}">Clear</a>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if profiles %}
+      <div class="members-grid">
+        {% for profile in profiles %}
+          {% set scope_is_public = profile.sync_scope == 'public' %}
+          {% if viewer_is_admin %}
+            {% set profile_href = '/admin/profiles/' ~ profile.id %}
+          {% elif profile.id == user.id %}
+            {% set profile_href = '/profile' %}
+          {% else %}
+            {% set profile_href = '/people/' ~ profile.username %}
+          {% endif %}
+          {% set avatar_url = member_avatar_urls.get(profile.id) %}
+          <article class="member-card">
+            <header class="member-card__header">
+              <div class="member-card__identity">
+                <span class="member-card__avatar" aria-hidden="true">
+                  {% if avatar_url %}
+                    <img src="{{ avatar_url }}" alt="" />
+                  {% else %}
+                    <span class="member-card__avatar-initials">{{ profile.username[:2] | upper }}</span>
+                  {% endif %}
+                </span>
+                <div class="member-card__identity-text">
+                  <p class="member-card__username">@{{ profile.username }}</p>
+                  <p class="muted small-text">Joined {{ profile.created_at | friendly_time }}</p>
+                </div>
+              </div>
+              <span class="meta-chip meta-chip--status meta-chip--{{ 'success' if scope_is_public else 'muted' }}">
+                <span class="meta-chip__label">Sharing</span>
+                <span class="meta-chip__value">{{ 'Public' if scope_is_public else 'Private' }}</span>
+              </span>
+            </header>
+            <div class="member-card__body stack">
+              <div class="member-card__contact">
+                {% if profile.contact_email and (viewer_is_admin or scope_is_public) %}
+                  <a href="mailto:{{ profile.contact_email }}" class="meta-chip meta-chip--action">
+                    <span class="meta-chip__label">Contact</span>
+                    <span class="meta-chip__value">{{ profile.contact_email }}</span>
+                  </a>
+                {% else %}
+                  <p class="muted">Contact hidden</p>
+                {% endif %}
+              </div>
+              <div class="member-card__actions">
+                <a class="button button--ghost" href="{{ profile_href }}">View profile</a>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+      <div class="members-pagination">
+        <p class="muted small-text">Showing page {{ page }} of {{ total_pages }} · {{ profiles_total }} total</p>
+        <div class="members-pagination__actions">
+          {% if pagination.has_prev %}
+            <a class="button button--ghost" href="{{ pagination.prev_url }}">Previous</a>
+          {% else %}
+            <span class="button button--ghost button--disabled" aria-disabled="true">Previous</span>
+          {% endif %}
+          {% if pagination.has_next %}
+            <a class="button button--ghost" href="{{ pagination.next_url }}">Next</a>
+          {% else %}
+            <span class="button button--ghost button--disabled" aria-disabled="true">Next</span>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="muted">{{ 'No members match these filters.' if filters_active else 'No public members are visible yet. Encourage folks to share their profiles or invite someone new.' }}</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

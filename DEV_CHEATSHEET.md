@@ -3,6 +3,9 @@
 ## Project Snapshot
 Modular FastAPI/SQLModel application with authentication, request feed, server-rendered templates, and progressive enhancement via light JavaScript helpers. Future capabilities will be delivered as atomic modules packaged under `app/modules/`.
 
+## Working Agreements
+- Never run `pytest` (or any automated test suite) during development unless the user explicitly asks for it in that moment. Capture verification needs in notes instead of burning time on test runs.
+
 ## Quick Start Commands
 ```bash
 # Setup
@@ -47,6 +50,7 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - Keep all HTML markup (pages, fragments, styled blocks) inside Jinja templates under `templates/`.
 - When a Python handler needs to return HTML, render a template via `Jinja2Templates` instead of building strings inline.
 - If you introduce new views (CLI output, hub pages, etc.), create the template at the same time so we never accumulate inline HTML debt again.
+- **Dynamic updates**: When a page needs partial refreshes, use vanilla JavaScript (`fetch`) to call dedicated endpoints that return HTML or JSON snippets (see `static/js/comment-insights.js` for the pattern). Do not add HTMX/Stimulus or other frontend dependencies.
 
 ## Environment Variables
 ```bash
@@ -57,6 +61,7 @@ COOKIE_SECURE=false                 # Set true in production
 
 # Optional features
 ENABLE_CONTACT_EMAIL=true           # Allow users to store a contact email
+COMMENT_INSIGHTS_INDICATOR=false    # Show LLM insight badges inline (admin-only, default off)
 ```
 
 ## Module Playbook (High-Level)

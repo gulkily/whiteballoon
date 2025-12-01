@@ -15,6 +15,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Session management via secure cookies backed by the database
 - Help-request feed with progressive enhancement for creating and completing requests
 - Admin-only profile directory ( `/admin/profiles` ) with per-account drill-downs to review contact info, sharing scope, requests, and invite history
+- Members directory (`/members`) for fully authenticated members to browse public profiles plus their invitees with filters and scope-aware contact visibility
 - Admin control panel (`/admin`) that centralizes links to the directory, sync dashboard, and future operator tools
 - Per-request detail pages with shareable URLs and consistent permissions
 - Comment threads on request detail pages with progressive enhancement (vanilla JS) for instant posting
@@ -71,6 +72,10 @@ Requires Python 3.10+.
 > **Chat indexing & embeddings**: Run `./wb chat-index --request-id <id>` whenever you import new Signal chats so the search caches and optional LLM tags stay fresh. Follow up with `./wb chat-embed --request-id <id> --adapter dedalus` (or `--adapter local` for offline dev) to build the semantic vectors that power the “Related chat mentions” panel.
 >
 > **Profile reviews**: Administrators can open `/people/<username>` to see the latest comments inline and follow the “View all comments” link for a full history when auditing members or Signal personas.
+>
+> **Signal profile glazing**: Run `./wb profile-glaze --username <member>` to analyze that member’s Signal comments (LLM sentiment/tags) and immediately regenerate their bio. Add `--all` to sweep every Signal-linked account or pass `--dry-run` to preview the comment batches without spending tokens.
+
+> **Developer reminder**: Whenever you add a new configuration flag or environment variable, update `.env.example` with the default and a short description so fresh installs pick it up.
 >
 > **Frontend skins**: Whenever you change files under `static/skins/` or adjust shared design tokens, run `./wb skins build` (or `./wb skins watch` during development) so the hashed bundles in `static/build/skins/` stay in sync. Skipping the rebuild leaves browsers serving the previous CSS and makes refreshed layouts look broken.
 

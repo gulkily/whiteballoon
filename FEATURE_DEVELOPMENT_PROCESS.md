@@ -19,13 +19,14 @@ Four-step process for feature development with optional solution assessment.
 ---
 
 ### Step 2: Feature Description
-**Content**: Problem statement, 3-5 user stories, core requirements, user flow, success criteria
+**Content**: Problem statement, 3-5 user stories, core requirements, user flow, success criteria, and a shared-component inventory when the feature presents entities already visible elsewhere in the product
 
 **Format**: Concise document (≤1 page) in `docs/plans/`
 **Filename**: `{feature_name}_feature_description.md`
 - Problem (1-2 sentences)
 - User stories (bullet points: "As [role], I want [goal] so that [benefit]")
 - Core requirements (3-5 bullet points)
+- Shared component inventory: list every existing UI/API surface that already renders the data (e.g., comment cards, identity chips) and state whether the feature will reuse/extend the canonical component or needs a new one (with rationale)
 - Simple user flow (numbered steps)
 - Success criteria (measurable outcomes)
 
@@ -34,11 +35,11 @@ Four-step process for feature development with optional solution assessment.
 ---
 
 ### Step 3: Development Plan
-**Content**: Atomic stages (~≤1 hour or ~≤50 lines of change each), dependencies, verification approach (manual is fine), risk assessment
+**Content**: Atomic stages (~≤1 hour or ~≤50 lines of change each), dependencies, verification approach (manual is fine), risk assessment, and explicit adoption steps for any shared components called out in Step 2
 
 **Format**: Numbered stages in `docs/plans/` (≤1 page)
 **Filename**: `{feature_name}_development_plan.md`
-- Each stage: goal, dependencies, changes, verification (manual smoke allowed), risks (bullet points)
+- Each stage: goal, dependencies, changes, verification (manual smoke allowed), risks (bullet points), plus a reminder of which canonical components/API contracts are being touched so nothing forks silently
 - Break work into as many small stages as needed; flag any stage that still feels too large so it can be split before implementation.
 - Database changes (conceptual, no SQL)
 - Function signatures (no implementation)
@@ -52,10 +53,11 @@ Four-step process for feature development with optional solution assessment.
 
 **Critical Requirements**:
 - **MUST create feature branch first** (e.g., `feature/request-feed-enhancements`)
-- Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work.
+- Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work (after Step 3.)
 - Complete stages atomically (<2 hours each)
 - Manual smoke verification is sufficient for each stage; do not write automated tests.
 - Avoid seeding adhoc data fixtures or writing temporary scripts; verify using existing UI/CLI flows only.
+- Before introducing new presentation markup or API payloads, confirm whether a canonical component/contract already exists (per Step 2 inventory) and reuse or extend it instead of duplicating logic.
 - Update the Step 4 implementation summary document immediately after finishing each stage (document what shipped + how it was verified).
 - Commit the code + documentation for each stage (including the Step 4 summary update) before starting the next stage.
 - Conclude Step 4 by finalizing the implementation summary document.
@@ -83,6 +85,7 @@ Each step MUST be a separate file in `docs/plans/`:
 - After delivering each step, explicitly request confirmation using the wording “Approved Step N” and pause until the user replies with that exact phrase; do not create the next step’s document or code until that confirmation is received
 - ALWAYS create separate files for each step only after the relevant approval
 - ALWAYS create a feature branch before Step 4 implementation
+- Favor **shared components first**: when surfacing data that already appears elsewhere, reuse the existing canonical component/API contract or extend it intentionally; do not fork markup, CSS, or payloads without updating the shared spec.
 - Flag scope creep and return to the appropriate planning step when needed
 - If the projected work exceeds roughly a day of effort or would require more than about eight Step 3 stages, recommend breaking the effort into multiple features before proceeding.
 - **AVOID database schema changes when possible** – prefer using existing models and fields

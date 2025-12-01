@@ -45,6 +45,8 @@ class Settings:
     dedalus_api_key: str = os.getenv("DEDALUS_API_KEY", "")
     dedalus_api_key_verified_at: Optional[str] = os.getenv("DEDALUS_API_KEY_VERIFIED_AT")
     dedalus_log_retention_days: int = int(os.getenv("DEDALUS_LOG_RETENTION_DAYS", "30"))
+    comment_insights_indicator_enabled: bool = _get_bool(os.getenv("COMMENT_INSIGHTS_INDICATOR"), False)
+    profile_signal_glaze_enabled: bool = _get_bool(os.getenv("PROFILE_SIGNAL_GLAZE"), False)
 
 
 @lru_cache(maxsize=1)

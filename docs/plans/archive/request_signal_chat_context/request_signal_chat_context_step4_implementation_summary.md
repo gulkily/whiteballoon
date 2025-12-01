@@ -9,7 +9,7 @@
 - Verification: Manual Python script created demo comments, ran `search_chat` with keyword+topic filters, and observed one result with matched tokens + anchor (`comment-####`). Script cleaned the cache + records afterward.
 
 ## Stage 3 – UI search widget
-- Changes: Added a “Search imported Signal chat” panel on the request detail page with a debounced search field, inline results list, and jump links to the matching comments. Results hydrate via the new `request-chat-search.js` module (AJAX, highlighting, status messages) while the server fallbacks render matches when `chat_q` query params are present. Updated request routes to pass chat search context and added skin-level styles + chip variants for inline tags.
+- Changes: Added a “Search chat” panel on the request detail page with a debounced search field, inline results list, and jump links to the matching comments. Results hydrate via the new `request-chat-search.js` module (AJAX, highlighting, status messages) while the server fallbacks render matches when `chat_q` query params are present. Updated request routes to pass chat search context and added skin-level styles + chip variants for inline tags.
 - Verification: Manually loaded a Signal-seeded request detail page, typed “housing” into the chat search field, saw the result count/status update live, and confirmed the jump link scrolled to the matching comment.
 
 ## Stage 4 – Related snippet suggestions across requests (heuristic)

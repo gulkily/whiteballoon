@@ -1,0 +1,37 @@
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Snapshot</th>
+      <th>Provider</th>
+      <th>Model</th>
+      <th>Started</th>
+      <th>Batches</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% if runs %}
+      {% for run in runs %}
+      <tr>
+        <td>{{ run.snapshot_label }}</td>
+        <td>{{ run.provider }}</td>
+        <td>{{ run.model }}</td>
+        <td title="{{ run.started_at }}">{{ run.started_at_friendly }}</td>
+        <td>{{ run.completed_batches }} / {{ run.total_batches }}</td>
+        <td>
+          <button class="btn btn-link" data-run-detail="{{ run.run_id }}" data-target="run-{{ run.run_id }}-details">View analyses</button>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="6">
+          <div id="run-{{ run.run_id }}-details" class="run-detail"></div>
+        </td>
+      </tr>
+      {% endfor %}
+    {% else %}
+      <tr>
+        <td colspan="6">No runs found.</td>
+      </tr>
+    {% endif %}
+  </tbody>
+</table>

@@ -163,3 +163,27 @@ class Vouch(SQLModel, table=True):
     subject_user_id: int = Field(foreign_key="users.id", nullable=False)
     signature: Optional[str] = Field(default=None, max_length=128)
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
+
+class UserProfileHighlight(SQLModel, table=True):
+    __tablename__ = "user_profile_highlights"
+
+    user_id: int = Field(primary_key=True, foreign_key="users.id")
+    bio_text: str = Field(sa_column=Column(Text, nullable=False))
+    proof_points_json: str = Field(sa_column=Column(Text, nullable=False, default="[]"))
+    quotes_json: str = Field(sa_column=Column(Text, nullable=False, default="[]"))
+    confidence_note: Optional[str] = Field(default=None, sa_column=Column(String(255)))
+    source_group: Optional[str] = Field(default=None, sa_column=Column(String(128)))
+    snapshot_hash: str = Field(sa_column=Column(String(128), nullable=False))
+    snapshot_last_seen_at: datetime = Field(nullable=False)
+    llm_model: Optional[str] = Field(default=None, sa_column=Column(String(128)))
+    guardrail_issues_json: str = Field(sa_column=Column(Text, nullable=False, default="[]"))
+    generated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    stale_after: Optional[datetime] = Field(default=None)
+    is_stale: bool = Field(default=False, nullable=False)
+    stale_reason: Optional[str] = Field(default=None, sa_column=Column(String(255)))
+    manual_override: bool = Field(default=False, nullable=False)
+    override_text: Optional[str] = Field(default=None, sa_column=Column(Text))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)

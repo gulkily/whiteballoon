@@ -200,31 +200,42 @@
 
 .request-chat-search__result {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.5rem;
 }
 
-.request-chat-search__result-link {
-  display: inline-flex;
+.request-chat-search__identity {
+  display: flex;
+  justify-content: space-between;
   gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.request-chat-search__result-author {
   font-weight: 600;
   color: var(--color-text);
   text-decoration: none;
 }
 
-.request-chat-search__result-link:hover,
-.request-chat-search__result-link:focus-visible {
-  text-decoration: underline;
+.request-chat-search__result-author:hover,
+.request-chat-search__result-author:focus-visible {
+  color: var(--color-accent);
+}
+
+.request-chat-search__result-time {
+  font-size: 0.85rem;
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.request-chat-search__result-time:hover,
+.request-chat-search__result-time:focus-visible {
   color: var(--color-accent);
 }
 
 .request-chat-search__result-body {
   margin: 0;
   color: var(--color-text);
-}
-
-.request-chat-search__result-time {
-  font-size: 0.85rem;
-  color: var(--color-muted);
 }
 
 .request-chat-search__tags {
@@ -375,4 +386,65 @@
 .request-comments__pagination-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.comment-card {
+  list-style: none;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.comment-card__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.comment-card__identity {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.comment-card__author {
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.comment-card__author:hover,
+.comment-card__author:focus-visible {
+  color: var(--color-accent);
+}
+
+.comment-card__time {
+  font-size: var(--font-size-xs);
+  color: var(--color-muted);
+  text-decoration: none;
+}
+
+.comment-card__time:hover,
+.comment-card__time:focus-visible {
+  color: var(--color-accent);
+}
+
+.comment-card__meta-right {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.comment-card__scope {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.comment-card__body {
+  margin: 0;
+  color: var(--color-text);
 }

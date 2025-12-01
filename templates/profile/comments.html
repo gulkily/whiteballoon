@@ -30,17 +30,9 @@
             </header>
             <ul class="profile-recent-comments">
               {% for comment in group.comments %}
-                <li class="profile-recent-comment">
-                  <div class="profile-recent-comment__meta">
-                    {% if comment.created_at %}
-                      <a href="{{ comment.comment_url }}" class="profile-recent-comment__time-link">
-                        <time datetime="{{ comment.created_at_iso }}" class="profile-recent-comment__time">{{ comment.created_at | friendly_time }}</time>
-                      </a>
-                    {% endif %}
-                  </div>
-                  <p class="profile-recent-comment__body">{{ comment.body }}</p>
-                  <span class="meta-chip meta-chip--small">{{ comment.scope }}</span>
-                </li>
+                {% with variant = 'profile' %}
+                  {% include "partials/comment_card.html" %}
+                {% endwith %}
               {% endfor %}
             </ul>
           </section>

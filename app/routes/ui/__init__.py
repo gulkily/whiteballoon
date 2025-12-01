@@ -4,6 +4,7 @@ import logging
 import re
 from pathlib import Path
 from typing import Annotated, Optional
+from urllib.parse import urlparse
 from uuid import uuid4
 
 from fastapi import (
@@ -33,14 +34,18 @@ from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
     auth_service,
+    comment_llm_insights_service,
     invite_graph_service,
     invite_map_cache_service,
     request_chat_search_service,
     request_chat_suggestions,
     request_comment_service,
+    signal_profile_snapshot_service,
     user_attribute_service,
+    user_profile_highlight_service,
     vouch_service,
 )
+from app import config
 from app.url_utils import build_invite_link, generate_qr_code_data_url
 from .helpers import describe_session_role, templates
 
@@ -62,6 +67,85 @@ def _serialize_requests(db: Session, items, viewer: Optional[User] = None):
             ).model_dump()
         )
     return serialized
+
+
+def _format_proof_receipts(proof_points: list[dict[str, str]] | None) -> list[dict[str, object]]:
+    receipts: list[dict[str, object]] = []
+    if not proof_points:
+        return receipts
+    for point in proof_points:
+        label = str(point.get("label", "")).strip()
+        detail = str(point.get("detail", "")).strip()
+        reference = str(point.get("reference", "")).strip()
+        href: Optional[str] = None
+        display_ref = reference
+        external = False
+        ref_lower = reference.lower()
+        if ref_lower.startswith("http"):
+            href = reference
+            external = True
+            parsed = urlparse(reference)
+            display_ref = parsed.netloc or reference
+        elif ref_lower.startswith("request#"):
+            digits = "".join(ch for ch in reference if ch.isdigit())
+            if digits:
+                href = f"/requests/{digits}"
+                display_ref = f"Request #{digits}"
+        elif reference.isdigit():
+            href = f"/requests/{reference}"
+            display_ref = f"Request #{reference}"
+        receipts.append(
+            {
+                "label": label,
+                "detail": detail,
+                "reference": reference,
+                "href": href,
+                "display_ref": display_ref,
+                "external": external,
+            }
+        )
+    return receipts
+
+
+def _format_snapshot_links(entries) -> list[dict[str, object]]:  # noqa: ANN001
+    links: list[dict[str, object]] = []
+    if not entries:
+        return links
+    for entry in entries:
+        url = str(getattr(entry, "url", "") or "").strip()
+        if not url:
+            continue
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"}:
+            continue
+        domain = (getattr(entry, "domain", "") or parsed.netloc or url).lower()
+        safe_url = parsed.geturl()
+        links.append(
+            {
+                "domain": domain,
+                "href": safe_url,
+                "count": getattr(entry, "count", 0) or 0,
+            }
+        )
+    return links
+
+
+def _build_request_ctas(request_ids: list[int], user_id: int) -> list[dict[str, object]]:
+    chips: list[dict[str, object]] = []
+    seen: set[int] = set()
+    for request_id in request_ids:
+        if request_id in seen:
+            continue
+        seen.add(request_id)
+        chips.append(
+            {
+                "request_id": request_id,
+                "href": f"/requests/{request_id}?chat_participant={user_id}",
+            }
+        )
+        if len(chips) >= 3:
+            break
+    return chips
 
 @router.get("/")
 def home(
@@ -179,17 +263,31 @@ def request_chat_search(
         topics=topic_filters,
         limit=limit,
     )
+    attr_key = _signal_display_attr_key(help_request)
+    display_names = _load_signal_display_names_for_user_ids(
+        db,
+        {result.user_id for result in matches},
+        attr_key,
+    )
 
     payload = {
         "request_id": help_request.id,
         "query": query,
-        "results": [request_chat_search_service.serialize_result(result) for result in matches],
+        "results": [
+            {
+                **request_chat_search_service.serialize_result(result),
+                "display_name": display_names.get(result.user_id),
+                "comment_anchor": result.anchor,
+            }
+            for result in matches
+        ],
         "meta": {
             "generated_at": index.generated_at,
             "total_entries": index.entry_count,
             "participants": index.participants,
             "limit": limit,
         },
+        "display_names": {str(user_id): name for user_id, name in display_names.items()},
     }
     return JSONResponse(payload)
 
@@ -409,6 +507,34 @@ def _build_request_detail_context(
         )
         for comment, author in comment_rows
     ]
+    settings = config.get_settings()
+    show_comment_insights = settings.comment_insights_indicator_enabled and viewer.is_admin
+    comment_insights_map: dict[int, dict[str, object]] = {}
+    if show_comment_insights:
+        for item in comments:
+            analysis = comment_llm_insights_service.get_analysis_by_comment_id(item["id"])
+            if analysis:
+                page = request_comment_service.get_comment_page(
+                    db,
+                    help_request_id=analysis.help_request_id,
+                    comment_id=analysis.comment_id,
+                )
+                comment_insights_map[item["id"]] = {
+                    "summary": analysis.summary,
+                    "resource_tags": analysis.resource_tags,
+                    "request_tags": analysis.request_tags,
+                    "audience": analysis.audience,
+                    "residency_stage": analysis.residency_stage,
+                    "location": analysis.location,
+                    "location_precision": analysis.location_precision,
+                    "urgency": analysis.urgency,
+                    "sentiment": analysis.sentiment,
+                    "tags": analysis.tags,
+                    "notes": analysis.notes,
+                    "run_id": analysis.run_id,
+                    "recorded_at": analysis.recorded_at,
+                    "page": page,
+                }
     can_moderate = viewer.is_admin
     can_toggle_sync_scope = viewer.is_admin
 
@@ -445,7 +571,19 @@ def _build_request_detail_context(
             participant_ids=participant_filters,
             topics=topic_filters,
         )
-        chat_results = [request_chat_search_service.serialize_result(match) for match in matches]
+        display_names_map = _load_signal_display_names_for_user_ids(
+            db,
+            {match.user_id for match in matches},
+            attr_key,
+        )
+        chat_results = [
+            {
+                **request_chat_search_service.serialize_result(match),
+                "display_name": display_names_map.get(match.user_id)
+                or display_names.get(match.user_id),
+            }
+            for match in matches
+        ]
         chat_meta = {
             "generated_at": index.generated_at,
             "total_entries": index.entry_count,
@@ -471,6 +609,7 @@ def _build_request_detail_context(
         "comment_form_body": comment_form_body,
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
         "request_id": help_request.id,
+        "comment_display_names": display_names,
         "pagination": pagination,
         "chat_search": {
             "query": chat_query,
@@ -481,6 +620,8 @@ def _build_request_detail_context(
             "has_query": bool(chat_query or participant_filters or topic_filters),
         },
         "related_chat_suggestions": related_chats,
+        "comment_insights_enabled": show_comment_insights,
+        "comment_insights_map": comment_insights_map,
     }
 
 
@@ -510,10 +651,16 @@ def _load_signal_display_names(
     comment_rows: list[tuple[RequestComment, User]],
     attr_key: Optional[str],
 ) -> dict[int, str]:
-    if not attr_key:
-        return {}
     user_ids = {author.id for _, author in comment_rows}
-    if not user_ids:
+    return _load_signal_display_names_for_user_ids(db, user_ids, attr_key)
+
+
+def _load_signal_display_names_for_user_ids(
+    db: Session,
+    user_ids: set[int],
+    attr_key: Optional[str],
+) -> dict[int, str]:
+    if not attr_key or not user_ids:
         return {}
     rows = db.exec(
         select(UserAttribute.user_id, UserAttribute.value)
@@ -790,6 +937,24 @@ def profile_view(
                 }
             )
 
+    settings = config.get_settings()
+    highlight = None
+    highlight_receipts: list[dict[str, object]] = []
+    snapshot_links: list[dict[str, object]] = []
+    snapshot_request_ctas: list[dict[str, object]] = []
+    if settings.profile_signal_glaze_enabled:
+        highlight = user_profile_highlight_service.get(db, person.id)
+        if highlight:
+            highlight_receipts = _format_proof_receipts(highlight.proof_points)
+        snapshot = signal_profile_snapshot_service.build_snapshot(
+            db,
+            person.id,
+            group_slug=highlight.source_group if highlight and highlight.source_group else None,
+        )
+        if snapshot:
+            snapshot_links = _format_snapshot_links(snapshot.top_links)
+            snapshot_request_ctas = _build_request_ctas(snapshot.request_ids, person.id)
+
     context = {
         "request": request,
         "viewer": viewer,
@@ -807,8 +972,46 @@ def profile_view(
         "recent_comments": recent_comments,
         "recent_comments_limit": request_comment_service.RECENT_PROFILE_COMMENTS_LIMIT,
         "recent_comments_url": f"/people/{person.username}/comments",
+        "profile_glaze_enabled": settings.profile_signal_glaze_enabled,
+        "profile_highlight": highlight,
+        "profile_highlight_receipts": highlight_receipts,
+        "profile_snapshot_links": snapshot_links,
+        "profile_request_ctas": snapshot_request_ctas,
     }
     return templates.TemplateResponse("profile/show.html", context)
+
+
+@router.post("/api/metrics")
+async def ingest_metric(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    try:
+        payload = await request.json()
+    except Exception:  # pragma: no cover - malformed bodies
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    category = str(payload.get("category", "")).strip().lower()
+    event = str(payload.get("event", "")).strip().lower()
+    if not category or not event:
+        raise HTTPException(status_code=400, detail="category and event required")
+
+    metadata = payload.get("metadata")
+    if not isinstance(metadata, dict):
+        metadata = {}
+    sanitized_metadata = {str(key): str(value) for key, value in metadata.items()}
+    subject_id = payload.get("subject_id")
+    logger.info(
+        "metric_event",
+        extra={
+            "category": category,
+            "event": event,
+            "viewer_id": session_user.user.id,
+            "subject_id": subject_id,
+            "metadata": sanitized_metadata,
+        },
+    )
+    return JSONResponse({"ok": True})
 
 
 @router.get("/people/{username}/comments")
@@ -855,6 +1058,8 @@ def profile_comments(
                 "created_at_iso": created_at_iso,
                 "scope": (comment.sync_scope or "private").title(),
                 "comment_url": f"{group_url}#comment-{comment.id}",
+                "username": person.username,
+                "display_name": person.username,
             }
         )
 
@@ -931,10 +1136,14 @@ def _get_account_avatar(db: Session, user_id: int) -> Optional[str]:
 
 
 from . import admin as admin_routes
+from . import members as members_routes
+from . import menu as menu_routes
 from . import sessions as session_routes
 from . import sync as sync_routes
 
 
 router.include_router(session_routes.router)
 router.include_router(sync_routes.router)
+router.include_router(members_routes.router)
+router.include_router(menu_routes.router)
 router.include_router(admin_routes.router)

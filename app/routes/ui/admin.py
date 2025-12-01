@@ -2,21 +2,20 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import json
 from datetime import datetime
 import csv
 import io
 import os
 import re
-from math import ceil
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
-from sqlalchemy import func
 from sqlmodel import select
 
-from app.dependencies import SessionDep, SessionUser, require_session_user
+from app.dependencies import SessionDep, SessionUser, get_session, require_session_user
 from app.models import HelpRequest, InviteToken, User
 from app import config
 from app.routes.ui.helpers import friendly_time
@@ -34,7 +33,13 @@ from app.realtime import (
     update_job as update_realtime_job,
 )
 from app.routes.ui.helpers import describe_session_role, templates
-from app.services import user_attribute_service
+from app.services import (
+    comment_llm_insights_service,
+    member_directory_service,
+    request_comment_service,
+    user_attribute_service,
+    user_profile_highlight_service,
+)
 from starlette.datastructures import URL
 
 router = APIRouter(tags=["ui"])
@@ -98,23 +103,6 @@ def _get_account_avatar(db: SessionDep, user_id: int) -> Optional[str]:
     )
 
 
-def _normalize_filter(value: Optional[str]) -> Optional[str]:
-    if not value:
-        return None
-    trimmed = value.strip()
-    return trimmed or None
-
-
-def _apply_filters(statement, username_query: Optional[str], contact_query: Optional[str]):
-    if username_query:
-        lowered = username_query.lower()
-        statement = statement.where(func.lower(User.username).like(f"%{lowered}%"))
-    if contact_query:
-        lowered = contact_query.lower()
-        statement = statement.where(func.lower(User.contact_email).like(f"%{lowered}%"))
-    return statement
-
-
 @router.get("/admin")
 def admin_panel(
     request: Request,
@@ -145,6 +133,11 @@ def admin_panel(
             "title": "Dedalus activity",
             "description": "Review prompts, responses, and MCP tool calls for every Dedalus run.",
             "href": "/admin/dedalus/logs",
+        },
+        {
+            "title": "Comment insights",
+            "description": "Browse LLM-generated summaries/tags for request comments.",
+            "href": "/admin/comment-insights",
         },
     ]
 
@@ -474,39 +467,31 @@ def admin_profile_directory(
     viewer = session_user.user
     session = session_user.session
 
-    username_query = _normalize_filter(q)
-    contact_query = _normalize_filter(contact)
-
-    base_statement = select(User)
-    count_statement = select(func.count()).select_from(User)
-    base_statement = _apply_filters(base_statement, username_query, contact_query)
-    count_statement = _apply_filters(count_statement, username_query, contact_query)
-
-    total_count_raw = db.exec(count_statement).one()
-    total_count = total_count_raw[0] if isinstance(total_count_raw, tuple) else total_count_raw
-    total_count = total_count or 0
-
-    total_pages = max(1, ceil(total_count / PAGE_SIZE)) if total_count else 1
-    current_page = min(page, total_pages) if total_pages else 1
-    offset = (current_page - 1) * PAGE_SIZE if total_count else 0
-
-    users = (
-        db.exec(
-            base_statement.order_by(User.created_at.desc()).offset(offset).limit(PAGE_SIZE)
-        ).all()
-        if total_count
-        else []
+    filters = member_directory_service.MemberDirectoryFilters(
+        username=q,
+        contact=contact,
     )
+
+    directory_page = member_directory_service.list_members(
+        db,
+        viewer=viewer,
+        page=page,
+        filters=filters,
+        page_size=PAGE_SIZE,
+    )
+    users = directory_page.profiles
 
     def _page_url(target_page: int) -> str:
         url: URL = request.url.include_query_params(page=target_page)
         return str(url)
 
     pagination = {
-        "has_prev": current_page > 1,
-        "has_next": current_page < total_pages,
-        "prev_url": _page_url(current_page - 1) if current_page > 1 else None,
-        "next_url": _page_url(current_page + 1) if current_page < total_pages else None,
+        "has_prev": directory_page.page > 1,
+        "has_next": directory_page.page < directory_page.total_pages,
+        "prev_url": _page_url(directory_page.page - 1) if directory_page.page > 1 else None,
+        "next_url": _page_url(directory_page.page + 1)
+        if directory_page.page < directory_page.total_pages
+        else None,
     }
 
     context = {
@@ -517,14 +502,14 @@ def admin_profile_directory(
         "session_username": viewer.username,
         "session_avatar_url": _get_account_avatar(db, viewer.id),
         "profiles": users,
-        "profiles_total": total_count,
-        "page": current_page,
-        "total_pages": total_pages,
-        "page_size": PAGE_SIZE,
-        "username_query": username_query or "",
-        "contact_query": contact_query or "",
+        "profiles_total": directory_page.total_count,
+        "page": directory_page.page,
+        "total_pages": directory_page.total_pages,
+        "page_size": directory_page.page_size,
+        "username_query": directory_page.filters.username or "",
+        "contact_query": directory_page.filters.contact or "",
         "pagination": pagination,
-        "filters_active": bool(username_query or contact_query),
+        "filters_active": bool(directory_page.filters.username or directory_page.filters.contact),
         "clear_filters_url": request.url.path,
         "current_url": str(request.url),
     }
@@ -580,6 +565,10 @@ def admin_profile_detail(
         key=user_attribute_service.INVITE_TOKEN_USED_KEY,
     )
 
+    highlight = user_profile_highlight_service.get(db, profile.id)
+    flash_message = request.query_params.get("message")
+    flash_severity = request.query_params.get("severity", "info")
+
     context = {
         "request": request,
         "user": viewer,
@@ -595,8 +584,64 @@ def admin_profile_detail(
         "invited_by_user": invited_by_user,
         "invite_token_used": invite_token_value,
         "now_utc": datetime.utcnow(),
+        "highlight": highlight,
+        "flash_message": flash_message,
+        "flash_severity": flash_severity,
     }
     return templates.TemplateResponse("admin/profile_detail.html", context)
+
+
+@router.post("/admin/profiles/{user_id}/highlight")
+def admin_profile_highlight_action(
+    request: Request,
+    user_id: int,
+    db: SessionDep,
+    action: str = Form(...),
+    override_text: str = Form(""),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    message = ""
+    severity = "success"
+    text_value = override_text.strip()
+
+    if action == "override":
+        if not text_value:
+            message = "Provide text for the manual override."
+            severity = "error"
+        else:
+            user_profile_highlight_service.set_manual_override(
+                db,
+                user_id=user_id,
+                text=text_value,
+            )
+            db.commit()
+            message = "Saved manual override; echos immediately in profile view."
+    elif action == "clear_override":
+        record = user_profile_highlight_service.clear_manual_override(db, user_id=user_id)
+        if record is None:
+            severity = "error"
+            message = "No highlight to clear."
+        else:
+            db.commit()
+            message = "Manual override cleared; run glaze to refresh copy."
+    elif action == "mark_stale":
+        user_profile_highlight_service.mark_stale(
+            db,
+            user_id=user_id,
+            reason="admin-request",
+        )
+        db.commit()
+        message = "Marked highlight stale; queue a glaze run to regenerate."
+    else:
+        severity = "error"
+        message = "Unknown action."
+
+    target = URL(request.url_for("admin_profile_detail", user_id=user_id)).include_query_params(
+        message=message,
+        severity=severity,
+    )
+    return RedirectResponse(str(target), status_code=303)
 
 
 @router.get("/admin/dedalus")
@@ -731,3 +776,169 @@ async def admin_dedalus_settings_submit(
     }
     status_code = 500 if status == "error" else 200
     return templates.TemplateResponse("admin/dedalus_settings.html", context, status_code=status_code)
+@router.get("/admin/comment-insights")
+def admin_comment_insights(
+    request: Request,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    runs = _format_runs(comment_llm_insights_service.list_recent_runs(limit=20))
+    context = {
+        "request": request,
+        "runs": runs,
+        "snapshot_label": None,
+        "provider": None,
+    }
+    return templates.TemplateResponse("admin/comment_insights.html", context)
+
+
+@router.get("/admin/comment-insights/runs")
+def admin_comment_insights_runs(
+    request: Request,
+    db: SessionDep,
+    snapshot_label: str | None = Query(default=None),
+    provider: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=200),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    runs = _format_runs(
+        comment_llm_insights_service.list_recent_runs(
+            limit=limit, snapshot_label=snapshot_label, provider=provider
+        )
+    )
+    context = {
+        "request": request,
+        "runs": runs,
+        "snapshot_label": snapshot_label,
+        "provider": provider,
+    }
+    return templates.TemplateResponse("admin/partials/comment_insights_runs.html", context)
+
+
+@router.get("/admin/comment-insights/runs/{run_id}/analyses")
+def admin_comment_insights_run_detail(
+    request: Request,
+    run_id: str,
+    db: SessionDep,
+    limit: int = Query(default=200, ge=1, le=500),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    raw_analyses = comment_llm_insights_service.list_analyses_for_run(run_id, limit=limit)
+    analyses = []
+    for item in raw_analyses:
+        page = request_comment_service.get_comment_page(
+            db,
+            help_request_id=item.help_request_id,
+            comment_id=item.comment_id,
+        )
+        payload = item.to_dict()
+        payload["page"] = page
+        analyses.append(payload)
+    context = {
+        "request": request,
+        "analyses": analyses,
+        "run_id": run_id,
+    }
+    return templates.TemplateResponse("admin/partials/comment_insights_run_detail.html", context)
+
+
+@router.get("/admin/comment-insights/runs/{run_id}/export")
+def admin_comment_insights_run_export(
+    run_id: str,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    analyses = comment_llm_insights_service.list_analyses_for_run(run_id)
+    if not analyses:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
+    def iter_rows():
+        import csv
+        from io import StringIO
+        header = [
+            "run_id",
+            "snapshot_label",
+            "provider",
+            "model",
+            "comment_id",
+            "help_request_id",
+            "summary",
+            "resource_tags",
+            "request_tags",
+            "audience",
+            "residency_stage",
+            "location",
+            "location_precision",
+            "urgency",
+            "sentiment",
+            "tags",
+            "notes",
+            "recorded_at",
+        ]
+        buffer = StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(header)
+        yield buffer.getvalue()
+        buffer.seek(0)
+        buffer.truncate(0)
+        for item in analyses:
+            writer.writerow(
+                [
+                    item.run_id,
+                    item.snapshot_label,
+                    item.provider,
+                    item.model,
+                    item.comment_id,
+                    item.help_request_id,
+                    item.summary,
+                    json.dumps(item.resource_tags),
+                    json.dumps(item.request_tags),
+                    item.audience,
+                    item.residency_stage,
+                    item.location,
+                    item.location_precision,
+                    item.urgency,
+                    item.sentiment,
+                    json.dumps(item.tags),
+                    item.notes,
+                    item.recorded_at,
+                ]
+            )
+            yield buffer.getvalue()
+            buffer.seek(0)
+            buffer.truncate(0)
+
+    filename = f"comment-insights-{run_id}.csv"
+    return StreamingResponse(
+        iter_rows(),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
+    )
+
+
+def _format_runs(runs):
+    formatted = []
+    for run in runs:
+        started_at = run.started_at
+        friendly = started_at
+        try:
+            friendly = friendly_time(datetime.fromisoformat(started_at))
+        except Exception:  # pragma: no cover - fallback for legacy strings
+            pass
+        formatted.append(
+            {
+                "run_id": run.run_id,
+                "snapshot_label": run.snapshot_label,
+                "provider": run.provider,
+                "model": run.model,
+                "started_at": started_at,
+                "started_at_friendly": friendly,
+                "completed_batches": run.completed_batches,
+                "total_batches": run.total_batches,
+            }
+        )
+    return formatted

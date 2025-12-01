@@ -52,6 +52,122 @@
     </dl>
   </article>
 
+  {% if profile_glaze_enabled %}
+    <article
+      class="card stack profile-highlight-card"
+      data-profile-glaze-card
+      data-person-id="{{ person.id }}"
+      data-highlight-manual="{{ 'true' if profile_highlight and profile_highlight.manual_override else 'false' }}"
+    >
+      <header class="stack">
+        <h2>Community perception</h2>
+        {% if profile_highlight %}
+          <p class="muted small-text">
+            Updated {{ profile_highlight.generated_at | friendly_time if profile_highlight.generated_at else 'recently' }}
+            {% if profile_highlight.source_group %}
+              · Signal group: {{ profile_highlight.source_group }}
+            {% endif %}
+          </p>
+        {% else %}
+          <p class="muted small-text">Glazed bios appear here once Signal highlights are available.</p>
+        {% endif %}
+      </header>
+
+      {% if profile_highlight %}
+        {% if profile_highlight.is_stale %}
+          <div class="alert alert--warning">
+            Bio needs a refresh · {{ profile_highlight.stale_reason or 'Pending new glaze run' }}
+          </div>
+        {% endif %}
+        {% if profile_highlight.manual_override %}
+          <div class="alert alert--info">
+            Manual note provided by admins.
+          </div>
+        {% endif %}
+        <div class="stack">
+          {% for paragraph in profile_highlight.bio_paragraphs %}
+            <p>{{ paragraph }}</p>
+          {% endfor %}
+          {% if not profile_highlight.bio_paragraphs %}
+            <p class="muted">Highlight not available yet.</p>
+          {% endif %}
+        </div>
+        {% if profile_highlight_receipts %}
+          <ul class="profile-proof-points">
+            {% for point in profile_highlight_receipts %}
+              <li>
+                <strong>{{ point.label }}</strong>: {{ point.detail }}
+                {% if point.href %}
+                  <a
+                    href="{{ point.href }}"
+                    class="profile-proof-link"
+                    data-glaze-event="proof_click"
+                    data-glaze-ref="{{ point.reference }}"
+                    {% if point.external %}target="_blank" rel="noopener noreferrer"{% endif %}
+                  >
+                    {{ point.display_ref }}
+                  </a>
+                {% elif point.display_ref %}
+                  <span class="muted">{{ point.display_ref }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        {% if profile_snapshot_links %}
+          <div class="profile-highlight-links">
+            <h3 class="small-text">Receipts</h3>
+            <div class="profile-highlight-links__chips">
+              {% for link in profile_snapshot_links %}
+                <a
+                  href="{{ link.href }}"
+                  class="meta-chip meta-chip--action meta-chip--small"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-glaze-event="snapshot_link"
+                  data-glaze-ref="{{ link.href }}"
+                >
+                  <span class="meta-chip__label">{{ link.domain }}</span>
+                  <span class="meta-chip__value">×{{ link.count }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        {% if profile_request_ctas %}
+          <div class="profile-highlight-requests">
+            <h3 class="small-text">Dive deeper</h3>
+            <div class="profile-highlight-requests__chips">
+              {% for item in profile_request_ctas %}
+                <a
+                  href="{{ item.href }}"
+                  class="meta-chip meta-chip--action meta-chip--small"
+                  data-glaze-event="request_cta"
+                  data-glaze-ref="{{ item.request_id }}"
+                >
+                  <span class="meta-chip__label">Request</span>
+                  <span class="meta-chip__value">#{{ item.request_id }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+        {% if profile_highlight.quotes %}
+          <div class="profile-quotes">
+            {% for quote in profile_highlight.quotes %}
+              <blockquote>“{{ quote }}”</blockquote>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if profile_highlight.confidence_note %}
+          <p class="muted small-text">{{ profile_highlight.confidence_note }}</p>
+        {% endif %}
+      {% else %}
+        <p class="muted">Glaze job hasn’t run for this member yet.</p>
+      {% endif %}
+    </article>
+  {% endif %}
+
   {% if show_recent_comments %}
     <article class="card stack profile-comments-card">
       <div class="profile-comments-card__header">
@@ -90,4 +206,39 @@
     <a class="button button--ghost" href="/">Back to requests</a>
   </div>
 </section>
+{% if profile_glaze_enabled and profile_highlight %}
+  <script>
+    (function () {
+      var card = document.querySelector('[data-profile-glaze-card]');
+      if (!card) return;
+      var personId = Number(card.dataset.personId || 0);
+      if (!personId) return;
+      var isManual = card.dataset.highlightManual === 'true';
+      function send(eventName, metadata) {
+        try {
+          fetch('/api/metrics', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+              category: 'profile_glaze',
+              event: eventName,
+              subject_id: personId,
+              metadata: Object.assign({manual_override: isManual}, metadata || {}),
+            }),
+          });
+        } catch (err) {
+          // no-op
+        }
+      }
+      send('view');
+      document.querySelectorAll('[data-glaze-event]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var eventName = el.getAttribute('data-glaze-event');
+          var ref = el.getAttribute('data-glaze-ref') || '';
+          send(eventName || 'interaction', {reference: ref});
+        });
+      });
+    })();
+  </script>
+{% endif %}
 {% endblock %}

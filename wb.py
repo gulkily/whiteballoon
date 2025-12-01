@@ -57,6 +57,9 @@ DEDALUS_LOG_MAINT = SCRIPT_DIR / "tools" / "dedalus_log_maintenance.py"
 SIGNAL_IMPORT_MODULE = "app.tools.signal_import"
 CHAT_INDEX_MODULE = "app.tools.request_chat_index"
 CHAT_EMBED_MODULE = "app.tools.request_chat_embeddings"
+COMMENT_LLM_MODULE = "app.tools.comment_llm_processing"
+SIGNAL_PROFILE_MODULE = "app.tools.signal_profile_snapshot_cli"
+PROFILE_GLAZE_MODULE = "app.tools.profile_glaze_cli"
 
 
 def python_in_venv() -> Path:
@@ -304,6 +307,45 @@ def cmd_import_signal_group(args: list[str]) -> int:
     return _run_process(cmd)
 
 
+def cmd_signal_profile(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        prog="wb signal-profile",
+        description="Manage Signal profile snapshot utilities",
+    )
+    parser.add_argument(
+        "subcommand",
+        nargs="?",
+        default="snapshot",
+        help="Subcommand to run (default: snapshot)",
+    )
+    if not args or args[0] in {"-h", "--help", "help"}:
+        parser.print_help()
+        return 0
+
+    ns = parser.parse_args(args[:1])
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+
+    cmd = [str(vpy), "-m", SIGNAL_PROFILE_MODULE, ns.subcommand, *args[1:]]
+    info("Launching Signal profile utility")
+    return _run_process(cmd)
+
+
+def cmd_profile_glaze(args: list[str]) -> int:
+    vpy = python_in_venv()
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+    cmd = [str(vpy), "-m", PROFILE_GLAZE_MODULE, *args]
+    info("Running profile glazing pipeline")
+    return _run_process(cmd)
+
+
 def cmd_chat_index(args: list[str]) -> int:
     parser = argparse.ArgumentParser(
         prog="wb chat-index",
@@ -345,6 +387,26 @@ def cmd_chat_embed(args: list[str]) -> int:
 
     cmd = [str(vpy), "-m", CHAT_EMBED_MODULE, *args]
     info("Generating semantic chat embeddings")
+    return _run_process(cmd)
+
+
+def cmd_comment_llm(args: list[str]) -> int:
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+
+    passthrough = list(args)
+    if not passthrough:
+        passthrough = ["--help"]
+    elif passthrough[0] in {"-h", "--help", "help"}:
+        passthrough = ["--help", *passthrough[1:]]
+
+    cmd = [str(vpy), "-m", COMMENT_LLM_MODULE, *passthrough]
+    info("Running comment LLM batch planner/executor")
     return _run_process(cmd)
 
 
@@ -543,6 +605,8 @@ def print_help() -> None:
     print("  import-signal-group   Import a Signal Desktop group export (local seed)")
     print("  chat-index [opts]     Reindex request chats + optional LLM tagging")
     print("  chat-embed [opts]     Build semantic embeddings for request chats")
+    print("  comment-llm [opts]    Plan or run batched comment processing via LLM")
+    print("  profile-glaze [opts]  Analyze comments + glaze Signal bios in one shot")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
@@ -572,10 +636,13 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("import-signal-group")
     subparsers.add_parser("chat-index")
     subparsers.add_parser("chat-embed")
+    subparsers.add_parser("comment-llm")
+    subparsers.add_parser("profile-glaze")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
     subparsers.add_parser("hub")
     subparsers.add_parser("update-env")
+    subparsers.add_parser("signal-profile")
 
     # Parse only the command; leave the rest as passthrough
     known, passthrough = (argv[:1], argv[1:]) if argv else ([], [])
@@ -603,11 +670,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.command == "import-signal-group":
         return cmd_import_signal_group(passthrough)
+    if ns.command == "signal-profile":
+        return cmd_signal_profile(passthrough)
 
     if ns.command == "chat-index":
         return cmd_chat_index(passthrough)
     if ns.command == "chat-embed":
         return cmd_chat_embed(passthrough)
+    if ns.command == "comment-llm":
+        return cmd_comment_llm(passthrough)
+    if ns.command == "profile-glaze":
+        return cmd_profile_glaze(passthrough)
 
     # Known commands path
     if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "sync", "skins"}:

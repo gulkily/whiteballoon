@@ -1,0 +1,32 @@
+{% if analyses %}
+<div class="d-flex justify-content-end mb-2">
+  <a class="btn btn-secondary" href="/admin/comment-insights/runs/{{ run_id }}/export" target="_blank">Export CSV</a>
+</div>
+<table class="table table-sm">
+  <thead>
+    <tr>
+      <th>Comment</th>
+      <th>Summary</th>
+      <th>Tags</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in analyses %}
+    <tr>
+      <td>{{ item.comment_id }}</td>
+      <td>{{ item.summary }}</td>
+      <td>
+        {% for tag in item.resource_tags %}<span class="badge badge-info">{{ tag }}</span>{% endfor %}
+        {% for tag in item.request_tags %}<span class="badge badge-warning">{{ tag }}</span>{% endfor %}
+      </td>
+      <td>
+        <a class="btn btn-link" href="/requests/{{ item.help_request_id }}?page={{ item.page }}#comment-{{ item.comment_id }}" target="_blank">View comment</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p>No analyses found for this run.</p>
+{% endif %}
