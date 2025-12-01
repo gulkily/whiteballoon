@@ -28,3 +28,8 @@ extend comment LLM rubric to capture signals about the author
 	be positive in the profiles only
 
 user directory page
+
+make sure auth required page is not just a json message
+	members page
+	check other pages
+	make some kind of systematic update
