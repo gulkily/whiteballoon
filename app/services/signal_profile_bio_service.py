@@ -16,6 +16,8 @@ BASE_TONE_RULES = [
     "Never fabricate facts; cite only provided data.",
     "Highlight links, tags, and reactions as receipts.",
     "Use energetic yet professional language (e.g., 'community catalyst', 'connector').",
+    "Bring playful personality—witty, lightly teasing jabs that stay warm and supportive.",
+    "Where it fits, add a clever aside or punchline that nods to their receipts.",
 ]
 
 
