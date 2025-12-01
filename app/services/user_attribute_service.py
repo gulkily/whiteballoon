@@ -27,6 +27,38 @@ def get_attributes(session: Session, *, user_id: int) -> dict[str, Optional[str]
     return {record.key: record.value for record in records}
 
 
+def load_profile_photo_urls(session: Session, *, user_ids: list[int]) -> dict[int, str]:
+    if not user_ids:
+        return {}
+    rows = session.exec(
+        select(UserAttribute)
+        .where(UserAttribute.user_id.in_(user_ids))
+        .where(UserAttribute.key == PROFILE_PHOTO_URL_KEY)
+    ).all()
+    return {row.user_id: row.value for row in rows if row and row.value}
+
+
+def list_invitee_user_ids(session: Session, *, inviter_user_id: int) -> list[int]:
+    """Return user IDs that were invited by the given user."""
+
+    rows = session.exec(
+        select(UserAttribute.user_id)
+        .where(UserAttribute.key == INVITED_BY_USER_ID_KEY)
+        .where(UserAttribute.value == str(inviter_user_id))
+    ).all()
+
+    invitee_ids: list[int] = []
+    for row in rows:
+        value = row[0] if isinstance(row, tuple) else row
+        if value is None:
+            continue
+        try:
+            invitee_ids.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    return invitee_ids
+
+
 def set_attribute(
     session: Session,
     *,

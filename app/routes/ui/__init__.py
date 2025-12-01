@@ -1136,10 +1136,14 @@ def _get_account_avatar(db: Session, user_id: int) -> Optional[str]:
 
 
 from . import admin as admin_routes
+from . import members as members_routes
+from . import menu as menu_routes
 from . import sessions as session_routes
 from . import sync as sync_routes
 
 
 router.include_router(session_routes.router)
 router.include_router(sync_routes.router)
+router.include_router(members_routes.router)
+router.include_router(menu_routes.router)
 router.include_router(admin_routes.router)

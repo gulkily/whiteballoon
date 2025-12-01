@@ -8,13 +8,11 @@ import csv
 import io
 import os
 import re
-from math import ceil
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import PlainTextResponse, RedirectResponse
-from sqlalchemy import func
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, get_session, require_session_user
@@ -37,6 +35,7 @@ from app.realtime import (
 from app.routes.ui.helpers import describe_session_role, templates
 from app.services import (
     comment_llm_insights_service,
+    member_directory_service,
     request_comment_service,
     user_attribute_service,
     user_profile_highlight_service,
@@ -102,23 +101,6 @@ def _get_account_avatar(db: SessionDep, user_id: int) -> Optional[str]:
         user_id=user_id,
         key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
     )
-
-
-def _normalize_filter(value: Optional[str]) -> Optional[str]:
-    if not value:
-        return None
-    trimmed = value.strip()
-    return trimmed or None
-
-
-def _apply_filters(statement, username_query: Optional[str], contact_query: Optional[str]):
-    if username_query:
-        lowered = username_query.lower()
-        statement = statement.where(func.lower(User.username).like(f"%{lowered}%"))
-    if contact_query:
-        lowered = contact_query.lower()
-        statement = statement.where(func.lower(User.contact_email).like(f"%{lowered}%"))
-    return statement
 
 
 @router.get("/admin")
@@ -485,39 +467,31 @@ def admin_profile_directory(
     viewer = session_user.user
     session = session_user.session
 
-    username_query = _normalize_filter(q)
-    contact_query = _normalize_filter(contact)
-
-    base_statement = select(User)
-    count_statement = select(func.count()).select_from(User)
-    base_statement = _apply_filters(base_statement, username_query, contact_query)
-    count_statement = _apply_filters(count_statement, username_query, contact_query)
-
-    total_count_raw = db.exec(count_statement).one()
-    total_count = total_count_raw[0] if isinstance(total_count_raw, tuple) else total_count_raw
-    total_count = total_count or 0
-
-    total_pages = max(1, ceil(total_count / PAGE_SIZE)) if total_count else 1
-    current_page = min(page, total_pages) if total_pages else 1
-    offset = (current_page - 1) * PAGE_SIZE if total_count else 0
-
-    users = (
-        db.exec(
-            base_statement.order_by(User.created_at.desc()).offset(offset).limit(PAGE_SIZE)
-        ).all()
-        if total_count
-        else []
+    filters = member_directory_service.MemberDirectoryFilters(
+        username=q,
+        contact=contact,
     )
+
+    directory_page = member_directory_service.list_members(
+        db,
+        viewer=viewer,
+        page=page,
+        filters=filters,
+        page_size=PAGE_SIZE,
+    )
+    users = directory_page.profiles
 
     def _page_url(target_page: int) -> str:
         url: URL = request.url.include_query_params(page=target_page)
         return str(url)
 
     pagination = {
-        "has_prev": current_page > 1,
-        "has_next": current_page < total_pages,
-        "prev_url": _page_url(current_page - 1) if current_page > 1 else None,
-        "next_url": _page_url(current_page + 1) if current_page < total_pages else None,
+        "has_prev": directory_page.page > 1,
+        "has_next": directory_page.page < directory_page.total_pages,
+        "prev_url": _page_url(directory_page.page - 1) if directory_page.page > 1 else None,
+        "next_url": _page_url(directory_page.page + 1)
+        if directory_page.page < directory_page.total_pages
+        else None,
     }
 
     context = {
@@ -528,14 +502,14 @@ def admin_profile_directory(
         "session_username": viewer.username,
         "session_avatar_url": _get_account_avatar(db, viewer.id),
         "profiles": users,
-        "profiles_total": total_count,
-        "page": current_page,
-        "total_pages": total_pages,
-        "page_size": PAGE_SIZE,
-        "username_query": username_query or "",
-        "contact_query": contact_query or "",
+        "profiles_total": directory_page.total_count,
+        "page": directory_page.page,
+        "total_pages": directory_page.total_pages,
+        "page_size": directory_page.page_size,
+        "username_query": directory_page.filters.username or "",
+        "contact_query": directory_page.filters.contact or "",
         "pagination": pagination,
-        "filters_active": bool(username_query or contact_query),
+        "filters_active": bool(directory_page.filters.username or directory_page.filters.contact),
         "clear_filters_url": request.url.path,
         "current_url": str(request.url),
     }

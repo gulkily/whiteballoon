@@ -15,6 +15,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Session management via secure cookies backed by the database
 - Help-request feed with progressive enhancement for creating and completing requests
 - Admin-only profile directory ( `/admin/profiles` ) with per-account drill-downs to review contact info, sharing scope, requests, and invite history
+- Members directory (`/members`) for fully authenticated members to browse public profiles plus their invitees with filters and scope-aware contact visibility
 - Admin control panel (`/admin`) that centralizes links to the directory, sync dashboard, and future operator tools
 - Per-request detail pages with shareable URLs and consistent permissions
 - Comment threads on request detail pages with progressive enhancement (vanilla JS) for instant posting

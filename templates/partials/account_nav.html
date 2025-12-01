@@ -4,6 +4,7 @@
 {% set show_admin = user.is_admin %}
 {% set show_half_auth = session and (not session.is_fully_authenticated) %}
 <div class="account-nav">
+  <a class="button button--ghost" href="/menu">Menu</a>
   {% if session_role %}
     {% if show_admin %}
       <a class="account-status__tag account-status__tag--role account-status__tag--link" href="/admin" data-session-role>

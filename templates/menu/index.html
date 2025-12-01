@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Menu · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="site-menu">
+  <header class="stack">
+    <p class="muted small-text">Quick access</p>
+    <h1>All destinations</h1>
+    <p class="muted">Jump anywhere in WhiteBalloon without crowding the main navigation.</p>
+  </header>
+
+  {% for section in menu_sections %}
+    <div class="card stack menu-section">
+      <header class="stack">
+        <h2>{{ section.title }}</h2>
+        <p class="muted">{{ section.description }}</p>
+      </header>
+      <div class="menu-grid">
+        {% for link in section.links %}
+          {% set is_disabled = link.disabled %}
+          {% set classes = 'menu-card' ~ (' menu-card--disabled' if is_disabled else '') %}
+          {% if is_disabled %}
+            <article class="{{ classes }}" aria-disabled="true">
+              <div class="menu-card__body">
+                <h3>{{ link.title }}</h3>
+                <p class="muted">{{ link.description }}</p>
+              </div>
+              <div class="menu-card__meta">
+                {% if link.requires_full %}
+                  <span class="meta-chip meta-chip--ghost">Full session</span>
+                {% endif %}
+                {% if link.admin_only %}
+                  <span class="meta-chip meta-chip--ghost">Admin</span>
+                {% endif %}
+              </div>
+              {% if link.disabled_hint %}
+                <p class="menu-card__hint muted small-text">{{ link.disabled_hint }}</p>
+              {% endif %}
+            </article>
+          {% else %}
+            <a class="{{ classes }}" href="{{ link.href }}">
+              <div class="menu-card__body">
+                <h3>{{ link.title }}</h3>
+                <p class="muted">{{ link.description }}</p>
+              </div>
+              <div class="menu-card__meta">
+                {% if link.requires_full %}
+                  <span class="meta-chip meta-chip--ghost">Full session</span>
+                {% endif %}
+                {% if link.admin_only %}
+                  <span class="meta-chip meta-chip--ghost">Admin</span>
+                {% endif %}
+              </div>
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+</section>
+{% endblock %}
