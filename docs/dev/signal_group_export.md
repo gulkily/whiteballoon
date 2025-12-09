@@ -5,11 +5,25 @@ Workflow for exporting a single Signal Desktop group chat on Windows (with WSL) 
 ## Prerequisites
 - Windows Signal Desktop already linked to the account that participates in the target group (membership required; no admin role needed).
 - WSL distro (Ubuntu) with this repo under `/home/<user>/whiteballoon`.
-- Python environment (either Windows or WSL) with `pip` available to install [`signal-export`](https://pypi.org/project/signal-export/).
+- Recommended: Python virtual environment (venv) in WSL or Windows to isolate dependencies.
+- `pip` available to install [`signal-export`](https://pypi.org/project/signal-export/).
 - Full backup of the Signal Desktop data directory before touching it (`%APPDATA%/Signal` on Windows). Copy it somewhere safe, e.g., `C:\Users\<user>\Documents\signal_backup_before_export`.
 
+## Set up a Python virtual environment (recommended)
+1. From your desired project directory (e.g., `/home/<user>/whiteballoon` in WSL), create and activate a virtual environment:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+   If on Windows (PowerShell):
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate
+   ```
+2. Once activated, you can safely install dependencies without affecting global Python packages.
+
 ## Install `signal-export`
-1. Open a PowerShell prompt or WSL shell (either works; instructions assume WSL):
+1. With your virtual environment activated, install `signal-export`:
    ```bash
    pip install --upgrade signal-export
    ```
