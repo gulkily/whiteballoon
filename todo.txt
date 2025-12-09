@@ -33,3 +33,5 @@ make sure auth required page is not just a json message
 	members page
 	check other pages
 	make some kind of systematic update
+
+when indexing chats, if a message looks like a request, spawn a new request for it
