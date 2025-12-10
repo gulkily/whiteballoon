@@ -45,6 +45,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="cli",
         help="Arbitrary label recorded in logs indicating where the promotion originated",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Allow multiple requests to be promoted from the same comment",
+    )
     return parser
 
 
@@ -66,6 +71,7 @@ def main(argv: list[str] | None = None) -> int:
             contact_email=args.contact_email,
             status_value=args.status,
             source=args.source,
+            allow_duplicate=args.force,
         )
 
         payload = {

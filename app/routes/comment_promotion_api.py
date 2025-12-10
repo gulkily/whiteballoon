@@ -14,6 +14,7 @@ class CommentPromotionPayload(BaseModel):
     description: str | None = None
     contact_email: str | None = None
     status: str | None = None
+    force: bool = False
 
 
 @router.post("/{comment_id}/promote", response_model=RequestResponse, status_code=status.HTTP_201_CREATED)
@@ -34,6 +35,7 @@ def promote_comment(
         contact_email=payload.contact_email,
         status_value=payload.status,
         source="ui",
+        allow_duplicate=payload.force,
     )
 
     return RequestResponse.from_model(

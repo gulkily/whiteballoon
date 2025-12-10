@@ -46,6 +46,7 @@ TOOL_INCLUDE_PROCESSED = False
 PROMOTE_DEFAULT_DESCRIPTION: str | None = None
 PROMOTE_DEFAULT_CONTACT: str | None = None
 PROMOTE_DEFAULT_STATUS: str = "open"
+PROMOTE_DEFAULT_FORCE: bool = False
 
 
 def log(message: str) -> None:
@@ -106,6 +107,7 @@ def promote_comment_to_request(
     description: Optional[str] = None,
     status: Optional[str] = None,
     contact_email: Optional[str] = None,
+    force: Optional[bool] = None,
 ) -> str:
     args = [
         "promote-comment",
@@ -117,12 +119,15 @@ def promote_comment_to_request(
     summary = description or PROMOTE_DEFAULT_DESCRIPTION
     contact = contact_email or PROMOTE_DEFAULT_CONTACT
     status_value = status or PROMOTE_DEFAULT_STATUS
+    effective_force = PROMOTE_DEFAULT_FORCE if force is None else force
     if summary:
         args.extend(["--description", summary])
     if contact:
         args.extend(["--contact-email", contact])
     if status_value:
         args.extend(["--status", status_value])
+    if effective_force:
+        args.append("--force")
     args.extend(["--source", "mcp"])
     return _run_wb_command(args)
 
@@ -190,6 +195,11 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help="Optional contact email suggestion for the promote tool",
     )
+    parser.add_argument(
+        "--promote-force",
+        action="store_true",
+        help="Allow the agent to bypass duplicate checks when promoting",
+    )
     return parser.parse_args()
 
 
@@ -212,10 +222,11 @@ async def run(args: argparse.Namespace) -> int:
         print("--promote-actor is required when --promote-comment-id is provided", file=sys.stderr)
         return 1
 
-    global PROMOTE_DEFAULT_DESCRIPTION, PROMOTE_DEFAULT_CONTACT, PROMOTE_DEFAULT_STATUS
+    global PROMOTE_DEFAULT_DESCRIPTION, PROMOTE_DEFAULT_CONTACT, PROMOTE_DEFAULT_STATUS, PROMOTE_DEFAULT_FORCE
     PROMOTE_DEFAULT_DESCRIPTION = args.promote_description
     PROMOTE_DEFAULT_CONTACT = args.promote_contact_email
     PROMOTE_DEFAULT_STATUS = args.promote_status or "open"
+    PROMOTE_DEFAULT_FORCE = args.promote_force
 
     instructions = args.prompt or _build_prompt(
         TOOL_DEFAULT_LIMIT,

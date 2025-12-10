@@ -35,6 +35,7 @@ from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
     auth_service,
     comment_llm_insights_service,
+    comment_request_promotion_service,
     invite_graph_service,
     invite_map_cache_service,
     request_chat_search_service,
@@ -507,6 +508,9 @@ def _build_request_detail_context(
         )
         for comment, author in comment_rows
     ]
+    comment_promotions = comment_request_promotion_service.get_promotions_for_comment_ids(
+        db, [item["id"] for item in comments]
+    )
     settings = config.get_settings()
     show_comment_insights = settings.comment_insights_indicator_enabled and viewer.is_admin
     comment_insights_map: dict[int, dict[str, object]] = {}
@@ -611,6 +615,7 @@ def _build_request_detail_context(
         "comment_max_length": request_comment_service.MAX_COMMENT_LENGTH,
         "request_id": help_request.id,
         "comment_display_names": display_names,
+        "comment_promotions": comment_promotions,
         "pagination": pagination,
         "chat_search": {
             "query": chat_query,

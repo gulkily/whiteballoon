@@ -63,6 +63,15 @@ class RequestComment(SQLModel, table=True):
     sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
 
+class CommentPromotion(SQLModel, table=True):
+    __tablename__ = "comment_promotions"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    comment_id: int = Field(foreign_key="request_comments.id", nullable=False, index=True)
+    request_id: int = Field(foreign_key="help_requests.id", nullable=False, index=True)
+    created_by_user_id: int = Field(foreign_key="users.id", nullable=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
 
 def _generate_invite_token() -> str:
     return secrets.token_hex(3)

@@ -5,9 +5,9 @@ import logging
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from app.models import HelpRequest, RequestComment, User
+from app.models import CommentPromotion, HelpRequest, RequestComment, User
 from app.modules.requests import services as request_services
 
 logger = logging.getLogger(__name__)
@@ -18,6 +18,23 @@ class CommentPromotionResult:
     help_request: HelpRequest
     source_comment: RequestComment
     comment_author: User
+    promotion: CommentPromotion
+
+
+def get_promotions_for_comment_ids(
+    session: Session, comment_ids: list[int]
+) -> dict[int, list[CommentPromotion]]:
+    if not comment_ids:
+        return {}
+    stmt = (
+        select(CommentPromotion)
+        .where(CommentPromotion.comment_id.in_(comment_ids))
+        .order_by(CommentPromotion.created_at.asc())
+    )
+    mapping: dict[int, list[CommentPromotion]] = {}
+    for promotion in session.exec(stmt).all():
+        mapping.setdefault(promotion.comment_id, []).append(promotion)
+    return mapping
 
 
 def promote_comment_to_request(
@@ -29,6 +46,7 @@ def promote_comment_to_request(
     contact_email: Optional[str] = None,
     status_value: Optional[str] = None,
     source: str = "ui",
+    allow_duplicate: bool = False,
 ) -> CommentPromotionResult:
     """Create a HelpRequest derived from a comment."""
     comment = session.get(RequestComment, comment_id)
@@ -43,6 +61,18 @@ def promote_comment_to_request(
     if not summary:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Description required")
 
+    existing_promotion = session.exec(
+        select(CommentPromotion)
+        .where(CommentPromotion.comment_id == comment.id)
+        .order_by(CommentPromotion.created_at.desc())
+    ).first()
+    if existing_promotion and not allow_duplicate:
+        detail = {
+            "message": "Comment already promoted",
+            "promoted_request_id": existing_promotion.request_id,
+        }
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=detail)
+
     help_request = request_services.create_request(
         session,
         user=comment_author,
@@ -50,6 +80,15 @@ def promote_comment_to_request(
         contact_email=contact_email or comment_author.contact_email,
         status_value=status_value or "open",
     )
+
+    promotion = CommentPromotion(
+        comment_id=comment.id,
+        request_id=help_request.id,
+        created_by_user_id=actor.id,
+    )
+    session.add(promotion)
+    session.commit()
+    session.refresh(promotion)
 
     logger.info(
         "User %s promoted comment %s from request %s into new request %s (source=%s)",
@@ -64,4 +103,5 @@ def promote_comment_to_request(
         help_request=help_request,
         source_comment=comment,
         comment_author=comment_author,
+        promotion=promotion,
     )
