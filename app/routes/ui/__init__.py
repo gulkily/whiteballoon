@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import Counter
 from pathlib import Path
 from typing import Annotated, Optional
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 from uuid import uuid4
 
 from fastapi import (
@@ -55,6 +56,90 @@ router = APIRouter(tags=["ui"])
 logger = logging.getLogger(__name__)
 
 CHAT_SEARCH_MIN_COMMENTS = 5
+
+FILTER_TOPICS = [
+    {"slug": "groceries", "label": "Groceries", "keywords": ["grocery", "groceries", "food", "meal", "produce"]},
+    {"slug": "rides", "label": "Transportation", "keywords": ["ride", "carpool", "transport", "drive", "pickup"]},
+    {"slug": "housing", "label": "Housing", "keywords": ["room", "housing", "shelter", "rent"]},
+    {"slug": "health", "label": "Health", "keywords": ["medical", "health", "doctor", "medicine"]},
+    {"slug": "childcare", "label": "Childcare", "keywords": ["child", "kid", "babysit", "school"]},
+]
+
+URGENCY_LEVELS = [
+    {"slug": "urgent", "label": "Urgent", "keywords": ["urgent", "asap", "immediately", "tonight", "today"]},
+    {"slug": "soon", "label": "Soon", "keywords": ["tomorrow", "this week", "next few", "soon"]},
+    {"slug": "flexible", "label": "Flexible", "keywords": []},
+]
+
+STATUS_OPTIONS = [
+    {"slug": "open", "label": "Open"},
+    {"slug": "completed", "label": "Completed"},
+]
+
+
+def _normalize_filter_values(values: list[str]) -> set[str]:
+    return {value.strip().lower() for value in values if value and value.strip()}
+
+
+def _infer_request_topics(help_request: HelpRequest) -> set[str]:
+    description = (help_request.description or "").lower()
+    topics: set[str] = set()
+    for topic in FILTER_TOPICS:
+        if any(keyword in description for keyword in topic["keywords"]):
+            topics.add(topic["slug"])
+    return topics
+
+
+def _infer_request_urgency(help_request: HelpRequest) -> str:
+    description = (help_request.description or "").lower()
+    for level in URGENCY_LEVELS:
+        if level["keywords"] and any(keyword in description for keyword in level["keywords"]):
+            return level["slug"]
+    return "flexible"
+
+
+def _matches_request_filters(
+    topics: set[str],
+    urgency: str,
+    status_value: str,
+    topic_filters: set[str],
+    urgency_filters: set[str],
+    status_filters: set[str],
+) -> bool:
+    if topic_filters and topics.isdisjoint(topic_filters):
+        return False
+    if urgency_filters and urgency not in urgency_filters:
+        return False
+    if status_filters and status_value not in status_filters:
+        return False
+    return True
+
+
+def _build_filter_url(
+    base_path: str,
+    current_items: list[tuple[str, str]],
+    field: str,
+    value: str,
+    active: bool,
+) -> str:
+    preserved = [
+        (key, val) for key, val in current_items if not (key == field and val.lower() == value.lower())
+    ]
+    preserved = [(k, v) for (k, v) in preserved if k != "page"]
+    if not active:
+        preserved.append((field, value))
+    query = urlencode(preserved, doseq=True)
+    return f"{base_path}?{query}" if query else base_path
+
+
+def _build_reset_url(base_path: str, current_items: list[tuple[str, str]]) -> str:
+    filtered = [
+        (key, val)
+        for key, val in current_items
+        if key not in {"topic", "urgency", "status", "page"}
+    ]
+    query = urlencode(filtered, doseq=True)
+    return f"{base_path}?{query}" if query else base_path
 
 
 def _serialize_requests(db: Session, items, viewer: Optional[User] = None):
@@ -199,7 +284,83 @@ def home(
         return templates.TemplateResponse("requests/pending.html", context)
 
     session_avatar_url = _get_account_avatar(db, user.id)
-    public_requests = _serialize_requests(db, request_services.list_requests(db), viewer=user)
+
+    query_params = request.query_params
+    topic_filters = _normalize_filter_values(query_params.getlist("topic"))
+    urgency_filters = _normalize_filter_values(query_params.getlist("urgency"))
+    status_filters = _normalize_filter_values(query_params.getlist("status"))
+    all_query_items = list(query_params.multi_items()) if hasattr(query_params, "multi_items") else list(query_params.items())
+
+    request_objects = request_services.list_requests(db)
+    enriched_requests: list[tuple[HelpRequest, set[str], str]] = []
+    topic_counts: Counter[str] = Counter()
+    urgency_counts: Counter[str] = Counter()
+    status_counts: Counter[str] = Counter()
+
+    for help_request in request_objects:
+        topics = _infer_request_topics(help_request)
+        urgency = _infer_request_urgency(help_request)
+        for slug in topics:
+            topic_counts[slug] += 1
+        urgency_counts[urgency] += 1
+        status_counts[help_request.status] += 1
+        enriched_requests.append((help_request, topics, urgency))
+
+    filtered_objects = [
+        help_request
+        for help_request, topics, urgency in enriched_requests
+        if _matches_request_filters(topics, urgency, help_request.status, topic_filters, urgency_filters, status_filters)
+    ]
+
+    public_requests = _serialize_requests(db, filtered_objects, viewer=user)
+
+    filter_options = {
+        "topics": [],
+        "urgency": [],
+        "status": [],
+    }
+    base_path = request.url.path
+    for topic in FILTER_TOPICS:
+        slug = topic["slug"]
+        active = slug in topic_filters
+        url = _build_filter_url(base_path, all_query_items, "topic", slug, active)
+        filter_options["topics"].append(
+            {
+                "slug": slug,
+                "label": topic["label"],
+                "active": active,
+                "count": topic_counts.get(slug, 0),
+                "url": url,
+            }
+        )
+    for level in URGENCY_LEVELS:
+        slug = level["slug"]
+        active = slug in urgency_filters
+        url = _build_filter_url(base_path, all_query_items, "urgency", slug, active)
+        filter_options["urgency"].append(
+            {
+                "slug": slug,
+                "label": level["label"],
+                "active": active,
+                "count": urgency_counts.get(slug, 0),
+                "url": url,
+            }
+        )
+    for status_option in STATUS_OPTIONS:
+        slug = status_option["slug"]
+        active = slug in status_filters
+        url = _build_filter_url(base_path, all_query_items, "status", slug, active)
+        filter_options["status"].append(
+            {
+                "slug": slug,
+                "label": status_option["label"],
+                "active": active,
+                "count": status_counts.get(slug, 0),
+                "url": url,
+            }
+        )
+
+    reset_url = _build_reset_url(base_path, all_query_items)
     return templates.TemplateResponse(
         "requests/index.html",
         {
@@ -211,6 +372,13 @@ def home(
             "session_role": session_role,
             "session_username": user.username,
             "session_avatar_url": session_avatar_url,
+            "filter_options": filter_options,
+            "active_filters": {
+                "topics": sorted(topic_filters),
+                "urgency": sorted(urgency_filters),
+                "status": sorted(status_filters),
+            },
+            "filter_reset_url": reset_url,
         },
     )
 
