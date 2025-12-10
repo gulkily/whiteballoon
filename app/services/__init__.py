@@ -3,6 +3,7 @@
 from . import (
     auth_service,
     comment_llm_insights_db,
+    comment_request_promotion_service,
     invite_graph_service,
     invite_map_cache_service,
     member_directory_service,
@@ -19,6 +20,7 @@ from . import (
 __all__ = [
     "auth_service",
     "comment_llm_insights_db",
+    "comment_request_promotion_service",
     "invite_graph_service",
     "invite_map_cache_service",
     "member_directory_service",
