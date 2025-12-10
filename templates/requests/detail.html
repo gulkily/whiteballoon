@@ -75,11 +75,22 @@
 
 <section class="section request-comments-section">
   <div class="card stack request-comments" data-comment-section>
+    {% if show_chat_search_panel %}
     <div class="request-chat-search" data-chat-search data-request-id="{{ request_id }}">
       <div class="request-chat-search__header stack">
-        <h2 class="h5">Search chat</h2>
+        <div class="request-chat-search__header-row">
+          <h2 class="h5">Search chat</h2>
+          <button
+            type="button"
+            class="button button--ghost button--small"
+            data-chat-search-toggle
+            aria-expanded="false"
+            aria-controls="chat-search-panel"
+          >Show</button>
+        </div>
         <p class="muted small-text">Find specific promises, contacts, or logistics inside this chat.</p>
       </div>
+      <div class="request-chat-search__body" id="chat-search-panel" data-chat-search-panel hidden>
       <form class="request-chat-search__form" method="get" action="{{ request.url.path }}" data-chat-search-form>
         <input type="hidden" name="page" value="{{ pagination.current_page }}" />
         <label class="request-chat-search__label">
@@ -109,7 +120,7 @@
               'display_name': match.display_name or comment_display_names.get(match.user_id),
               'created_at': match.created_at,
               'created_at_iso': match.created_at,
-              'body_html': match.body,
+              'body': match.body,
               'topics': match.topics,
               'ai_topics': match.ai_topics,
               'comment_anchor': match.anchor
@@ -160,7 +171,9 @@
           </ul>
         </div>
       {% endif %}
+      </div>
     </div>
+    {% endif %}
     {% if comments %}
       <ul class="request-comments__list" data-comment-list>
         {% for comment in comments %}

@@ -54,6 +54,8 @@ router = APIRouter(tags=["ui"])
 
 logger = logging.getLogger(__name__)
 
+CHAT_SEARCH_MIN_COMMENTS = 5
+
 
 def _serialize_requests(db: Session, items, viewer: Optional[User] = None):
     creator_usernames = request_services.load_creator_usernames(db, items)
@@ -560,6 +562,8 @@ def _build_request_detail_context(
         "total_comments": total_comments,
     }
 
+    show_chat_search_panel = total_comments >= CHAT_SEARCH_MIN_COMMENTS
+
     chat_filters = chat_search_filters or {}
     chat_query = str(chat_filters.get("query", "") or "").strip()
     participant_filters = [int(pid) for pid in chat_filters.get("participants", []) if pid]
@@ -617,6 +621,7 @@ def _build_request_detail_context(
         "comment_display_names": display_names,
         "comment_promotions": comment_promotions,
         "pagination": pagination,
+        "show_chat_search_panel": show_chat_search_panel,
         "chat_search": {
             "query": chat_query,
             "participants": participant_filters,
