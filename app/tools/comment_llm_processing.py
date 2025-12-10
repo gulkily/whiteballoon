@@ -17,8 +17,11 @@ from sqlmodel import Session, select
 from app.config import get_settings
 from app.db import get_engine
 from app.models import RequestComment
-from app.services import comment_llm_store
-from app.services import comment_llm_insights_db
+from app.services import (
+    comment_attribute_service,
+    comment_llm_insights_db,
+    comment_llm_store,
+)
 
 
 MIN_BATCH_SIZE = 1
@@ -47,6 +50,7 @@ LOCATION_PRECISION = ["exact", "neighborhood", "city", "regional", "global", "un
 URGENCY_LEVELS = ["low", "medium", "high", "critical"]
 SENTIMENT_SCALE = ["positive", "neutral", "negative", "mixed"]
 OUTPUT_DIR = Path("storage/comment_llm_runs")
+PROMOTION_KEYWORDS = ["need", "please help", "can someone", "urgent", "request"]
 
 
 @dataclass(frozen=True)
@@ -578,6 +582,43 @@ def persist_execution_results(
     return output_path
 
 
+def _analysis_is_request_candidate(analysis: CommentAnalysis) -> tuple[bool, str | None]:
+    if analysis.request_tags:
+        return True, f"request_tags:{','.join(analysis.request_tags)}"
+    summary = (analysis.summary or "").lower()
+    for keyword in PROMOTION_KEYWORDS:
+        if keyword in summary:
+            return True, f"keyword:{keyword}"
+    return False, None
+
+
+def _queue_promotion_candidates(
+    engine,
+    results: Sequence[BatchLLMResult],
+    run_id: str,
+) -> None:
+    if not results:
+        return
+    analyses = [analysis for result in results for analysis in result.analyses]
+    if not analyses:
+        return
+    queued = 0
+    with Session(engine) as session:
+        for analysis in analyses:
+            should_queue, reason = _analysis_is_request_candidate(analysis)
+            if not should_queue or not reason:
+                continue
+            comment_attribute_service.queue_promotion_candidate(
+                session,
+                comment_id=analysis.comment_id,
+                reason=reason,
+                run_id=run_id,
+            )
+            queued += 1
+    if queued:
+        print(f"Queued {queued} request-like comments for promotion.")
+
+
 def _rows_for_insights_db(analyses: Sequence[CommentAnalysis], run_id: str, recorded_at: str) -> list[tuple]:
     rows: list[tuple] = []
     for analysis in analyses:
@@ -979,6 +1020,7 @@ def main(argv: list[str] | None = None) -> int:
                 total_batches=total_batches,
             ),
         )
+    _queue_promotion_candidates(engine, execution_results, run_id)
     return 0
 
 

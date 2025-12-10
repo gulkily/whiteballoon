@@ -38,3 +38,6 @@ make sure auth required page is not just a json message
 
 when indexing chats, if a message looks like a request, spawn a new request for it
 
+
+
+Add friendly 'wb' aliases (e.g., 'wb chat-index', 'wb chat-embed', 'wb comment-llm') for the comment/chat indexing commands so they're easier to remember.
