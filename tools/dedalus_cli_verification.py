@@ -103,7 +103,7 @@ def audit_auth_requests(limit: Optional[int] = None, include_processed: Optional
 
 def promote_comment_to_request(
     comment_id: int,
-    actor_username: str,
+    actor_username: Optional[str] = None,
     description: Optional[str] = None,
     status: Optional[str] = None,
     contact_email: Optional[str] = None,
@@ -113,13 +113,13 @@ def promote_comment_to_request(
         "promote-comment",
         "--comment-id",
         str(comment_id),
-        "--actor",
-        actor_username,
     ]
     summary = description or PROMOTE_DEFAULT_DESCRIPTION
     contact = contact_email or PROMOTE_DEFAULT_CONTACT
     status_value = status or PROMOTE_DEFAULT_STATUS
     effective_force = PROMOTE_DEFAULT_FORCE if force is None else force
+    if actor_username:
+        args.extend(["--actor", actor_username])
     if summary:
         args.extend(["--description", summary])
     if contact:
@@ -141,11 +141,13 @@ def _build_prompt(limit: int, include_processed: bool, promote_comment_id: Optio
         "First, run `audit_auth_requests` to execute the real CLI against {scope} with a limit of {limit} rows. "
         "Summarize notable findings, then include the raw CLI output inside a fenced text code block."
     ).format(scope=scope, limit=limit)
-    if promote_comment_id and promote_actor:
+    if promote_comment_id:
         prompt += (
-            " After auditing, call `promote_comment_to_request` with comment_id={comment_id} "
-            "and actor_username='{actor}'. If needed you may provide description/contact/status overrides."
-        ).format(comment_id=promote_comment_id, actor=promote_actor)
+            " After auditing, call `promote_comment_to_request` with comment_id={comment_id}"
+        ).format(comment_id=promote_comment_id)
+        if promote_actor:
+            prompt += " and actor_username='{actor}'".format(actor=promote_actor)
+        prompt += ". Include any helpful summary/contact overrides if needed."
     return prompt
 
 
@@ -217,10 +219,6 @@ async def run(args: argparse.Namespace) -> int:
     log(
         f"Configured tool scope → limit={TOOL_DEFAULT_LIMIT}, include_processed={TOOL_INCLUDE_PROCESSED}"
     )
-
-    if args.promote_comment_id and not args.promote_actor:
-        print("--promote-actor is required when --promote-comment-id is provided", file=sys.stderr)
-        return 1
 
     global PROMOTE_DEFAULT_DESCRIPTION, PROMOTE_DEFAULT_CONTACT, PROMOTE_DEFAULT_STATUS, PROMOTE_DEFAULT_FORCE
     PROMOTE_DEFAULT_DESCRIPTION = args.promote_description

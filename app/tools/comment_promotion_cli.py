@@ -9,7 +9,7 @@ import sys
 from sqlmodel import Session, select
 
 from app.db import get_engine
-from app.models import User
+from app.models import RequestComment, User
 from app.services import comment_request_promotion_service
 
 
@@ -21,8 +21,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--comment-id", type=int, required=True, help="ID of the comment to promote")
     parser.add_argument(
         "--actor",
-        required=True,
-        help="Username of the user performing the promotion (used for permissions/audit)",
+        default=None,
+        help="Username performing the promotion (defaults to the original commenter)",
     )
     parser.add_argument(
         "--description",
@@ -59,9 +59,18 @@ def main(argv: list[str] | None = None) -> int:
 
     engine = get_engine()
     with Session(engine) as session:
-        actor = session.exec(select(User).where(User.username == args.actor)).first()
-        if not actor:
-            parser.error(f"Actor '{args.actor}' not found")
+        comment = session.get(RequestComment, args.comment_id)
+        if not comment:
+            parser.error(f"Comment id {args.comment_id} not found")
+
+        if args.actor:
+            actor = session.exec(select(User).where(User.username == args.actor)).first()
+            if not actor:
+                parser.error(f"Actor '{args.actor}' not found")
+        else:
+            actor = session.get(User, comment.user_id)
+            if not actor:
+                parser.error("Comment author not found; specify --actor explicitly")
 
         result = comment_request_promotion_service.promote_comment_to_request(
             session,
@@ -79,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
             "comment_id": result.source_comment.id,
             "created_by": result.help_request.created_by_user_id,
             "status": result.help_request.status,
+            "actor_username": actor.username,
         }
         print(json.dumps(payload, indent=2))
         return 0
