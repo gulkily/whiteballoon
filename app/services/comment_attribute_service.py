@@ -152,4 +152,3 @@ def reset_promotion_status(
     attr.updated_at = _now()
     session.add(attr)
     session.commit()
-*** End Patch
