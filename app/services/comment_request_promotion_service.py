@@ -28,6 +28,7 @@ def promote_comment_to_request(
     description: Optional[str] = None,
     contact_email: Optional[str] = None,
     status_value: Optional[str] = None,
+    source: str = "ui",
 ) -> CommentPromotionResult:
     """Create a HelpRequest derived from a comment."""
     comment = session.get(RequestComment, comment_id)
@@ -51,11 +52,12 @@ def promote_comment_to_request(
     )
 
     logger.info(
-        "User %s promoted comment %s from request %s into new request %s",
+        "User %s promoted comment %s from request %s into new request %s (source=%s)",
         actor.id,
         comment.id,
         comment.help_request_id,
         help_request.id,
+        source,
     )
 
     return CommentPromotionResult(

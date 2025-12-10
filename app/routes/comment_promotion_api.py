@@ -33,6 +33,7 @@ def promote_comment(
         description=payload.description,
         contact_email=payload.contact_email,
         status_value=payload.status,
+        source="ui",
     )
 
     return RequestResponse.from_model(

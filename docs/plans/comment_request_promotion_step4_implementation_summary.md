@@ -7,3 +7,7 @@
 ## Stage 2 – UI affordances + confirmation modal
 - **Shipped**: Added a "Promote" action to request comment cards (respecting the same permission check as the API) and rendered a lightweight `<dialog>` modal that pre-fills the comment text, lets the reviewer tweak summary/contact/status, and POSTs to the shared `/api/comments/{id}/promote` endpoint via the new `static/js/comment-promotion.js` helper.
 - **Verification**: Loaded a request detail page locally, promoted a seeded comment via the modal, and confirmed the browser redirected to the newly created request.
+
+## Stage 3 – MCP tool wiring + logging
+- **Shipped**: Added a reusable CLI (`wb promote-comment` → `app.tools.comment_promotion_cli`) that promotes comments via the shared service with explicit actor attribution and source labels. Updated the Dedalus MCP verification script to expose a `promote_comment_to_request` tool (in addition to the audit tool) so agents can escalate comments, and plumbed a `source` flag through `comment_request_promotion_service` logs to distinguish UI, CLI, and MCP usage.
+- **Verification**: Seeded temporary users/comments via a Python script, ran `python -m app.tools.comment_promotion_cli --comment-id ... --actor ...`, and confirmed the JSON response contained the new request ID. Manually inspected Dedalus CLI prompt/tool list to ensure the new tool is registered when `--promote-comment-id` is provided.
