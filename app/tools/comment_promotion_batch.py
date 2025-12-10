@@ -72,6 +72,9 @@ def _list_queue(engine, *, status: str, limit: int) -> None:
             f"#{attr.id} comment={attr.comment_id} status={status_label} reason={reason} run={run_id} "
             f"request={request_id} error={error}"
         )
+        metadata = payload.get("metadata")
+        if metadata:
+            print(f"    metadata: {metadata}")
 
 
 def _reset_entry(engine, attribute_id: int) -> None:

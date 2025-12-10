@@ -70,18 +70,21 @@ def queue_promotion_candidate(
     comment_id: int,
     reason: str,
     run_id: str,
+    metadata: dict[str, object] | None = None,
 ) -> CommentAttribute:
     attr = get_attribute(session, comment_id=comment_id, key=PROMOTION_QUEUE_KEY)
     existing = _load_value(attr.value if attr else None)
     status = existing.get("status") if isinstance(existing, dict) else None
     if status == "pending":
         return attr  # Already queued
+    existing_metadata = existing.get("metadata") if isinstance(existing, dict) else None
     payload = {
         "status": "pending",
         "reason": reason,
         "run_id": run_id,
         "queued_at": _now().isoformat(),
         "attempts": existing.get("attempts", 0) if isinstance(existing, dict) else 0,
+        "metadata": metadata if metadata is not None else existing_metadata,
     }
     return upsert_attribute(
         session,

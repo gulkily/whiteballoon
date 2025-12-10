@@ -582,14 +582,26 @@ def persist_execution_results(
     return output_path
 
 
-def _analysis_is_request_candidate(analysis: CommentAnalysis) -> tuple[bool, str | None]:
+def _analysis_is_request_candidate(analysis: CommentAnalysis) -> tuple[bool, str | None, dict[str, object]]:
+    metadata = {
+        "resource_tags": analysis.resource_tags,
+        "request_tags": analysis.request_tags,
+        "audience": analysis.audience,
+        "residency_stage": analysis.residency_stage,
+        "location": analysis.location,
+        "location_precision": analysis.location_precision,
+        "urgency": analysis.urgency,
+        "sentiment": analysis.sentiment,
+        "tags": analysis.tags,
+        "summary": analysis.summary,
+    }
     if analysis.request_tags:
-        return True, f"request_tags:{','.join(analysis.request_tags)}"
+        return True, f"request_tags:{','.join(analysis.request_tags)}", metadata
     summary = (analysis.summary or "").lower()
     for keyword in PROMOTION_KEYWORDS:
         if keyword in summary:
-            return True, f"keyword:{keyword}"
-    return False, None
+            return True, f"keyword:{keyword}", metadata
+    return False, None, metadata
 
 
 def _queue_promotion_candidates(
@@ -605,7 +617,7 @@ def _queue_promotion_candidates(
     queued = 0
     with Session(engine) as session:
         for analysis in analyses:
-            should_queue, reason = _analysis_is_request_candidate(analysis)
+            should_queue, reason, metadata = _analysis_is_request_candidate(analysis)
             if not should_queue or not reason:
                 continue
             comment_attribute_service.queue_promotion_candidate(
@@ -613,6 +625,7 @@ def _queue_promotion_candidates(
                 comment_id=analysis.comment_id,
                 reason=reason,
                 run_id=run_id,
+                metadata=metadata,
             )
             queued += 1
     if queued:
