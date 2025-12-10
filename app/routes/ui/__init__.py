@@ -603,6 +603,7 @@ def _build_request_detail_context(
         "session_avatar_url": session_user.avatar_url,
         "comments": comments,
         "can_comment": session_record.is_fully_authenticated,
+        "can_promote_comments": session_record.is_fully_authenticated,
         "can_moderate_comments": can_moderate,
         "can_toggle_sync_scope": can_toggle_sync_scope,
         "comment_form_errors": comment_form_errors or [],

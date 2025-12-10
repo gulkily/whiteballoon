@@ -219,6 +219,34 @@
     {% endif %}
   </div>
 </section>
+{% if can_promote_comments %}
+<dialog class="request-comment__modal" data-comment-promote-modal>
+  <form class="stack" data-comment-promote-form>
+    <h2>Promote comment to request</h2>
+    <p class="small-text" data-comment-promote-context></p>
+    <label class="stack">
+      <span>Summary</span>
+      <textarea rows="4" data-comment-promote-description required></textarea>
+    </label>
+    <label class="stack">
+      <span>Contact email (optional)</span>
+      <input type="email" data-comment-promote-contact />
+    </label>
+    <label class="stack">
+      <span>Status</span>
+      <select data-comment-promote-status>
+        <option value="open">Open</option>
+        <option value="pending">Pending</option>
+      </select>
+    </label>
+    <div class="alert alert--error" data-comment-promote-error hidden></div>
+    <div class="request-comments__form-footer">
+      <button type="button" class="button button--ghost" data-comment-promote-cancel>Cancel</button>
+      <button type="submit" class="button" data-comment-promote-submit>Create request</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
 <template id="chat-search-result-template">
   <li class="request-chat-search__result" data-comment-id>
     <div class="request-chat-search__identity">
@@ -235,4 +263,7 @@
 <script src="/static/js/request-comments.js" defer></script>
 <script src="/static/js/request-chat-search.js" defer></script>
 <script src="/static/js/comment-insight-badges.js" defer></script>
+{% if can_promote_comments %}
+<script src="/static/js/comment-promotion.js" defer></script>
+{% endif %}
 {% endblock %}
