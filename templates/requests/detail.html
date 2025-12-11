@@ -96,7 +96,7 @@
           <div class="comment-insights-card__chips">
             {% for tag in comment_insights_summary.resource_tags %}
               {% set tag_value = tag.label | lower %}
-              {% set resource_href = request.url.include_query_params(insight_resource=tag_value) %}
+              {% set resource_href = request.url.remove_query_params('insight_resource').include_query_params(insight_resource=tag_value) %}
               <a
                 class="meta-chip meta-chip--small{% if tag_value in insight_filters.resource %} is-active{% endif %}"
                 href="{{ resource_href }}"
@@ -115,7 +115,7 @@
           <div class="comment-insights-card__chips">
             {% for tag in comment_insights_summary.request_tags %}
               {% set tag_value = tag.label | lower %}
-              {% set request_href = request.url.include_query_params(insight_request=tag_value) %}
+              {% set request_href = request.url.remove_query_params('insight_request').include_query_params(insight_request=tag_value) %}
               <a
                 class="meta-chip meta-chip--small meta-chip--ghost{% if tag_value in insight_filters.request %} is-active{% endif %}"
                 href="{{ request_href }}"
@@ -134,7 +134,7 @@
           <div class="comment-insights-card__chips">
             {% for item in comment_insights_summary.urgency %}
               {% set tag_value = item.label | lower %}
-              {% set urgency_href = request.url.include_query_params(insight_urgency=tag_value) %}
+              {% set urgency_href = request.url.remove_query_params('insight_urgency').include_query_params(insight_urgency=tag_value) %}
               <a
                 class="meta-chip meta-chip--status{% if tag_value in insight_filters.urgency %} is-active{% endif %}"
                 href="{{ urgency_href }}"
@@ -153,7 +153,7 @@
           <div class="comment-insights-card__chips">
             {% for item in comment_insights_summary.sentiment %}
               {% set tag_value = item.label | lower %}
-              {% set sentiment_href = request.url.include_query_params(insight_sentiment=tag_value) %}
+              {% set sentiment_href = request.url.remove_query_params('insight_sentiment').include_query_params(insight_sentiment=tag_value) %}
               <a
                 class="meta-chip{% if tag_value in insight_filters.sentiment %} is-active{% endif %}"
                 href="{{ sentiment_href }}"
