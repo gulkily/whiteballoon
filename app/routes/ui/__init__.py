@@ -1542,7 +1542,7 @@ def profile_comments(
                 "created_at": comment.created_at,
                 "created_at_iso": created_at_iso,
                 "scope": (comment.sync_scope or "private").title(),
-                "comment_url": f"{group_url}#comment-{comment.id}",
+                "comment_url": f"/comments/{comment.id}",
                 "username": person.username,
                 "display_name": person.username,
             }
@@ -1998,7 +1998,7 @@ def _fetch_combined_feed(
                     "data": payload["comment"],
                     "created_at": row.created_at,
                     "request": payload["request"],
-                    "href": f"/requests/{payload['request']['id']}#comment-{payload['comment']['id']}",
+                    "href": f"/comments/{payload['comment']['id']}",
                     "snippet": _truncate_text(str(payload["comment"].get("body") or "")),
                 }
             )

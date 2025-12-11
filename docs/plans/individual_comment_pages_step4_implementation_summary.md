@@ -13,5 +13,5 @@
 
 ## Stage 3 – Linking + navigation polish
 - Pass `/comments/{id}` permalinks into every request-context comment list (request detail + browse tab + the detail page itself) so the card shows a “Permalink” link alongside other meta actions.
-- Ensured the browse comments tab reuses the same prop so search results can jump directly to the standalone comment page without extra lookups.
-- Verification: Clicked the “Permalink” link from a request thread and from `/browse?type=comments`, confirming both routes reach `/comments/{id}` and preserve access rules.
+- Swapped legacy `#/comment-id` anchors for the new permalink across moderation/Admin Sync/S comment tables and the combined feed, ensuring every “View comment” action opens the standalone page.
+- Verification: Clicked “Permalink” from a request thread, `/browse?type=comments`, the admin insights table, and the Sync dashboard, confirming each route now resolves to `/comments/{id}` with correct permissions.
