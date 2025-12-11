@@ -64,6 +64,7 @@ Future skins override these tokens (and may add new ones). Keeping them grouped 
 3. For experimental skins, copy `static/skins/default.css` → `static/skins/<variant>.css`, tweak token values, and add overrides beneath the import.
 
 ## Building Skin Bundles (C2)
+- Run `./wb skins list` to see all discovered `static/skins/*.css` entries without touching the build outputs.
 - Run `./wb skins build` to compile every `static/skins/*.css` (excluding `base.css`) into hashed bundles under `static/build/skins/` and emit `manifest.json`.
 - Use `./wb skins build --dry-run` to list available skins without writing files.
 - During development, `./wb skins watch` rebuilds on changes (polling every second by default). Stop with `Ctrl-C`.

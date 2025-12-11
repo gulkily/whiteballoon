@@ -26,6 +26,7 @@ cp .env.example .env                # Copy defaults and adjust as needed
 # CSS skins
 ./wb skins build               # Rebuild hashed bundles after editing static/skins
 ./wb skins watch               # Rebuild on change during frontend work
+./wb skins list                # Show discovered skins without rebuilding
 ```
 
 ## Feature Development Process

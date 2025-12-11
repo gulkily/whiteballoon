@@ -77,7 +77,7 @@ Requires Python 3.10+.
 
 > **Developer reminder**: Whenever you add a new configuration flag or environment variable, update `.env.example` with the default and a short description so fresh installs pick it up.
 >
-> **Frontend skins**: Whenever you change files under `static/skins/` or adjust shared design tokens, run `./wb skins build` (or `./wb skins watch` during development) so the hashed bundles in `static/build/skins/` stay in sync. Skipping the rebuild leaves browsers serving the previous CSS and makes refreshed layouts look broken.
+> **Frontend skins**: Whenever you change files under `static/skins/` or adjust shared design tokens, run `./wb skins build` (or `./wb skins watch` during development) so the hashed bundles in `static/build/skins/` stay in sync. Use `./wb skins list` to see which entry bundles exist before rebuilding. Skipping the rebuild leaves browsers serving the previous CSS and makes refreshed layouts look broken.
 
 ## Manual sync bundles & signatures
 
