@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Comment #{{ comment.id }} · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack">
+  <header class="stack">
+    <p class="muted small-text">Standalone comment</p>
+    <h1>Comment #{{ comment.id }}</h1>
+  </header>
+
+  <div class="card">
+    <p>This page will render the comment details.</p>
+  </div>
+</section>
+{% endblock %}

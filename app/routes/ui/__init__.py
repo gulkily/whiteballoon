@@ -713,6 +713,62 @@ def request_chat_search(
     return JSONResponse(payload)
 
 
+@router.get("/comments/{comment_id}")
+def comment_detail(
+    request: Request,
+    comment_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    viewer = session_user.user
+    session_record = session_user.session
+    session_role = describe_session_role(viewer, session_record)
+
+    comment = db.get(RequestComment, comment_id)
+    if not comment or comment.deleted_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+
+    help_request = db.get(HelpRequest, comment.help_request_id)
+    if not help_request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+
+    if help_request.status == "pending" and not (
+        viewer.is_admin or help_request.created_by_user_id == viewer.id
+    ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+
+    author = db.get(User, comment.user_id)
+    if not author:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+
+    attr_key = _signal_display_attr_key(help_request)
+    display_name_map = _load_signal_display_names_for_user_ids(db, {author.id}, attr_key)
+    display_name = display_name_map.get(author.id)
+
+    serialized_comment = request_comment_service.serialize_comment(
+        comment,
+        author,
+        display_name=display_name,
+    )
+
+    serialized_request = _serialize_requests(db, [help_request], viewer=viewer)
+    request_payload = serialized_request[0] if serialized_request else None
+
+    context = {
+        "request": request,
+        "user": viewer,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": viewer.username,
+        "session_avatar_url": session_user.avatar_url,
+        "comment": serialized_comment,
+        "comment_author": author,
+        "comment_display_name": display_name,
+        "request_summary": request_payload,
+    }
+    return templates.TemplateResponse("comments/detail.html", context)
+
+
 @router.post("/requests/{request_id}/comments")
 async def create_request_comment(
     request: Request,
