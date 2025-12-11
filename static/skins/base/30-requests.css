@@ -441,6 +441,20 @@
   gap: 0.35rem;
 }
 
+.comment-insights-card__chips .meta-chip.is-active {
+  border-color: var(--color-accent);
+  background: var(--color-surface-accent);
+  color: var(--color-text);
+}
+
+.comment-insights-card__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .promoted-comment-section {
   padding-top: 0;
 }

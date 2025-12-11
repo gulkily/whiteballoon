@@ -74,11 +74,19 @@
 </section>
 
 {% if comment_insights_summary %}
-<section class="section comment-insights-section">
+<section class="section comment-insights-section" data-insight-card>
   <article class="card stack comment-insights-card">
     <header class="stack">
       <p class="muted small-text">Comment insights</p>
       <h2>AI tags across this thread</h2>
+      <div class="comment-insights-card__actions">
+        <span class="muted small-text" data-insight-counter>
+          {% if insight_filters_active %}
+            Showing {{ comment_visible_count }} of {{ comment_total_count }}
+          {% endif %}
+        </span>
+        <button class="button button--ghost button--small" data-insight-reset>Reset</button>
+      </div>
     </header>
     <div class="comment-insights-card__groups">
       {% if comment_insights_summary.resource_tags %}
@@ -86,7 +94,14 @@
           <p class="muted small-text">Resource tags</p>
           <div class="comment-insights-card__chips">
             {% for tag in comment_insights_summary.resource_tags %}
-              <a class="meta-chip meta-chip--small" href="{{ tag.href }}">
+              {% set tag_value = tag.label | lower %}
+              {% set resource_href = request.url.include_query_params(insight_resource=tag_value) %}
+              <a
+                class="meta-chip meta-chip--small{% if tag_value in insight_filters.resource %} is-active{% endif %}"
+                href="{{ resource_href }}"
+                data-insight-chip="resource"
+                data-insight-value="{{ tag_value }}"
+              >
                 {{ tag.label }}{% if tag.count > 1 %} ×{{ tag.count }}{% endif %}
               </a>
             {% endfor %}
@@ -98,7 +113,14 @@
           <p class="muted small-text">Request tags</p>
           <div class="comment-insights-card__chips">
             {% for tag in comment_insights_summary.request_tags %}
-              <a class="meta-chip meta-chip--small meta-chip--ghost" href="{{ tag.href }}">
+              {% set tag_value = tag.label | lower %}
+              {% set request_href = request.url.include_query_params(insight_request=tag_value) %}
+              <a
+                class="meta-chip meta-chip--small meta-chip--ghost{% if tag_value in insight_filters.request %} is-active{% endif %}"
+                href="{{ request_href }}"
+                data-insight-chip="request"
+                data-insight-value="{{ tag_value }}"
+              >
                 {{ tag.label }}{% if tag.count > 1 %} ×{{ tag.count }}{% endif %}
               </a>
             {% endfor %}
@@ -110,7 +132,16 @@
           <p class="muted small-text">Urgency</p>
           <div class="comment-insights-card__chips">
             {% for item in comment_insights_summary.urgency %}
-              <span class="meta-chip meta-chip--status">{{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}</span>
+              {% set tag_value = item.label | lower %}
+              {% set urgency_href = request.url.include_query_params(insight_urgency=tag_value) %}
+              <a
+                class="meta-chip meta-chip--status{% if tag_value in insight_filters.urgency %} is-active{% endif %}"
+                href="{{ urgency_href }}"
+                data-insight-chip="urgency"
+                data-insight-value="{{ tag_value }}"
+              >
+                {{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}
+              </a>
             {% endfor %}
           </div>
         </div>
@@ -120,7 +151,16 @@
           <p class="muted small-text">Sentiment</p>
           <div class="comment-insights-card__chips">
             {% for item in comment_insights_summary.sentiment %}
-              <span class="meta-chip">{{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}</span>
+              {% set tag_value = item.label | lower %}
+              {% set sentiment_href = request.url.include_query_params(insight_sentiment=tag_value) %}
+              <a
+                class="meta-chip{% if tag_value in insight_filters.sentiment %} is-active{% endif %}"
+                href="{{ sentiment_href }}"
+                data-insight-chip="sentiment"
+                data-insight-value="{{ tag_value }}"
+              >
+                {{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}
+              </a>
             {% endfor %}
           </div>
         </div>
@@ -288,7 +328,7 @@
     </div>
     {% endif %}
     {% if comments %}
-      <ul class="request-comments__list" data-comment-list>
+      <ul class="request-comments__list" data-comment-list data-visible-count="{{ comment_visible_count }}" data-total-count="{{ comments | length }}">
         {% for comment in comments %}
           {% include "requests/partials/comment.html" %}
         {% endfor %}
@@ -399,6 +439,7 @@
 <script src="/static/js/request-comments.js" defer></script>
 <script src="/static/js/request-chat-search.js" defer></script>
 <script src="/static/js/comment-insight-badges.js" defer></script>
+<script src="/static/js/comment-insight-filters.js" defer></script>
 {% if can_promote_comments %}
 <script src="/static/js/comment-promotion.js" defer></script>
 {% endif %}

@@ -363,6 +363,38 @@ def _build_request_ctas(request_ids: list[int], user_id: int) -> list[dict[str, 
     return chips
 
 
+def _parse_insight_filters(request: Request) -> dict[str, set[str]]:
+    params = request.query_params
+    return {
+        "resource": {value.lower() for value in params.getlist("insight_resource") if value},
+        "request": {value.lower() for value in params.getlist("insight_request") if value},
+        "urgency": {value.lower() for value in params.getlist("insight_urgency") if value},
+        "sentiment": {value.lower() for value in params.getlist("insight_sentiment") if value},
+    }
+
+
+def _insight_filters_active(filters: dict[str, set[str]]) -> bool:
+    return any(values for values in filters.values())
+
+
+def _matches_insight_filters(comment_payload: dict[str, object], filters: dict[str, set[str]]) -> bool:
+    metadata = comment_payload.get("insight_metadata") or {}
+    resource_tags = set(metadata.get("resource_tags") or [])
+    request_tags = set(metadata.get("request_tags") or [])
+    urgency = (metadata.get("urgency") or "").lower()
+    sentiment = (metadata.get("sentiment") or "").lower()
+
+    if filters["resource"] and resource_tags.isdisjoint(filters["resource"]):
+        return False
+    if filters["request"] and request_tags.isdisjoint(filters["request"]):
+        return False
+    if filters["urgency"] and urgency not in filters["urgency"]:
+        return False
+    if filters["sentiment"] and sentiment not in filters["sentiment"]:
+        return False
+    return True
+
+
 def _record_tag_summary(storage: dict[str, dict[str, object]], label: str, comment_id: int) -> None:
     cleaned = (label or "").strip()
     if not cleaned:
@@ -428,6 +460,19 @@ def _build_request_comment_insights_summary(help_request_id: int) -> Optional[di
     if not (summary["resource_tags"] or summary["request_tags"] or summary["urgency"] or summary["sentiment"]):
         return None
     return summary
+
+
+def _build_comment_insights_lookup(help_request_id: int) -> dict[int, dict[str, object]]:
+    analyses = comment_llm_insights_service.list_analyses_for_request(help_request_id)
+    return {
+        analysis.comment_id: {
+            "resource_tags": [tag.lower() for tag in analysis.resource_tags],
+            "request_tags": [tag.lower() for tag in analysis.request_tags],
+            "urgency": (analysis.urgency or "").lower(),
+            "sentiment": (analysis.sentiment or "").lower(),
+        }
+        for analysis in analyses
+    }
 
 @router.get("/")
 def home(
@@ -1045,20 +1090,44 @@ def _build_request_detail_context(
 
     # Pagination
     comments_per_page = request_comment_service.DEFAULT_COMMENTS_PER_PAGE
-    offset = (page - 1) * comments_per_page
+    active_insight_filters = _parse_insight_filters(request)
+    filters_active = _insight_filters_active(active_insight_filters)
+    if filters_active:
+        offset = 0
+        limit = None
+    else:
+        offset = (page - 1) * comments_per_page
+        limit = comments_per_page
     comment_rows, total_comments = request_comment_service.list_comments(
-        db, help_request_id=help_request.id, limit=comments_per_page, offset=offset
+        db,
+        help_request_id=help_request.id,
+        limit=limit,
+        offset=offset,
     )
     attr_key = _signal_display_attr_key(help_request)
     display_names = _load_signal_display_names(db, comment_rows, attr_key)
-    comments = [
-        request_comment_service.serialize_comment(
+    insights_lookup = _build_comment_insights_lookup(help_request.id)
+    comments = []
+    visible_count = 0
+    for comment, author in comment_rows:
+        serialized_comment = request_comment_service.serialize_comment(
             comment,
             author,
             display_name=display_names.get(author.id),
         )
-        for comment, author in comment_rows
-    ]
+        metadata = insights_lookup.get(comment.id, {})
+        serialized_comment["insight_metadata"] = metadata
+        matches_filters = not filters_active or _matches_insight_filters(
+            serialized_comment,
+            active_insight_filters,
+        )
+        serialized_comment["matches_insight_filters"] = matches_filters
+        if matches_filters:
+            visible_count += 1
+            serialized_comment.pop("hidden_via_insight", None)
+        else:
+            serialized_comment["hidden_via_insight"] = True
+        comments.append(serialized_comment)
     comment_promotions = comment_request_promotion_service.get_promotions_for_comment_ids(
         db, [item["id"] for item in comments]
     )
@@ -1119,8 +1188,14 @@ def _build_request_detail_context(
     can_toggle_sync_scope = viewer.is_admin
 
     # Calculate pagination info
-    total_pages = max(1, (total_comments + comments_per_page - 1) // comments_per_page) if total_comments else 1
-    current_page = min(page, total_pages) if total_pages else 1
+    comment_total_count = total_comments
+    comment_visible_count = visible_count if filters_active else len(comments)
+    if filters_active:
+        total_pages = 1
+        current_page = 1
+    else:
+        total_pages = max(1, (total_comments + comments_per_page - 1) // comments_per_page) if total_comments else 1
+        current_page = min(page, total_pages) if total_pages else 1
     
     def _page_url(target_page: int) -> str:
         url = request.url.include_query_params(page=target_page)
@@ -1129,11 +1204,11 @@ def _build_request_detail_context(
     pagination = {
         "has_prev": current_page > 1,
         "has_next": current_page < total_pages,
-        "prev_url": _page_url(current_page - 1) if current_page > 1 else None,
-        "next_url": _page_url(current_page + 1) if current_page < total_pages else None,
+        "prev_url": None if filters_active else (_page_url(current_page - 1) if current_page > 1 else None),
+        "next_url": None if filters_active else (_page_url(current_page + 1) if current_page < total_pages else None),
         "current_page": current_page,
         "total_pages": total_pages,
-        "total_comments": total_comments,
+        "total_comments": comment_visible_count if filters_active else total_comments,
     }
 
     show_chat_search_panel = total_comments >= CHAT_SEARCH_MIN_COMMENTS
@@ -1175,6 +1250,8 @@ def _build_request_detail_context(
         related_chats = request_chat_suggestions.suggest_related_requests(db, help_request.id)
 
     comment_insights_summary = _build_request_comment_insights_summary(help_request.id)
+    comment_visible_count = visible_count if filters_active else len(comments)
+    comment_total_count = total_comments
 
     return {
         "request": request,
@@ -1196,6 +1273,10 @@ def _build_request_detail_context(
         "request_id": help_request.id,
         "comment_display_names": display_names,
         "comment_promotions": comment_promotions,
+        "insight_filters": active_insight_filters,
+        "insight_filters_active": filters_active,
+        "comment_visible_count": comment_visible_count,
+        "comment_total_count": comment_total_count,
         "pagination": pagination,
         "show_chat_search_panel": show_chat_search_panel,
         "chat_search": {
