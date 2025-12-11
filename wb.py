@@ -348,15 +348,37 @@ def cmd_profile_glaze(args: list[str]) -> int:
     return _run_process(cmd)
 
 
-def cmd_chat_index(args: list[str]) -> int:
+def cmd_chat(args: list[str]) -> int:
     parser = argparse.ArgumentParser(
-        prog="wb chat-index",
-        description="Rebuild request chat caches and optionally run LLM tagging",
+        prog="wb chat",
+        description="Chat/comment maintenance utilities",
     )
-    if not args or args[0] in {"-h", "--help", "help"}:
+    parser.add_argument("subcommand", nargs="?")
+    parser.add_argument("sub_args", nargs=argparse.REMAINDER)
+    ns = parser.parse_args(args[:1]) if args else argparse.Namespace(subcommand=None, sub_args=[])
+    if not args or ns.subcommand in {None, "-h", "--help", "help"}:
         parser.print_help()
+        print()
+        print("Subcommands:")
+        print("  index [opts]   Reindex request chats + optional LLM tagging")
+        print("  embed [opts]   Build semantic embeddings for request chats")
+        print("  llm [opts]     Plan or run batched comment processing via LLM")
         return 0
 
+    subcommand = ns.subcommand
+    sub_args = args[1:]
+    if subcommand == "index":
+        return cmd_chat_index(sub_args)
+    if subcommand == "embed":
+        return cmd_chat_embed(sub_args)
+    if subcommand in {"llm", "comment-llm"}:
+        return cmd_comment_llm(sub_args)
+    warn(f"Unknown chat subcommand '{subcommand}'.")
+    parser.print_help()
+    return 1
+
+
+def cmd_chat_index(args: list[str]) -> int:
     vpy = python_in_venv()
     if not vpy.exists():
         warn("Virtualenv missing. Run './wb setup' first.")
@@ -365,20 +387,18 @@ def cmd_chat_index(args: list[str]) -> int:
         warn("Dependencies missing. Run './wb setup' first.")
         return 1
 
-    cmd = [str(vpy), "-m", CHAT_INDEX_MODULE, *args]
+    passthrough = list(args)
+    if not passthrough:
+        passthrough = ["--help"]
+    elif passthrough[0] in {"-h", "--help", "help"}:
+        passthrough = ["--help", *passthrough[1:]]
+
+    cmd = [str(vpy), "-m", CHAT_INDEX_MODULE, *passthrough]
     info("Reindexing request chat caches")
     return _run_process(cmd)
 
 
 def cmd_chat_embed(args: list[str]) -> int:
-    parser = argparse.ArgumentParser(
-        prog="wb chat-embed",
-        description="Generate embedding caches for request chats",
-    )
-    if not args or args[0] in {"-h", "--help", "help"}:
-        parser.print_help()
-        return 0
-
     vpy = python_in_venv()
     if not vpy.exists():
         warn("Virtualenv missing. Run './wb setup' first.")
@@ -387,7 +407,13 @@ def cmd_chat_embed(args: list[str]) -> int:
         warn("Dependencies missing. Run './wb setup' first.")
         return 1
 
-    cmd = [str(vpy), "-m", CHAT_EMBED_MODULE, *args]
+    passthrough = list(args)
+    if not passthrough:
+        passthrough = ["--help"]
+    elif passthrough[0] in {"-h", "--help", "help"}:
+        passthrough = ["--help", *passthrough[1:]]
+
+    cmd = [str(vpy), "-m", CHAT_EMBED_MODULE, *passthrough]
     info("Generating semantic chat embeddings")
     return _run_process(cmd)
 
@@ -632,9 +658,7 @@ def print_help() -> None:
     print("  create-admin USER     Promote a user to admin")
     print("  create-invite [opts]  Generate invite tokens")
     print("  import-signal-group   Import a Signal Desktop group export (local seed)")
-    print("  chat-index [opts]     Reindex request chats + optional LLM tagging")
-    print("  chat-embed [opts]     Build semantic embeddings for request chats")
-    print("  comment-llm [opts]    Plan or run batched comment processing via LLM")
+    print("  chat <command>        Chat/comment utilities (index, embed, llm)")
     print("  profile-glaze [opts]  Analyze comments + glaze Signal bios in one shot")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
@@ -663,6 +687,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("session")
     subparsers.add_parser("dedalus")
     subparsers.add_parser("import-signal-group")
+    subparsers.add_parser("chat")
     subparsers.add_parser("chat-index")
     subparsers.add_parser("chat-embed")
     subparsers.add_parser("comment-llm")
@@ -704,6 +729,8 @@ def main(argv: list[str] | None = None) -> int:
     if ns.command == "signal-profile":
         return cmd_signal_profile(passthrough)
 
+    if ns.command == "chat":
+        return cmd_chat(passthrough)
     if ns.command == "chat-index":
         return cmd_chat_index(passthrough)
     if ns.command == "chat-embed":
