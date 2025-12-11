@@ -334,7 +334,11 @@
           {% include "requests/partials/comment.html" %}
         {% endfor %}
       </ul>
-      {% if pagination.total_pages > 1 %}
+      {% if insight_filters_active %}
+        <div class="request-comments__pagination">
+          <p class="muted small-text">Showing {{ comment_visible_count }} comment{{ 's' if comment_visible_count != 1 else '' }} matching the selected filters.</p>
+        </div>
+      {% elif pagination.total_pages > 1 %}
         <div class="request-comments__pagination">
           <p class="muted small-text">Showing page {{ pagination.current_page }} of {{ pagination.total_pages }} · {{ pagination.total_comments }} total comment{{ 's' if pagination.total_comments != 1 else '' }}</p>
           <div class="request-comments__pagination-actions">
@@ -352,6 +356,11 @@
         </div>
       {% endif %}
     {% else %}
+      {% if insight_filters_active %}
+        <div class="card">
+          <p class="muted">No comments match the selected insight filters.</p>
+        </div>
+      {% endif %}
       <ul class="request-comments__list" data-comment-list hidden></ul>
     {% endif %}
 

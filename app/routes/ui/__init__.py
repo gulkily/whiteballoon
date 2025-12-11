@@ -405,6 +405,10 @@ def _insight_filters_active(filters: dict[str, set[str]]) -> bool:
 
 def _matches_insight_filters(comment_payload: dict[str, object], filters: dict[str, set[str]]) -> bool:
     metadata = comment_payload.get("insight_metadata") or {}
+    return _insight_metadata_matches(metadata, filters)
+
+
+def _insight_metadata_matches(metadata: dict[str, object], filters: dict[str, set[str]]) -> bool:
     resource_tags = set(metadata.get("resource_tags") or [])
     request_tags = set(metadata.get("request_tags") or [])
     urgency = (metadata.get("urgency") or "").lower()
@@ -1157,6 +1161,19 @@ def _build_request_detail_context(
     attr_key = _signal_display_attr_key(help_request)
     display_names = _load_signal_display_names(db, comment_rows, attr_key)
     insights_lookup = _build_comment_insights_lookup(help_request.id)
+    matching_comment_ids: set[int] | None = None
+    if filters_active:
+        matching_comment_ids = {
+            comment_id
+            for comment_id, metadata in insights_lookup.items()
+            if _insight_metadata_matches(metadata, active_insight_filters)
+        }
+        if matching_comment_ids:
+            comment_rows = [row for row in comment_rows if row[0].id in matching_comment_ids]
+            total_comments = len(comment_rows)
+        else:
+            comment_rows = []
+            total_comments = 0
     comments = []
     visible_count = 0
     for comment, author in comment_rows:
@@ -1258,7 +1275,7 @@ def _build_request_detail_context(
         "next_url": None if filters_active else (_page_url(current_page + 1) if current_page < total_pages else None),
         "current_page": current_page,
         "total_pages": total_pages,
-        "total_comments": comment_visible_count if filters_active else total_comments,
+        "total_comments": comment_total_count,
     }
 
     show_chat_search_panel = total_comments >= CHAT_SEARCH_MIN_COMMENTS
@@ -1301,7 +1318,7 @@ def _build_request_detail_context(
 
     comment_insights_summary = _build_request_comment_insights_summary(help_request.id)
     comment_visible_count = visible_count if filters_active else len(comments)
-    comment_total_count = total_comments
+    comment_total_count = comment_visible_count if filters_active else total_comments
 
     return {
         "request": request,
