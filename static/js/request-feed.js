@@ -155,7 +155,10 @@
       return;
     }
 
-    const items = requests.map(renderRequestItem).join('');
+    const items = requests
+      .filter((entry) => !entry.is_pinned)
+      .map(renderRequestItem)
+      .join('');
     list.innerHTML = `<div class="requests-grid">${items}</div>`;
   }
 
@@ -187,9 +190,12 @@
       item.created_at,
     )}">${createdAt}</time></a>`;
 
-    const actions = buildRequestActions(item, requestUrl, canComplete);
+    const actions = buildRequestActions(item, requestUrl, canComplete, canPinRequests());
     const actionMenu = renderActionMenu(actions, 'Request actions');
     const actionBlock = actionMenu ? `<div class="request-meta__actions">${actionMenu}</div>` : '';
+    const pinBadge = item.is_pinned
+      ? '<span class="meta-chip meta-chip--pinned"><span class="meta-chip__label">Pinned</span><span class="meta-chip__value">Priority</span></span>'
+      : '';
 
     const statusSection = item.status === 'completed'
       ? `<span class="muted"${item.completed_at ? ` title="${escapeHtml(item.completed_at)}"` : ''}>Completed ${completedAt ?? 'recently'}</span>`
@@ -199,7 +205,7 @@
       ? `<span class="muted">Contact: ${escapeHtml(item.contact_email)}</span>`
       : '';
 
-    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__header">\n      <div class="request-meta__chips">\n        ${requesterChip}\n        ${statusChip}\n        ${timestampChip}\n      </div>\n      ${actionBlock}\n    </div>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${statusSection}\n    ${contactSection}\n  </footer>\n</article>`;
+    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__header">\n      <div class="request-meta__chips">\n        ${pinBadge}\n        ${requesterChip}\n        ${statusChip}\n        ${timestampChip}\n      </div>\n      ${actionBlock}\n    </div>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${statusSection}\n    ${contactSection}\n  </footer>\n</article>`;
   }
 
   function showForm(card) {
@@ -352,7 +358,12 @@
     }, 2000);
   }
 
-  function buildRequestActions(item, requestUrl, canComplete) {
+  function canPinRequests() {
+    const list = document.querySelector('[data-request-list]');
+    return list?.dataset.canPin === 'true';
+  }
+
+  function buildRequestActions(item, requestUrl, canComplete, allowPinning) {
     const actions = [];
     if (item.status !== 'completed' && canComplete) {
       actions.push({
@@ -376,6 +387,43 @@
       },
     });
 
+    if (allowPinning) {
+      const nextValue = window.location.pathname || '/';
+      if (item.is_pinned) {
+        actions.push({
+          type: 'form',
+          label: 'Unpin from main page',
+          href: `${requestUrl}/unpin`,
+          method: 'POST',
+          hiddenFields: [
+            { name: 'next', value: nextValue },
+          ],
+        });
+        ['up', 'down'].forEach((direction) => {
+          actions.push({
+            type: 'form',
+            label: `Move ${direction === 'up' ? 'up' : 'down'}`,
+            href: `${requestUrl}/pin/reorder`,
+            method: 'POST',
+            hiddenFields: [
+              { name: 'direction', value: direction },
+              { name: 'next', value: nextValue },
+            ],
+          });
+        });
+      } else {
+        actions.push({
+          type: 'form',
+          label: 'Pin to main page',
+          href: `${requestUrl}/pin`,
+          method: 'POST',
+          hiddenFields: [
+            { name: 'next', value: nextValue },
+          ],
+        });
+      }
+    }
+
     return actions;
   }
 
@@ -396,7 +444,8 @@
       const href = escapeHtml(action.href || '#');
       const formAttributes = renderAttributes(action.formAttributes);
       const buttonAttributes = renderAttributes(action.attributes);
-      return `<form method="${method}" action="${href}" class="action-menu__form"${formAttributes}>\n        <button type="submit" class="action-menu__item" role="menuitem"${buttonAttributes}>${icon}<span class="action-menu__label">${label}</span></button>\n      </form>`;
+      const hiddenFields = renderHiddenFields(action.hiddenFields);
+      return `<form method="${method}" action="${href}" class="action-menu__form"${formAttributes}>\n        ${hiddenFields}\n        <button type="submit" class="action-menu__item" role="menuitem"${buttonAttributes}>${icon}<span class="action-menu__label">${label}</span></button>\n      </form>`;
     }
     if (action.type === 'link' || action.href) {
       const href = escapeHtml(action.href || '#');
@@ -414,6 +463,22 @@
     return Object.entries(attributes)
       .filter(([, value]) => value !== undefined && value !== null)
       .map(([key, value]) => ` ${key}="${escapeHtml(String(value))}"`)
+      .join('');
+  }
+
+  function renderHiddenFields(fields) {
+    if (!Array.isArray(fields) || !fields.length) {
+      return '';
+    }
+    return fields
+      .map((field) => {
+        if (!field || !field.name) {
+          return '';
+        }
+        const name = escapeHtml(String(field.name));
+        const value = escapeHtml(String(field.value ?? ''));
+        return `<input type="hidden" name="${name}" value="${value}" />`;
+      })
       .join('');
   }
 })();

@@ -5,7 +5,7 @@ import math
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional, cast
 from urllib.parse import urlencode, urlparse
 from uuid import uuid4
 
@@ -30,6 +30,7 @@ from app.dependencies import (
     SessionUser,
     get_current_session,
     require_authenticated_user,
+    require_admin,
     require_session_user,
 )
 from app.models import (
@@ -51,6 +52,7 @@ from app.services import (
     invite_map_cache_service,
     request_chat_search_service,
     request_chat_suggestions,
+    request_pin_service,
     request_comment_service,
     signal_profile_snapshot_service,
     user_attribute_service,
@@ -119,6 +121,22 @@ def _infer_request_urgency(help_request: HelpRequest) -> str:
         if level["keywords"] and any(keyword in description for keyword in level["keywords"]):
             return level["slug"]
     return "flexible"
+
+
+def _resolve_redirect_target(next_url: Optional[str], fallback: str = "/") -> str:
+    if next_url and next_url.startswith("/"):
+        return next_url
+    if next_url:
+        parsed = urlparse(next_url)
+        if parsed.path:
+            return parsed.path
+    return fallback
+
+
+def _redirect_back(request: Request, next_url: Optional[str] = None) -> RedirectResponse:
+    fallback = request.headers.get("referer") or request.url.path
+    target = _resolve_redirect_target(next_url, fallback=fallback)
+    return RedirectResponse(url=target, status_code=status.HTTP_303_SEE_OTHER)
 
 
 def _matches_request_filters(
@@ -269,16 +287,24 @@ def _truncate_text(text: str, limit: int = 220) -> str:
     return f"{trimmed}..."
 
 
-def _serialize_requests(db: Session, items, viewer: Optional[User] = None):
+def _serialize_requests(
+    db: Session,
+    items,
+    viewer: Optional[User] = None,
+    pin_map: Optional[dict[int, request_pin_service.PinMetadata]] = None,
+):
     creator_usernames = request_services.load_creator_usernames(db, items)
     serialized = []
     for item in items:
         can_complete = calculate_can_complete(item, viewer) if viewer else False
+        pin_metadata = pin_map.get(item.id) if pin_map else None
         serialized.append(
             RequestResponse.from_model(
                 item,
                 created_by_username=creator_usernames.get(item.created_by_user_id),
                 can_complete=can_complete,
+                is_pinned=pin_metadata is not None,
+                pin_rank=pin_metadata.rank if pin_metadata else None,
             ).model_dump()
         )
     return serialized
@@ -551,7 +577,21 @@ def home(
         if _matches_request_filters(topics, urgency, help_request.status, topic_filters, urgency_filters, status_filters)
     ]
 
-    public_requests = _serialize_requests(db, filtered_objects, viewer=user)
+    pin_map = request_pin_service.get_pin_map(db)
+    public_requests = _serialize_requests(db, filtered_objects, viewer=user, pin_map=pin_map)
+    pinned_records = request_pin_service.list_pinned_requests(
+        db,
+        limit=config.get_settings().pinned_requests_limit,
+    )
+    pinned_ids = {record.request.id for record in pinned_records}
+    pinned_requests = _serialize_requests(
+        db,
+        [record.request for record in pinned_records],
+        viewer=user,
+        pin_map=pin_map,
+    )
+    if pinned_ids:
+        public_requests = [item for item in public_requests if item.get("id") not in pinned_ids]
 
     filter_options = {
         "topics": [],
@@ -600,6 +640,9 @@ def home(
         )
 
     reset_url = _build_reset_url(base_path, all_query_items)
+    filters_active = bool(topic_filters or urgency_filters or status_filters)
+    show_pinned_section = not filters_active
+    pinned_payload = pinned_requests if show_pinned_section else []
     return templates.TemplateResponse(
         "requests/index.html",
         {
@@ -618,6 +661,9 @@ def home(
                 "status": sorted(status_filters),
             },
             "filter_reset_url": reset_url,
+            "pinned_requests": pinned_payload,
+            "show_pinned_section": show_pinned_section,
+            "can_pin_requests": user.is_admin,
         },
     )
 
@@ -1079,10 +1125,14 @@ def _build_request_detail_context(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
     creator_usernames = request_services.load_creator_usernames(db, [help_request])
+    pin_map = request_pin_service.get_pin_map(db)
+    pin_meta = pin_map.get(help_request.id)
     serialized = RequestResponse.from_model(
         help_request,
         created_by_username=creator_usernames.get(help_request.created_by_user_id),
         can_complete=calculate_can_complete(help_request, viewer),
+        is_pinned=pin_meta is not None,
+        pin_rank=pin_meta.rank if pin_meta else None,
     )
 
     readonly = not session_record.is_fully_authenticated
@@ -1292,6 +1342,7 @@ def _build_request_detail_context(
         "comment_insights_map": comment_insights_map,
         "comment_insights_summary": comment_insights_summary,
         "promoted_comment_context": promoted_comment_context,
+        "can_pin_requests": viewer.is_admin,
     }
 
 
@@ -1795,6 +1846,57 @@ def complete_request(
 ):
     request_services.mark_completed(db, request_id=request_id, user=user)
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/requests/{request_id}/pin")
+def pin_request(
+    request_id: int,
+    request: Request,
+    db: SessionDep,
+    user: User = Depends(require_admin),
+    rank: Annotated[Optional[int], Form()] = None,
+    next: Annotated[Optional[str], Form()] = None,
+):
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    already_pinned = request_pin_service.request_is_pinned(db, request_id=request_id)
+    if not already_pinned:
+        request_pin_service.ensure_capacity(db)
+        request_pin_service.set_pin(db, request=help_request, actor=user, rank=rank)
+    elif rank is not None:
+        request_pin_service.update_pin_rank(db, request_id=request_id, new_rank=rank)
+    return _redirect_back(request, next)
+
+
+@router.post("/requests/{request_id}/unpin")
+def unpin_request(
+    request_id: int,
+    request: Request,
+    db: SessionDep,
+    user: User = Depends(require_admin),
+    next: Annotated[Optional[str], Form()] = None,
+):
+    # Ensure request exists even if attribute missing
+    request_services.get_request_by_id(db, request_id=request_id)
+    request_pin_service.clear_pin(db, request_id=request_id)
+    return _redirect_back(request, next)
+
+
+@router.post("/requests/{request_id}/pin/reorder")
+def reorder_pinned_request(
+    request_id: int,
+    request: Request,
+    direction: Annotated[str, Form()],
+    db: SessionDep,
+    user: User = Depends(require_admin),
+    next: Annotated[Optional[str], Form()] = None,
+):
+    direction_value = direction.lower()
+    if direction_value not in {"up", "down"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid direction")
+    request_services.get_request_by_id(db, request_id=request_id)
+    literal_direction = cast(Literal["up", "down"], direction_value)
+    request_pin_service.shift_pin(db, request_id=request_id, direction=literal_direction)
+    return _redirect_back(request, next)
 
 
 def _build_request_browse_conditions(

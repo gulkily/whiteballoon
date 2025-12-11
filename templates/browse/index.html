@@ -147,7 +147,7 @@
             <div class="stack">
               {% for item in requests_page['items'] %}
                 <article class="browse-request">
-                  {% with item = item, readonly = True, show_detail_link = True %}
+                  {% with item = item, readonly = True, show_detail_link = True, can_pin_requests = viewer_is_admin %}
                     {% include "requests/partials/item.html" %}
                   {% endwith %}
                   {% set badges = requests_page.topics.get(item.id) %}

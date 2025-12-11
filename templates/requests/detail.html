@@ -67,6 +67,7 @@
     {% set item = request_item %}
     {% set show_detail_link = False %}
     {% set show_meta = False %}
+    {% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
     <div class="request-detail">
       {% include "requests/partials/item.html" %}
     </div>

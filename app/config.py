@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Tuple
+from typing import Optional, Tuple
 
 from app.env import ensure_env_loaded
 
@@ -47,6 +47,7 @@ class Settings:
     dedalus_log_retention_days: int = int(os.getenv("DEDALUS_LOG_RETENTION_DAYS", "30"))
     comment_insights_indicator_enabled: bool = _get_bool(os.getenv("COMMENT_INSIGHTS_INDICATOR"), False)
     profile_signal_glaze_enabled: bool = _get_bool(os.getenv("PROFILE_SIGNAL_GLAZE"), False)
+    pinned_requests_limit: int = int(os.getenv("WB_PINNED_REQUESTS_LIMIT", "3"))
 
 
 @lru_cache(maxsize=1)

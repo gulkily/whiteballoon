@@ -66,6 +66,7 @@ COOKIE_SECURE=false                 # Set true in production
 # Optional features
 ENABLE_CONTACT_EMAIL=true           # Allow users to store a contact email
 COMMENT_INSIGHTS_INDICATOR=false    # Show LLM insight badges inline (admin-only, default off)
+WB_PINNED_REQUESTS_LIMIT=3          # Max number of pinned requests shown above the feed
 ```
 
 ## Module Playbook (High-Level)

@@ -9,6 +9,7 @@
 {% block content %}
 {% set readonly = readonly if readonly is defined else False %}
 {% set session = session if session is defined else None %}
+{% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
 <section class="section request-list-layout">
   <div class="request-list__filter">
     {% include "requests/partials/filter_bar.html" %}
@@ -66,7 +67,19 @@
     </noscript>
   </div>
 
-  <div id="request-list" data-request-list data-readonly="{{ 'true' if readonly else 'false' }}">
+  {% if pinned_requests %}
+    <section class="card pinned-requests" aria-label="Pinned requests">
+      <div class="pinned-requests__grid">
+        {% for pinned in pinned_requests %}
+          {% with show_pin_badge = True, item = pinned %}
+            {% include "requests/partials/item.html" %}
+          {% endwith %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <div id="request-list" data-request-list data-readonly="{{ 'true' if readonly else 'false' }}" data-can-pin="{{ 'true' if can_pin_requests else 'false' }}">
     {% include "requests/partials/list.html" %}
   </div>
   </div>

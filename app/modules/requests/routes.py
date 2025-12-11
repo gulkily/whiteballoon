@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.dependencies import SessionDep, SessionUser, require_authenticated_user, require_session_user
 from app.models import HelpRequest, User
 from app.modules.requests import services
+from app.services import request_pin_service
 
 router = APIRouter(prefix="/api/requests", tags=["requests"])
 
@@ -29,6 +30,8 @@ class RequestResponse(BaseModel):
     completed_at: str | None
     can_complete: bool = False
     sync_scope: str = "private"
+    is_pinned: bool = False
+    pin_rank: int | None = None
 
     @classmethod
     def from_model(
@@ -37,6 +40,8 @@ class RequestResponse(BaseModel):
         *,
         created_by_username: str | None = None,
         can_complete: bool = False,
+        is_pinned: bool = False,
+        pin_rank: int | None = None,
     ) -> "RequestResponse":
         return cls(
             id=request.id,
@@ -50,6 +55,8 @@ class RequestResponse(BaseModel):
             completed_at=request.completed_at.isoformat() + "Z" if request.completed_at else None,
             can_complete=can_complete,
             sync_scope=getattr(request, "sync_scope", "private"),
+            is_pinned=is_pinned,
+            pin_rank=pin_rank,
         )
 
 
@@ -65,11 +72,14 @@ def calculate_can_complete(help_request: HelpRequest, user: User) -> bool:
 def list_requests(db: SessionDep, session_user: SessionUser = Depends(require_session_user)) -> List[RequestResponse]:
     requests = services.list_requests(db)
     creator_usernames = services.load_creator_usernames(db, requests)
+    pin_map = request_pin_service.get_pin_map(db)
     return [
         RequestResponse.from_model(
             item,
             created_by_username=creator_usernames.get(item.created_by_user_id),
             can_complete=calculate_can_complete(item, session_user.user),
+            is_pinned=item.id in pin_map,
+            pin_rank=pin_map.get(item.id).rank if item.id in pin_map else None,
         )
         for item in requests
     ]

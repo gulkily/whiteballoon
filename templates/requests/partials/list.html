@@ -1,4 +1,5 @@
 {% set readonly = readonly if readonly is defined else False %}
+{% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
 {% if requests %}
   <div class="requests-grid">
     {% for item in requests %}

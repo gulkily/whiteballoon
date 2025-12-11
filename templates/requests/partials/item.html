@@ -8,6 +8,9 @@
 {% set show_meta = show_meta if show_meta is defined else True %}
 {% set requester_value = request_icon ~ ' ' ~ (creator_username if has_creator_link else creator_name) %}
 {% set request_url = '/requests/' ~ item.id %}
+{% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
+{% set display_pin_badge = show_pin_badge if show_pin_badge is defined else (item.is_pinned | default(false)) %}
+{% set current_path = request.url.path if request is defined else '/' %}
 {% set menu_actions = namespace(items=[]) %}
 {% if not readonly and item.status != 'completed' and can_complete %}
   {% set _ = menu_actions.items.append({
@@ -27,11 +30,56 @@
     'data-request-copy-label': 'Request #' ~ item.id
   }
 }) %}
+{% if can_pin_requests %}
+  {% if item.is_pinned | default(false) %}
+    {% set _ = menu_actions.items.append({
+      'label': 'Unpin from main page',
+      'href': request_url ~ '/unpin',
+      'method': 'POST',
+      'hidden_fields': [
+        {'name': 'next', 'value': current_path}
+      ]
+    }) %}
+    {% set _ = menu_actions.items.append({
+      'label': 'Move up',
+      'href': request_url ~ '/pin/reorder',
+      'method': 'POST',
+      'hidden_fields': [
+        {'name': 'direction', 'value': 'up'},
+        {'name': 'next', 'value': current_path}
+      ]
+    }) %}
+    {% set _ = menu_actions.items.append({
+      'label': 'Move down',
+      'href': request_url ~ '/pin/reorder',
+      'method': 'POST',
+      'hidden_fields': [
+        {'name': 'direction', 'value': 'down'},
+        {'name': 'next', 'value': current_path}
+      ]
+    }) %}
+  {% else %}
+    {% set _ = menu_actions.items.append({
+      'label': 'Pin to main page',
+      'href': request_url ~ '/pin',
+      'method': 'POST',
+      'hidden_fields': [
+        {'name': 'next', 'value': current_path}
+      ]
+    }) %}
+  {% endif %}
+{% endif %}
 <article class="request-item">
   {% if show_meta %}
     <header class="request-meta">
       <div class="request-meta__header">
         <div class="request-meta__chips">
+          {% if display_pin_badge %}
+            <span class="meta-chip meta-chip--pinned">
+              <span class="meta-chip__label">Pinned</span>
+              <span class="meta-chip__value">Priority</span>
+            </span>
+          {% endif %}
           <span class="meta-chip meta-chip--requester">
             <span class="meta-chip__label">Requester</span>
             {% if has_creator_link %}
