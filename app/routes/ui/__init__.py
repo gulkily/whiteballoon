@@ -668,6 +668,7 @@ def home(
             "pinned_requests": pinned_payload,
             "show_pinned_section": show_pinned_section,
             "can_pin_requests": user.is_admin,
+            "pinned_request_count": len(pinned_payload),
         },
     )
 

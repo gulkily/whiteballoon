@@ -40,24 +40,26 @@
         {'name': 'next', 'value': current_path}
       ]
     }) %}
-    {% set _ = menu_actions.items.append({
-      'label': 'Move up',
-      'href': request_url ~ '/pin/reorder',
-      'method': 'POST',
-      'hidden_fields': [
-        {'name': 'direction', 'value': 'up'},
-        {'name': 'next', 'value': current_path}
-      ]
-    }) %}
-    {% set _ = menu_actions.items.append({
-      'label': 'Move down',
-      'href': request_url ~ '/pin/reorder',
-      'method': 'POST',
-      'hidden_fields': [
-        {'name': 'direction', 'value': 'down'},
-        {'name': 'next', 'value': current_path}
-      ]
-    }) %}
+    {% if pinned_request_count | default(0) > 1 %}
+      {% set _ = menu_actions.items.append({
+        'label': 'Move up',
+        'href': request_url ~ '/pin/reorder',
+        'method': 'POST',
+        'hidden_fields': [
+          {'name': 'direction', 'value': 'up'},
+          {'name': 'next', 'value': current_path}
+        ]
+      }) %}
+      {% set _ = menu_actions.items.append({
+        'label': 'Move down',
+        'href': request_url ~ '/pin/reorder',
+        'method': 'POST',
+        'hidden_fields': [
+          {'name': 'direction', 'value': 'down'},
+          {'name': 'next', 'value': current_path}
+        ]
+      }) %}
+    {% endif %}
   {% else %}
     {% set _ = menu_actions.items.append({
       'label': 'Pin to main page',
