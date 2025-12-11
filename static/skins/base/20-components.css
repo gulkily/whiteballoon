@@ -198,6 +198,112 @@
   color: var(--color-danger);
 }
 
+/* Action menu */
+.action-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.action-menu__trigger {
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-muted);
+  border-radius: 999px;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.action-menu__trigger:hover,
+.action-menu__trigger:focus-visible {
+  border-color: color-mix(in srgb, var(--color-border) 60%, var(--color-text) 40%);
+  color: var(--color-text);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-border) 40%, transparent);
+}
+
+.action-menu__trigger:focus-visible {
+  outline: none;
+}
+
+.action-menu__trigger-icon {
+  line-height: 1;
+}
+
+.action-menu__list {
+  position: absolute;
+  left: calc(100% + 0.4rem);
+  top: 0;
+  min-width: 11rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-panel, var(--color-card));
+  box-shadow: var(--shadow-lg);
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  z-index: 20;
+}
+
+.action-menu__form {
+  margin: 0;
+}
+
+.action-menu__item {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+  transition: background 0.2s ease, color 0.2s ease;
+  cursor: pointer;
+}
+
+.action-menu__item:hover,
+.action-menu__item:focus-visible {
+  background: color-mix(in srgb, var(--color-surface) 80%, var(--color-border) 20%);
+  color: var(--color-text);
+  outline: none;
+}
+
+.action-menu__icon {
+  font-size: 0.9em;
+  opacity: 0.75;
+}
+
+.action-menu__label {
+  flex: 1;
+}
+
+.action-menu__item[data-copied="true"]::after {
+  content: 'Copied!';
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--color-success);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.js [data-action-menu-panel] {
+  display: none;
+}
+
+.js .action-menu--open [data-action-menu-panel] {
+  display: flex;
+}
+
 .realtime-status__message {
   margin: 0;
   font-size: var(--font-size-sm);

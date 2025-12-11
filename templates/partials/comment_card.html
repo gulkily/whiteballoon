@@ -6,6 +6,7 @@
 {% if variant == 'request' %}
 {% set matches_filters = comment.matches_insight_filters | default(true) %}
 {% set insight_metadata = comment.insight_metadata | default({}) %}
+{% set menu_actions = actions if actions is defined else [] %}
 <li
   class="request-comment"
   data-comment-id="{{ comment.id }}"
@@ -37,10 +38,12 @@
           <time datetime="{{ comment.created_at_iso }}" class="request-comment__time">{{ comment.created_at | friendly_time }}</time>
         {% endif %}
       {% endif %}
-      {% if actions %}
-        {% for action in actions %}
-          {{ action | safe }}
-        {% endfor %}
+      {% if menu_actions %}
+        <div class="request-comment__actions">
+          {% with actions = menu_actions, trigger_label = 'Comment actions' %}
+            {% include "partials/action_menu.html" %}
+          {% endwith %}
+        </div>
       {% endif %}
     </div>
   </div>

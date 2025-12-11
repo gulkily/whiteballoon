@@ -7,45 +7,76 @@
 {% set show_detail_link = show_detail_link if show_detail_link is defined else True %}
 {% set show_meta = show_meta if show_meta is defined else True %}
 {% set requester_value = request_icon ~ ' ' ~ (creator_username if has_creator_link else creator_name) %}
+{% set request_url = '/requests/' ~ item.id %}
+{% set menu_actions = namespace(items=[]) %}
+{% if not readonly and item.status != 'completed' and can_complete %}
+  {% set _ = menu_actions.items.append({
+    'label': 'Mark completed',
+    'href': request_url ~ '/complete',
+    'method': 'POST',
+    'form_attributes': {
+      'data-request-complete': '',
+      'data-request-id': item.id
+    }
+  }) %}
+{% endif %}
+{% set _ = menu_actions.items.append({
+  'label': 'Copy link',
+  'attributes': {
+    'data-request-copy-link': request_url,
+    'data-request-copy-label': 'Request #' ~ item.id
+  }
+}) %}
 <article class="request-item">
   {% if show_meta %}
     <header class="request-meta">
-      <div class="request-meta__chips">
-        <span class="meta-chip meta-chip--requester">
-          <span class="meta-chip__label">Requester</span>
-          {% if has_creator_link %}
-            <a class="meta-chip__value meta-chip__value--link" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ requester_value }}</a>
-          {% else %}
-            <span class="meta-chip__value">{{ requester_value }}</span>
-          {% endif %}
-        </span>
-        <span class="meta-chip meta-chip--status">
-          <span class="meta-chip__label">Status</span>
-          <span class="meta-chip__value">{{ item.status|title }}</span>
-        </span>
-        {% if show_detail_link %}
-          <a class="meta-chip meta-chip--timestamp" href="/requests/{{ item.id }}" title="View request details">
-            <span class="meta-chip__label">Updated</span>
-            <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
-          </a>
-        {% else %}
-          <span class="meta-chip meta-chip--timestamp">
-            <span class="meta-chip__label">Updated</span>
-            <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+      <div class="request-meta__header">
+        <div class="request-meta__chips">
+          <span class="meta-chip meta-chip--requester">
+            <span class="meta-chip__label">Requester</span>
+            {% if has_creator_link %}
+              <a class="meta-chip__value meta-chip__value--link" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ requester_value }}</a>
+            {% else %}
+              <span class="meta-chip__value">{{ requester_value }}</span>
+            {% endif %}
           </span>
+          <span class="meta-chip meta-chip--status">
+            <span class="meta-chip__label">Status</span>
+            <span class="meta-chip__value">{{ item.status|title }}</span>
+          </span>
+          {% if show_detail_link %}
+            <a class="meta-chip meta-chip--timestamp" href="{{ request_url }}" title="View request details">
+              <span class="meta-chip__label">Updated</span>
+              <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+            </a>
+          {% else %}
+            <span class="meta-chip meta-chip--timestamp">
+              <span class="meta-chip__label">Updated</span>
+              <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+            </span>
+          {% endif %}
+        </div>
+        {% if menu_actions.items %}
+          <div class="request-meta__actions">
+            {% with actions = menu_actions.items, trigger_label = 'Request actions' %}
+              {% include "partials/action_menu.html" %}
+            {% endwith %}
+          </div>
         {% endif %}
       </div>
     </header>
+  {% elif menu_actions.items %}
+    <div class="request-meta__actions request-meta__actions--standalone">
+      {% with actions = menu_actions.items, trigger_label = 'Request actions' %}
+        {% include "partials/action_menu.html" %}
+      {% endwith %}
+    </div>
   {% endif %}
   <div>
     <p>{{ item.description or 'No additional details.' }}</p>
   </div>
   <footer class="actions">
-    {% if not readonly and item.status != 'completed' and can_complete %}
-      <form method='post' action='/requests/{{ item.id }}/complete' data-request-complete data-request-id='{{ item.id }}' class='inline'>
-        <button type='submit' class='button'>Mark completed</button>
-      </form>
-    {% elif item.status == 'completed' %}
+    {% if item.status == 'completed' %}
       <span class="muted"{% if item.completed_at %} title="{{ item.completed_at }}"{% endif %}>Completed {{ item.completed_at | friendly_time or 'recently' }}</span>
     {% endif %}
     {% if item.contact_email %}

@@ -13,7 +13,7 @@
   display: grid;
   gap: 0.85rem;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .request-item p {
@@ -29,6 +29,7 @@
   inset: -60% 50% 60% -30%;
   background: radial-gradient(circle at 0 50%, rgba(255, 255, 255, 0.25), transparent 65%);
   opacity: 0.35;
+  pointer-events: none;
 }
 
 .request-item:hover,
@@ -41,6 +42,24 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+}
+
+.request-meta__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.request-meta__actions {
+  display: flex;
+  align-items: center;
+}
+
+.request-meta__actions--standalone {
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
 }
 
 .request-meta__chips {
@@ -319,6 +338,12 @@
   gap: 0.5rem;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.request-comment__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
 }
 
 .request-comment__author {

@@ -5,6 +5,7 @@
     document.querySelectorAll('[data-request-card]').forEach((card) => setupForm(card));
     document.querySelectorAll('[data-request-list]').forEach((list) => setupList(list));
   });
+  document.addEventListener('click', handleCopyLinkClick);
 
   function setupForm(card) {
     const form = card.querySelector('[data-request-form]');
@@ -159,6 +160,7 @@
   }
 
   function renderRequestItem(item) {
+    const requestUrl = `/requests/${item.id}`;
     const createdAt = formatDate(item.created_at);
     const completedAt = item.completed_at ? formatDate(item.completed_at) : null;
     const canComplete = Boolean(item.can_complete);
@@ -181,22 +183,23 @@
       item.status,
     )}</span></span>`;
 
-    const timestampChip = `<a class="meta-chip meta-chip--timestamp" href="/requests/${item.id}" title="View request details"><span class="meta-chip__label">Updated</span><time class="meta-chip__value" datetime="${escapeHtml(
+    const timestampChip = `<a class="meta-chip meta-chip--timestamp" href="${escapeHtml(requestUrl)}" title="View request details"><span class="meta-chip__label">Updated</span><time class="meta-chip__value" datetime="${escapeHtml(
       item.created_at,
     )}">${createdAt}</time></a>`;
 
-    let completeSection = '';
-    if (item.status === 'completed') {
-      completeSection = `<span class="muted">Completed ${completedAt ?? 'recently'}</span>`;
-    } else if (canComplete) {
-      completeSection = `<form method="post" action="/requests/${item.id}/complete" data-request-complete data-request-id="${item.id}" class="inline">\n        <button type="submit" class="button">Mark completed</button>\n      </form>`;
-    }
+    const actions = buildRequestActions(item, requestUrl, canComplete);
+    const actionMenu = renderActionMenu(actions, 'Request actions');
+    const actionBlock = actionMenu ? `<div class="request-meta__actions">${actionMenu}</div>` : '';
+
+    const statusSection = item.status === 'completed'
+      ? `<span class="muted"${item.completed_at ? ` title="${escapeHtml(item.completed_at)}"` : ''}>Completed ${completedAt ?? 'recently'}</span>`
+      : '';
 
     const contactSection = item.contact_email
       ? `<span class="muted">Contact: ${escapeHtml(item.contact_email)}</span>`
       : '';
 
-    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__chips">\n      ${requesterChip}\n      ${statusChip}\n      ${timestampChip}\n    </div>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${completeSection}\n    ${contactSection}\n  </footer>\n</article>`;
+    return `<article class="request-item">\n  <header class="request-meta">\n    <div class="request-meta__header">\n      <div class="request-meta__chips">\n        ${requesterChip}\n        ${statusChip}\n        ${timestampChip}\n      </div>\n      ${actionBlock}\n    </div>\n  </header>\n  <div>\n    <p>${escapeHtml(item.description || 'No additional details.')}</p>\n  </div>\n  <footer class="actions">\n    ${statusSection}\n    ${contactSection}\n  </footer>\n</article>`;
   }
 
   function showForm(card) {
@@ -248,6 +251,13 @@
     }
   }
 
+  function showCopyFeedback(message) {
+    const card = document.querySelector('[data-request-card][data-readonly="false"]');
+    if (card) {
+      showStatus(card, message, 'info');
+    }
+  }
+
   async function safeParseJson(response) {
     try {
       return await response.clone().json();
@@ -287,5 +297,123 @@
       return '';
     }
     return value.charAt(0).toUpperCase() + value.slice(1);
+  }
+
+  function handleCopyLinkClick(event) {
+    const target = event.target instanceof Element ? event.target.closest('[data-request-copy-link]') : null;
+    if (!target) {
+      return;
+    }
+    event.preventDefault();
+    copyRequestLink(target);
+  }
+
+  async function copyRequestLink(target) {
+    const relativeUrl = target.getAttribute('data-request-copy-link');
+    if (!relativeUrl) {
+      return;
+    }
+    const absoluteUrl = new URL(relativeUrl, window.location.origin).toString();
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(absoluteUrl);
+      } else {
+        fallbackCopy(absoluteUrl);
+      }
+      indicateCopySuccess(target);
+    } catch (error) {
+      try {
+        fallbackCopy(absoluteUrl);
+        indicateCopySuccess(target);
+      } catch (fallbackError) {
+        console.error('Unable to copy request link.', fallbackError);
+        showGlobalMessage('Unable to copy link. Please copy manually.');
+      }
+    }
+  }
+
+  function fallbackCopy(value) {
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', 'true');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+
+  function indicateCopySuccess(target) {
+    target.setAttribute('data-copied', 'true');
+    showCopyFeedback('Link copied to clipboard.');
+    window.setTimeout(() => {
+      target.removeAttribute('data-copied');
+    }, 2000);
+  }
+
+  function buildRequestActions(item, requestUrl, canComplete) {
+    const actions = [];
+    if (item.status !== 'completed' && canComplete) {
+      actions.push({
+        type: 'form',
+        label: 'Mark completed',
+        href: `${requestUrl}/complete`,
+        method: 'POST',
+        formAttributes: {
+          'data-request-complete': '',
+          'data-request-id': item.id,
+        },
+      });
+    }
+
+    actions.push({
+      type: 'button',
+      label: 'Copy link',
+      attributes: {
+        'data-request-copy-link': requestUrl,
+        'data-request-copy-label': `Request #${item.id}`,
+      },
+    });
+
+    return actions;
+  }
+
+  function renderActionMenu(actions, triggerLabel) {
+    if (!actions.length) {
+      return '';
+    }
+    const label = escapeHtml(triggerLabel || 'Actions');
+    const items = actions.map(renderActionMenuItem).join('');
+    return `<div class="action-menu" data-action-menu>\n      <button type="button" class="action-menu__trigger" data-action-menu-trigger aria-haspopup="true" aria-expanded="false" aria-label="${label}">\n        <span class="action-menu__trigger-icon" aria-hidden="true">⋯</span>\n        <span class="sr-only">${label}</span>\n      </button>\n      <div class="action-menu__list" role="menu" data-action-menu-panel>\n        ${items}\n      </div>\n    </div>`;
+  }
+
+  function renderActionMenuItem(action) {
+    const label = escapeHtml(action.label || 'Action');
+    const icon = action.icon ? `<span class="action-menu__icon" aria-hidden="true">${escapeHtml(action.icon)}</span>` : '';
+    if (action.type === 'form') {
+      const method = escapeHtml(String(action.method || 'post').toLowerCase());
+      const href = escapeHtml(action.href || '#');
+      const formAttributes = renderAttributes(action.formAttributes);
+      const buttonAttributes = renderAttributes(action.attributes);
+      return `<form method="${method}" action="${href}" class="action-menu__form"${formAttributes}>\n        <button type="submit" class="action-menu__item" role="menuitem"${buttonAttributes}>${icon}<span class="action-menu__label">${label}</span></button>\n      </form>`;
+    }
+    if (action.type === 'link' || action.href) {
+      const href = escapeHtml(action.href || '#');
+      const targetAttr = action.target ? ` target="${escapeHtml(action.target)}"` : '';
+      const relAttr = action.rel ? ` rel="${escapeHtml(action.rel)}"` : '';
+      return `<a href="${href}" class="action-menu__item" role="menuitem"${targetAttr}${relAttr}${renderAttributes(action.attributes)}>${icon}<span class="action-menu__label">${label}</span></a>`;
+    }
+    return `<button type="button" class="action-menu__item" role="menuitem"${renderAttributes(action.attributes)}>${icon}<span class="action-menu__label">${label}</span></button>`;
+  }
+
+  function renderAttributes(attributes) {
+    if (!attributes) {
+      return '';
+    }
+    return Object.entries(attributes)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => ` ${key}="${escapeHtml(String(value))}"`)
+      .join('');
   }
 })();
