@@ -361,6 +361,24 @@
   letter-spacing: 0.05em;
 }
 
+.request-comment__context {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--color-border-muted);
+  display: grid;
+  gap: 0.25rem;
+}
+
+.request-comment__context-link {
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.request-comment__context-link:hover,
+.request-comment__context-link:focus-visible {
+  color: var(--color-accent);
+}
+
 .sync-scope-toggle {
   display: inline-flex;
   align-items: center;
