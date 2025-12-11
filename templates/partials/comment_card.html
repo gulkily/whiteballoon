@@ -5,12 +5,13 @@
 {% set comment_permalink_href = comment_permalink_href | default('') %}
 {% if variant == 'request' %}
 {% set matches_filters = comment.matches_insight_filters | default(true) %}
+{% set insight_metadata = comment.insight_metadata | default({}) %}
 <li
   class="request-comment"
   data-comment-id="{{ comment.id }}"
   data-comment-username="{{ comment.username }}"
   data-comment-display-name="{{ display_name }}"
-  data-comment-insight='{{ comment.insight_metadata | tojson | e }}'
+  data-comment-insight='{{ insight_metadata | tojson | e }}'
   {% if promotion_target %}data-comment-promoted-request="{{ promotion_target.request_id }}"{% endif %}
   {% if promotion_count %}data-comment-promotion-count="{{ promotion_count }}"{% endif %}
   id="comment-{{ comment.id }}"
