@@ -8,7 +8,7 @@
 
   function init() {
     const card = document.querySelector('[data-insight-card]');
-    if (!card) {
+    if (!card || card.dataset.insightServer === 'true') {
       return;
     }
 

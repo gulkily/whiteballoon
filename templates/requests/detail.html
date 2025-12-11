@@ -75,7 +75,7 @@
 </section>
 
 {% if comment_insights_summary %}
-<section class="section comment-insights-section" data-insight-card>
+<section class="section comment-insights-section">
   <article class="card stack comment-insights-card">
     <header class="stack">
       <p class="muted small-text">Comment insights</p>
@@ -86,7 +86,7 @@
             Showing {{ comment_visible_count }} of {{ comment_total_count }}
           {% endif %}
         </span>
-        <button class="button button--ghost button--small" data-insight-reset>Reset</button>
+        <a class="button button--ghost button--small" href="{{ insight_reset_url }}">Reset</a>
       </div>
     </header>
     <div class="comment-insights-card__groups">
@@ -449,7 +449,6 @@
 <script src="/static/js/request-comments.js" defer></script>
 <script src="/static/js/request-chat-search.js" defer></script>
 <script src="/static/js/comment-insight-badges.js" defer></script>
-<script src="/static/js/comment-insight-filters.js" defer></script>
 {% if can_promote_comments %}
 <script src="/static/js/comment-promotion.js" defer></script>
 {% endif %}

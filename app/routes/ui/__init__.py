@@ -1169,7 +1169,13 @@ def _build_request_detail_context(
             if _insight_metadata_matches(metadata, active_insight_filters)
         }
         if matching_comment_ids:
-            comment_rows = [row for row in comment_rows if row[0].id in matching_comment_ids]
+            stmt = (
+                select(RequestComment, User)
+                .join(User, User.id == RequestComment.user_id)
+                .where(RequestComment.id.in_(matching_comment_ids))
+                .order_by(RequestComment.created_at.desc())
+            )
+            comment_rows = list(db.exec(stmt).all())
             total_comments = len(comment_rows)
         else:
             comment_rows = []
@@ -1269,12 +1275,12 @@ def _build_request_detail_context(
         return str(url)
     
     pagination = {
-        "has_prev": current_page > 1,
-        "has_next": current_page < total_pages,
+        "has_prev": False if filters_active else current_page > 1,
+        "has_next": False if filters_active else current_page < total_pages,
         "prev_url": None if filters_active else (_page_url(current_page - 1) if current_page > 1 else None),
         "next_url": None if filters_active else (_page_url(current_page + 1) if current_page < total_pages else None),
-        "current_page": current_page,
-        "total_pages": total_pages,
+        "current_page": 1 if filters_active else current_page,
+        "total_pages": 1 if filters_active else total_pages,
         "total_comments": comment_total_count,
     }
 
@@ -1320,6 +1326,10 @@ def _build_request_detail_context(
     comment_visible_count = visible_count if filters_active else len(comments)
     comment_total_count = comment_visible_count if filters_active else total_comments
 
+    insight_reset_url = request.url
+    for param in ("insight_resource", "insight_request", "insight_urgency", "insight_sentiment"):
+        insight_reset_url = insight_reset_url.remove_query_params(param)
+
     return {
         "request": request,
         "user": viewer,
@@ -1360,6 +1370,7 @@ def _build_request_detail_context(
         "comment_insights_summary": comment_insights_summary,
         "promoted_comment_context": promoted_comment_context,
         "can_pin_requests": viewer.is_admin,
+        "insight_reset_url": str(insight_reset_url),
     }
 
 
