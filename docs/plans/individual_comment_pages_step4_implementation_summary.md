@@ -15,3 +15,8 @@
 - Pass `/comments/{id}` permalinks into every request-context comment list (request detail + browse tab + the detail page itself) so the card shows a “Permalink” link alongside other meta actions.
 - Swapped legacy `#/comment-id` anchors for the new permalink across moderation/Admin Sync/S comment tables and the combined feed, ensuring every “View comment” action opens the standalone page.
 - Verification: Clicked “Permalink” from a request thread, `/browse?type=comments`, the admin insights table, and the Sync dashboard, confirming each route now resolves to `/comments/{id}` with correct permissions.
+
+## Stage 4 – Promoted-comment insight panel
+- Extended `_build_request_detail_context` to detect `CommentPromotion` records per request and load the source comment plus its LLM insight so the data is available to all viewers.
+- Added a “Derived from comment” card on `templates/requests/detail.html` showing the original comment, summary, tags, and urgency/sentiment meta chips with a link to `/comments/{id}`. Styled via new `.promoted-comment-*` rules.
+- Verification: Promoted a comment locally, opened the resulting request as admin and regular member to ensure the panel renders with insight data; confirmed non-promoted requests show no panel.

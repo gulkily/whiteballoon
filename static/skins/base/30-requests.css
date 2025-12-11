@@ -421,6 +421,51 @@
   justify-content: flex-end;
 }
 
+.promoted-comment-section {
+  padding-top: 0;
+}
+
+.promoted-comment-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.promoted-comment-card__body {
+  background: var(--color-card-muted, rgba(148, 163, 184, 0.1));
+  padding: 0.75rem;
+  border-radius: var(--radius-md, 12px);
+}
+
+.promoted-comment-card__insight {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.promoted-comment-card__summary {
+  margin: 0;
+  font-weight: 600;
+}
+
+.promoted-comment-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.promoted-comment-card__tag-group {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.promoted-comment-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .sync-scope-toggle {
   display: inline-flex;
   align-items: center;

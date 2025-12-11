@@ -32,7 +32,15 @@ from app.dependencies import (
     require_authenticated_user,
     require_session_user,
 )
-from app.models import AuthenticationRequest, HelpRequest, RequestComment, User, UserAttribute, UserSession
+from app.models import (
+    AuthenticationRequest,
+    CommentPromotion,
+    HelpRequest,
+    RequestComment,
+    User,
+    UserAttribute,
+    UserSession,
+)
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
@@ -990,6 +998,31 @@ def _build_request_detail_context(
     settings = config.get_settings()
     show_comment_insights = settings.comment_insights_indicator_enabled and viewer.is_admin
     comment_insights_map: dict[int, dict[str, object]] = {}
+    promoted_comment_context: Optional[dict[str, object]] = None
+    promotion = db.exec(
+        select(CommentPromotion).where(CommentPromotion.request_id == help_request.id)
+    ).first()
+    if promotion:
+        source_comment = db.get(RequestComment, promotion.comment_id)
+        if source_comment:
+            source_author = db.get(User, source_comment.user_id)
+            if source_author:
+                insight = comment_llm_insights_service.get_analysis_by_comment_id(source_comment.id)
+                display_name_map = _load_signal_display_names_for_user_ids(
+                    db,
+                    {source_author.id},
+                    attr_key,
+                )
+                promoted_comment_context = {
+                    "comment": request_comment_service.serialize_comment(
+                        source_comment,
+                        source_author,
+                        display_name=display_name_map.get(source_author.id),
+                    ),
+                    "insight": insight,
+                    "promotion": promotion,
+                }
+
     if show_comment_insights:
         for item in comments:
             analysis = comment_llm_insights_service.get_analysis_by_comment_id(item["id"])
@@ -1107,6 +1140,7 @@ def _build_request_detail_context(
         "related_chat_suggestions": related_chats,
         "comment_insights_enabled": show_comment_insights,
         "comment_insights_map": comment_insights_map,
+        "promoted_comment_context": promoted_comment_context,
     }
 
 

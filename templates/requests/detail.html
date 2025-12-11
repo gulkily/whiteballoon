@@ -73,6 +73,62 @@
   </div>
 </section>
 
+{% if promoted_comment_context %}
+<section class="section promoted-comment-section">
+  <article class="card stack promoted-comment-card">
+    <header class="stack promoted-comment-card__header">
+      <div>
+        <p class="muted small-text">Derived from comment</p>
+        <h2>Original comment #{{ promoted_comment_context.comment.id }}</h2>
+      </div>
+      <a class="button button--ghost" href="/comments/{{ promoted_comment_context.comment.id }}">View comment</a>
+    </header>
+    <div class="promoted-comment-card__body">
+      <p class="muted small-text">
+        Posted by @{{ promoted_comment_context.comment.username }} ·
+        <time datetime="{{ promoted_comment_context.comment.created_at_iso }}">{{ promoted_comment_context.comment.created_at | friendly_time }}</time>
+      </p>
+      <p>{{ promoted_comment_context.comment.body }}</p>
+    </div>
+    {% if promoted_comment_context.insight %}
+      <div class="promoted-comment-card__insight">
+        {% if promoted_comment_context.insight.summary %}
+          <p class="promoted-comment-card__summary">{{ promoted_comment_context.insight.summary }}</p>
+        {% endif %}
+        <div class="promoted-comment-card__tags">
+          {% if promoted_comment_context.insight.resource_tags %}
+            <div class="promoted-comment-card__tag-group">
+              <span class="muted small-text">Resource tags</span>
+              <div class="promoted-comment-card__chips">
+                {% for tag in promoted_comment_context.insight.resource_tags %}
+                  <span class="meta-chip meta-chip--small">{{ tag }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+          {% if promoted_comment_context.insight.request_tags %}
+            <div class="promoted-comment-card__tag-group">
+              <span class="muted small-text">Request tags</span>
+              <div class="promoted-comment-card__chips">
+                {% for tag in promoted_comment_context.insight.request_tags %}
+                  <span class="meta-chip meta-chip--small meta-chip--ghost">{{ tag }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+          {% if promoted_comment_context.insight.urgency %}
+            <span class="meta-chip meta-chip--status">Urgency · {{ promoted_comment_context.insight.urgency | title }}</span>
+          {% endif %}
+          {% if promoted_comment_context.insight.sentiment %}
+            <span class="meta-chip">Sentiment · {{ promoted_comment_context.insight.sentiment | title }}</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </article>
+</section>
+{% endif %}
+
 <section class="section request-comments-section">
   <div class="card stack request-comments" data-comment-section>
     {% if show_chat_search_panel %}
