@@ -22,6 +22,6 @@
   {% endset %}
   {% set _ = comment_actions.append(promote_btn) %}
 {% endif %}
-{% with actions = comment_actions, variant = 'request', comment_insights_enabled = comment_insights_enabled, comment_insights_map = comment_insights_map, comment_promotion = comment_latest_promotion, comment_promotion_count = comment_promotion_entries | length %}
+{% with actions = comment_actions, variant = 'request', comment_insights_enabled = comment_insights_enabled, comment_insights_map = comment_insights_map, comment_promotion = comment_latest_promotion, comment_promotion_count = comment_promotion_entries | length, comment_permalink_href = '/comments/' ~ comment.id %}
   {% include "partials/comment_card.html" %}
 {% endwith %}

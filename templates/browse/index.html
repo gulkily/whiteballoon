@@ -176,7 +176,7 @@
                   'title': entry.request.title,
                   'href': '/requests/' ~ entry.request.id
                 } %}
-                {% with comment = entry.comment, comment_request_context = comment_request_context %}
+                {% with comment = entry.comment, comment_request_context = comment_request_context, comment_permalink_href = '/comments/' ~ entry.comment.id %}
                   {% include "partials/comment_card.html" %}
                 {% endwith %}
               {% endfor %}

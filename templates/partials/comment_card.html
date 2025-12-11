@@ -2,6 +2,7 @@
 {% set display_name = comment.display_name or '' %}
 {% set promotion_target = comment_promotion | default(none) %}
 {% set promotion_count = comment_promotion_count | default(0) %}
+{% set comment_permalink_href = comment_permalink_href | default('') %}
 {% if variant == 'request' %}
 <li
   class="request-comment"
@@ -30,6 +31,9 @@
         {% for action in actions %}
           {{ action | safe }}
         {% endfor %}
+      {% endif %}
+      {% if comment_permalink_href %}
+        <a class="request-comment__permalink" href="{{ comment_permalink_href }}" title="Copy permalink">Permalink</a>
       {% endif %}
     </div>
   </div>
