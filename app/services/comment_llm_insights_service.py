@@ -184,3 +184,38 @@ def list_analyses_for_run(run_id: str, limit: int = 200) -> list[CommentInsight]
         )
         for row in rows
     ]
+
+
+def list_analyses_for_request(help_request_id: int) -> list[CommentInsight]:
+    with comment_llm_insights_db.open_connection() as conn:
+        rows = conn.execute(
+            """
+            SELECT comment_id, help_request_id, run_id, summary, resource_tags, request_tags,
+                   audience, residency_stage, location, location_precision, urgency,
+                   sentiment, tags, notes, recorded_at
+            FROM comment_llm_analyses
+            WHERE help_request_id = ?
+            ORDER BY recorded_at ASC
+            """,
+            (help_request_id,),
+        ).fetchall()
+    return [
+        CommentInsight(
+            comment_id=row[0],
+            help_request_id=row[1],
+            run_id=row[2],
+            summary=row[3] or "",
+            resource_tags=_decode_list(row[4]),
+            request_tags=_decode_list(row[5]),
+            audience=row[6] or "",
+            residency_stage=row[7] or "",
+            location=row[8] or "",
+            location_precision=row[9] or "",
+            urgency=row[10] or "",
+            sentiment=row[11] or "",
+            tags=_decode_list(row[12]),
+            notes=row[13] or "",
+            recorded_at=row[14],
+        )
+        for row in rows
+    ]

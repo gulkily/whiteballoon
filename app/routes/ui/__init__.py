@@ -362,6 +362,73 @@ def _build_request_ctas(request_ids: list[int], user_id: int) -> list[dict[str, 
             break
     return chips
 
+
+def _record_tag_summary(storage: dict[str, dict[str, object]], label: str, comment_id: int) -> None:
+    cleaned = (label or "").strip()
+    if not cleaned:
+        return
+    entry = storage.get(cleaned)
+    if not entry:
+        entry = {"count": 0, "comment_id": comment_id}
+        storage[cleaned] = entry
+    entry["count"] += 1
+
+
+def _format_tag_summary(storage: dict[str, dict[str, object]]) -> list[dict[str, object]]:
+    items = [
+        {
+            "label": label,
+            "count": data["count"],
+            "href": f"/comments/{data['comment_id']}",
+        }
+        for label, data in storage.items()
+    ]
+    items.sort(key=lambda item: (-item["count"], item["label"]))
+    return items
+
+
+def _format_value_counts(counter: Counter[str]) -> list[dict[str, object]]:
+    items = []
+    for raw_label, count in counter.items():
+        label = (raw_label or "").strip()
+        if not label:
+            continue
+        items.append({"label": label.title(), "count": count})
+    items.sort(key=lambda item: (-item["count"], item["label"]))
+    return items
+
+
+def _build_request_comment_insights_summary(help_request_id: int) -> Optional[dict[str, object]]:
+    analyses = comment_llm_insights_service.list_analyses_for_request(help_request_id)
+    if not analyses:
+        return None
+
+    resource_counts: dict[str, dict[str, object]] = {}
+    request_counts: dict[str, dict[str, object]] = {}
+    urgency_counts: Counter[str] = Counter()
+    sentiment_counts: Counter[str] = Counter()
+
+    for analysis in analyses:
+        for tag in analysis.resource_tags:
+            _record_tag_summary(resource_counts, tag, analysis.comment_id)
+        for tag in analysis.request_tags:
+            _record_tag_summary(request_counts, tag, analysis.comment_id)
+        if analysis.urgency:
+            urgency_counts[analysis.urgency] += 1
+        if analysis.sentiment:
+            sentiment_counts[analysis.sentiment] += 1
+
+    summary = {
+        "resource_tags": _format_tag_summary(resource_counts),
+        "request_tags": _format_tag_summary(request_counts),
+        "urgency": _format_value_counts(urgency_counts),
+        "sentiment": _format_value_counts(sentiment_counts),
+    }
+
+    if not (summary["resource_tags"] or summary["request_tags"] or summary["urgency"] or summary["sentiment"]):
+        return None
+    return summary
+
 @router.get("/")
 def home(
     request: Request,
@@ -1107,6 +1174,8 @@ def _build_request_detail_context(
     else:
         related_chats = request_chat_suggestions.suggest_related_requests(db, help_request.id)
 
+    comment_insights_summary = _build_request_comment_insights_summary(help_request.id)
+
     return {
         "request": request,
         "user": viewer,
@@ -1140,6 +1209,7 @@ def _build_request_detail_context(
         "related_chat_suggestions": related_chats,
         "comment_insights_enabled": show_comment_insights,
         "comment_insights_map": comment_insights_map,
+        "comment_insights_summary": comment_insights_summary,
         "promoted_comment_context": promoted_comment_context,
     }
 

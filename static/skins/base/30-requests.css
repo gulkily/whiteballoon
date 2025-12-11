@@ -421,6 +421,26 @@
   justify-content: flex-end;
 }
 
+.comment-insights-section {
+  padding-top: 0;
+}
+
+.comment-insights-card__groups {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.comment-insights-card__group {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.comment-insights-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .promoted-comment-section {
   padding-top: 0;
 }

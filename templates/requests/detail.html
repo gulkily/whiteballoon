@@ -73,6 +73,63 @@
   </div>
 </section>
 
+{% if comment_insights_summary %}
+<section class="section comment-insights-section">
+  <article class="card stack comment-insights-card">
+    <header class="stack">
+      <p class="muted small-text">Comment insights</p>
+      <h2>AI tags across this thread</h2>
+    </header>
+    <div class="comment-insights-card__groups">
+      {% if comment_insights_summary.resource_tags %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Resource tags</p>
+          <div class="comment-insights-card__chips">
+            {% for tag in comment_insights_summary.resource_tags %}
+              <a class="meta-chip meta-chip--small" href="{{ tag.href }}">
+                {{ tag.label }}{% if tag.count > 1 %} ×{{ tag.count }}{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if comment_insights_summary.request_tags %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Request tags</p>
+          <div class="comment-insights-card__chips">
+            {% for tag in comment_insights_summary.request_tags %}
+              <a class="meta-chip meta-chip--small meta-chip--ghost" href="{{ tag.href }}">
+                {{ tag.label }}{% if tag.count > 1 %} ×{{ tag.count }}{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if comment_insights_summary.urgency %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Urgency</p>
+          <div class="comment-insights-card__chips">
+            {% for item in comment_insights_summary.urgency %}
+              <span class="meta-chip meta-chip--status">{{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if comment_insights_summary.sentiment %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Sentiment</p>
+          <div class="comment-insights-card__chips">
+            {% for item in comment_insights_summary.sentiment %}
+              <span class="meta-chip">{{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </article>
+</section>
+{% endif %}
+
 {% if promoted_comment_context %}
 <section class="section promoted-comment-section">
   <article class="card stack promoted-comment-card">
