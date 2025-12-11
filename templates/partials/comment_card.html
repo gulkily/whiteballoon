@@ -25,15 +25,18 @@
         <button class="meta-chip meta-chip--small comment-insight-badge" data-comment-insight-id="{{ comment.id }}">Insights</button>
       {% endif %}
       {% if comment.created_at %}
-        <time datetime="{{ comment.created_at_iso }}" class="request-comment__time">{{ comment.created_at | friendly_time }}</time>
+        {% if comment_permalink_href %}
+          <a class="request-comment__time-link" href="{{ comment_permalink_href }}">
+            <time datetime="{{ comment.created_at_iso }}" class="request-comment__time">{{ comment.created_at | friendly_time }}</time>
+          </a>
+        {% else %}
+          <time datetime="{{ comment.created_at_iso }}" class="request-comment__time">{{ comment.created_at | friendly_time }}</time>
+        {% endif %}
       {% endif %}
       {% if actions %}
         {% for action in actions %}
           {{ action | safe }}
         {% endfor %}
-      {% endif %}
-      {% if comment_permalink_href %}
-        <a class="request-comment__permalink" href="{{ comment_permalink_href }}" title="Copy permalink">Permalink</a>
       {% endif %}
     </div>
   </div>

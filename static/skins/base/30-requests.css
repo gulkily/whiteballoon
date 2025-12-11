@@ -379,14 +379,12 @@
   color: var(--color-accent);
 }
 
-.request-comment__permalink {
-  font-size: 0.8rem;
+.request-comment__time-link {
   text-decoration: none;
-  color: var(--color-muted);
 }
 
-.request-comment__permalink:hover,
-.request-comment__permalink:focus-visible {
+.request-comment__time-link:hover .request-comment__time,
+.request-comment__time-link:focus-visible .request-comment__time {
   color: var(--color-accent);
 }
 
