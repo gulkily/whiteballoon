@@ -355,8 +355,7 @@ def cmd_chat(args: list[str]) -> int:
     )
     parser.add_argument("subcommand", nargs="?")
     parser.add_argument("sub_args", nargs=argparse.REMAINDER)
-    ns = parser.parse_args(args[:1]) if args else argparse.Namespace(subcommand=None, sub_args=[])
-    if not args or ns.subcommand in {None, "-h", "--help", "help"}:
+    if not args or args[0] in {"-h", "--help", "help"}:
         parser.print_help()
         print()
         print("Subcommands:")
@@ -365,6 +364,7 @@ def cmd_chat(args: list[str]) -> int:
         print("  llm [opts]     Plan or run batched comment processing via LLM")
         return 0
 
+    ns = parser.parse_args(args[:1])
     subcommand = ns.subcommand
     sub_args = args[1:]
     if subcommand == "index":
