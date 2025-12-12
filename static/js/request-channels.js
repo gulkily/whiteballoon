@@ -30,6 +30,10 @@
     });
   }
 
+  let lastTypingSignal = 0;
+  let typingIndicator = null;
+  let announcer = null;
+
   wireChatPane(chatPane);
   const heartbeat = setInterval(() => pingPresence(false), 8000);
   const presencePoller = setInterval(refreshPresence, 9000);
@@ -122,10 +126,6 @@
       btn.style.display = matchesSearch && matchesFilter ? '' : 'none';
     });
   }
-
-  let lastTypingSignal = 0;
-  let typingIndicator = null;
-  let announcer = null;
 
   function wireChatPane(pane) {
     if (!pane) return;
