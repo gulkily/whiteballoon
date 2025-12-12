@@ -976,6 +976,22 @@
   gap: 12px;
 }
 
+.channel-chat__jump {
+  margin: 12px auto 0;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-card);
+  box-shadow: var(--shadow-md);
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: var(--color-text);
+}
+
+.channel-chat__jump[hidden] {
+  display: none;
+}
+
 .channel-message {
   display: grid;
   grid-template-columns: auto 1fr;

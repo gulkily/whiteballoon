@@ -107,6 +107,8 @@ BROWSE_TABS = [
     {"slug": "profiles", "label": "Profiles"},
 ]
 
+CHANNEL_RECENT_COMMENT_LIMIT = 50
+
 
 class ChannelPresencePayload(BaseModel):
     request_id: int
@@ -377,6 +379,7 @@ def _build_request_channel_chat_context(
         session_user,
         help_request,
         page=1,
+        recent_limit=CHANNEL_RECENT_COMMENT_LIMIT,
     )
     request_item = detail_context.get("request_item")
     if isinstance(request_item, RequestResponse):
@@ -1339,6 +1342,7 @@ def _build_request_detail_context(
     comment_form_errors: Optional[list[str]] = None,
     comment_form_body: str = "",
     page: int = 1,
+    recent_limit: Optional[int] = None,
     chat_search_filters: Optional[dict[str, object]] = None,
 ) -> dict[str, object]:
     viewer = session_user.user
@@ -1370,15 +1374,27 @@ def _build_request_detail_context(
     if filters_active:
         offset = 0
         limit = None
+        comment_rows, total_comments = request_comment_service.list_comments(
+            db,
+            help_request_id=help_request.id,
+            limit=limit,
+            offset=offset,
+        )
+    elif recent_limit:
+        comment_rows, total_comments = request_comment_service.list_recent_comments(
+            db,
+            help_request_id=help_request.id,
+            limit=recent_limit,
+        )
     else:
         offset = (page - 1) * comments_per_page
         limit = comments_per_page
-    comment_rows, total_comments = request_comment_service.list_comments(
-        db,
-        help_request_id=help_request.id,
-        limit=limit,
-        offset=offset,
-    )
+        comment_rows, total_comments = request_comment_service.list_comments(
+            db,
+            help_request_id=help_request.id,
+            limit=limit,
+            offset=offset,
+        )
     attr_key = _signal_display_attr_key(help_request)
     display_names = _load_signal_display_names(db, comment_rows, attr_key)
     insights_lookup = _build_comment_insights_lookup(help_request.id)
@@ -1484,12 +1500,17 @@ def _build_request_detail_context(
     # Calculate pagination info
     comment_total_count = total_comments
     comment_visible_count = visible_count if filters_active else len(comments)
+    effective_page_size = recent_limit if (recent_limit and not filters_active) else comments_per_page
     if filters_active:
         total_pages = 1
         current_page = 1
     else:
-        total_pages = max(1, (total_comments + comments_per_page - 1) // comments_per_page) if total_comments else 1
-        current_page = min(page, total_pages) if total_pages else 1
+        page_size = effective_page_size or comments_per_page or 1
+        total_pages = max(1, (total_comments + page_size - 1) // page_size) if total_comments else 1
+        if recent_limit:
+            current_page = total_pages
+        else:
+            current_page = min(page, total_pages) if total_pages else 1
     
     def _page_url(target_page: int) -> str:
         url = request.url.include_query_params(page=target_page)

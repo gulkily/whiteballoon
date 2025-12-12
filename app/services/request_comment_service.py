@@ -47,6 +47,38 @@ def list_comments(
     return rows, total_count
 
 
+def list_recent_comments(
+    session: Session,
+    help_request_id: int,
+    *,
+    limit: int,
+) -> tuple[list[tuple[RequestComment, User]], int]:
+    """Return the newest `limit` comments (ascending order) plus total count."""
+    if limit <= 0:
+        return list_comments(session, help_request_id)
+
+    count_stmt = (
+        select(func.count())
+        .select_from(RequestComment)
+        .where(RequestComment.help_request_id == help_request_id)
+        .where(RequestComment.deleted_at.is_(None))
+    )
+    total_count = session.exec(count_stmt).one() or 0
+    offset = max(total_count - limit, 0)
+
+    query = (
+        select(RequestComment, User)
+        .join(User, User.id == RequestComment.user_id)
+        .where(RequestComment.help_request_id == help_request_id)
+        .where(RequestComment.deleted_at.is_(None))
+        .order_by(RequestComment.created_at.asc())
+        .offset(offset)
+        .limit(limit)
+    )
+    rows = session.exec(query).all()
+    return rows, total_count
+
+
 def list_recent_comments_for_user(
     session: Session,
     user_id: int,

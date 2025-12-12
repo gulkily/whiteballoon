@@ -31,6 +31,7 @@
   var lastTypingSignal = 0;
   var typingIndicator = null;
   var announcer = null;
+  let jumpButton = null;
 
   if (buttons.length) {
     buttons.forEach((btn) => {
@@ -281,6 +282,7 @@
   }
 
   wireChatPane(chatPane);
+  restoreScrollState({ stick: true, distance: 0 });
   const heartbeat = setInterval(() => pingPresence(false), 8000);
   const presencePoller = setInterval(refreshPresence, 9000);
   refreshPresence();
@@ -355,7 +357,7 @@
       emptyState.setAttribute('hidden', 'hidden');
       chatPane.removeAttribute('aria-busy');
     }
-    loadChannel(channelId);
+    loadChannel(channelId, { preserveScroll: false });
     pingPresence(false);
   }
 
@@ -396,11 +398,51 @@
     });
   }
 
+  function captureScrollState() {
+    const log = chatPane?.querySelector('[data-channel-log]');
+    if (!log) {
+      return { stick: true, distance: 0 };
+    }
+    const distance = log.scrollHeight - log.clientHeight - log.scrollTop;
+    return { stick: distance < 32, distance };
+  }
+
+  function restoreScrollState(state) {
+    const log = chatPane?.querySelector('[data-channel-log]');
+    if (!log) {
+      return;
+    }
+    if (state.stick) {
+      log.scrollTop = log.scrollHeight;
+      setJumpVisibility(false);
+    } else {
+      const target = Math.max(log.scrollHeight - log.clientHeight - state.distance, 0);
+      log.scrollTop = target;
+      setJumpVisibility(true);
+    }
+  }
+
+  function isNearBottom(log) {
+    if (!log) return true;
+    const distance = log.scrollHeight - log.clientHeight - log.scrollTop;
+    return distance < 32;
+  }
+
+  function setJumpVisibility(show) {
+    if (!jumpButton) return;
+    if (show) {
+      jumpButton.removeAttribute('hidden');
+    } else {
+      jumpButton.setAttribute('hidden', 'hidden');
+    }
+  }
+
   function wireChatPane(pane) {
     if (!pane) return;
     const composer = pane.querySelector('[data-channel-composer]');
     typingIndicator = pane.querySelector('[data-channel-typing]');
     announcer = pane.querySelector('[data-channel-announcer]');
+    jumpButton = pane.querySelector('[data-channel-jump]');
     if (composer && !composer.dataset.channelComposerBound) {
       composer.dataset.channelComposerBound = 'true';
       composer.addEventListener('submit', handleComposerSubmit);
@@ -408,6 +450,25 @@
       if (input) {
         input.addEventListener('input', handleTypingEvent);
       }
+    }
+    const log = pane.querySelector('[data-channel-log]');
+    if (log && !log.dataset.channelScrollBound) {
+      log.dataset.channelScrollBound = 'true';
+      log.addEventListener('scroll', () => {
+        if (isNearBottom(log)) {
+          setJumpVisibility(false);
+        }
+      });
+    }
+    if (jumpButton && !jumpButton.dataset.channelJumpBound) {
+      jumpButton.dataset.channelJumpBound = 'true';
+      jumpButton.addEventListener('click', () => {
+        const targetLog = pane.querySelector('[data-channel-log]');
+        if (targetLog) {
+          targetLog.scrollTo({ top: targetLog.scrollHeight, behavior: 'smooth' });
+        }
+        setJumpVisibility(false);
+      });
     }
   }
 
@@ -473,10 +534,12 @@
     errorsBox.removeAttribute('hidden');
   }
 
-  async function loadChannel(channelId) {
+  async function loadChannel(channelId, options = {}) {
     if (!chatPane || !channelId) {
       return;
     }
+    const preserveScroll = options.preserveScroll !== false;
+    const scrollState = preserveScroll ? captureScrollState() : { stick: true, distance: 0 };
     chatPane.setAttribute('aria-busy', 'true');
     try {
       const response = await fetch(`/requests/channels/${channelId}/panel`, {
@@ -489,7 +552,7 @@
       const payload = await response.json();
       chatPane.innerHTML = payload.html;
       wireChatPane(chatPane);
-      chatPane.scrollTop = chatPane.scrollHeight;
+      restoreScrollState(scrollState);
       if (payload.channel) {
         updateChannelRowMeta(payload.channel);
         channelMeta[payload.channel.id] = payload.channel;

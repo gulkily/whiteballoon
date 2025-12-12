@@ -30,6 +30,9 @@
       </div>
     {% endif %}
   </div>
+  <button type="button" class="channel-chat__jump" data-channel-jump hidden>
+    New messages · Jump to latest
+  </button>
   <div class="sr-only" aria-live="polite" data-channel-announcer></div>
   {% if chat.can_comment %}
     <form
