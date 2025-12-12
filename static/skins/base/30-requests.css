@@ -729,9 +729,15 @@
 
 .request-channels {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) 1fr;
+  grid-template-columns: minmax(280px, 30%) minmax(420px, 1fr);
   gap: 24px;
   min-height: 70vh;
+}
+
+@media (min-width: 1400px) {
+  .request-channels {
+    grid-template-columns: minmax(320px, 32%) minmax(640px, 1fr);
+  }
 }
 
 .request-channels__sidebar {
