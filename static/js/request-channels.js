@@ -173,6 +173,20 @@
     }
   }
 
+  function updateChannelQuery(channelId) {
+    try {
+      const url = new URL(window.location.href);
+      if (Number(channelId)) {
+        url.searchParams.set('channel', channelId);
+      } else {
+        url.searchParams.delete('channel');
+      }
+      history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    } catch (error) {
+      // Ignore if History API unsupported
+    }
+  }
+
   function createChannelButton(channel) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -336,6 +350,7 @@
       button.setAttribute('aria-current', 'true');
     }
     state.active_channel_id = channelId;
+    updateChannelQuery(channelId);
     if (emptyState && chatPane) {
       emptyState.setAttribute('hidden', 'hidden');
       chatPane.removeAttribute('aria-busy');
