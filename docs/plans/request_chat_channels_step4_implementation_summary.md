@@ -23,9 +23,9 @@
 - Verification: Pending; once the server runs, open two sessions to confirm counts/typing text update within ~10 seconds.
 
 ## Stage 5 – Deep links + unread sync
-- `/requests/{id}` now redirects into `/requests/channels?channel={id}` (unless `?legacy=1` or JSON requested) so old bookmarks deep-link into the workspace.
 - Added `app/services/request_channel_reads.py` to track last-read counts per session/request, hooked `_build_request_channel_rows` + channel panels to clear badges once a chat is opened, and remove the unread chip in the list immediately.
-- Verification: Pending manual QA—hit old request URLs and ensure unread badges stay cleared after opening a channel.
+- Legacy `/requests/{id}` pages now open directly again (no auto-redirect), but the chat workspace link includes `?legacy=1` so users can still jump back and forth without loops.
+- Verification: Pending manual QA—load `/requests/channels?channel=<id>`, confirm unread badges clear after opening the chat, and ensure `/requests/<id>` remains accessible via the “Open request page” button.
 
 ## Stage 6 – Polish + accessibility
 - Added keyboard navigation (Alt+Arrow cycling), ARIA live regions for chat logs/announcements, and responsive tweaks so the composer stays sticky on narrow screens.
