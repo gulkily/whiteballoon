@@ -73,6 +73,11 @@ dd + dd {
   margin: 0 auto;
 }
 
+.container--wide {
+  width: calc(100% - 2rem);
+  max-width: none;
+}
+
 .stack {
   display: flex;
   flex-direction: column;
