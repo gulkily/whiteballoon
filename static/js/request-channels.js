@@ -14,11 +14,15 @@
 
   const list = container.querySelector('[data-channel-list]');
   const searchInput = container.querySelector('[data-channel-search]');
-  const buttons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
+  let buttons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
   const filters = container.querySelector('[data-channel-filters]');
   const chatPane = container.querySelector('[data-channel-pane]');
   const emptyState = container.querySelector('[data-channel-empty]');
+  const filterNotice = container.querySelector('[data-channel-filter-notice]');
+  const filterReset = container.querySelector('[data-channel-reset]');
+  const resultsAnnouncer = container.querySelector('[data-channel-results-announcer]');
   const channelMeta = {};
+  const resultCache = new Map();
 
   if (buttons.length) {
     buttons.forEach((btn) => {
@@ -28,6 +32,227 @@
       });
       updateRelativeTime(btn);
     });
+    resultCache.set(buildQueryKey(), state.requests || []);
+  }
+
+  function scheduleSearch() {
+    if (!list) return;
+    const key = buildQueryKey();
+    if (resultCache.has(key)) {
+      renderChannelList(resultCache.get(key) || []);
+      return;
+    }
+    if (searchDebounce) {
+      clearTimeout(searchDebounce);
+    }
+    searchDebounce = setTimeout(() => {
+      searchDebounce = null;
+      executeRemoteSearch(key);
+    }, 350);
+  }
+
+  function executeRemoteSearch(cacheKey) {
+    const params = buildQueryParams();
+    if (!params) return;
+    if (inflightController) {
+      inflightController.abort();
+    }
+    const controller = new AbortController();
+    inflightController = controller;
+    setLoading(true);
+    fetch(`/api/requests?${params}`, {
+      headers: { 'X-Requested-With': 'Fetch', Accept: 'application/json' },
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Failed to load requests');
+        }
+        return response.json();
+      })
+      .then((payload) => {
+        const normalized = Array.isArray(payload)
+          ? payload.map(normalizeChannelPayload)
+          : [];
+        resultCache.set(cacheKey, normalized);
+        if (buildQueryKey() === cacheKey) {
+          renderChannelList(normalized);
+        }
+      })
+      .catch((error) => {
+        if (error.name === 'AbortError') {
+          return;
+        }
+        console.error('Channel search failed', error);
+      })
+      .finally(() => {
+        if (inflightController === controller) {
+          inflightController = null;
+          setLoading(false);
+        }
+      });
+  }
+
+  function buildQueryParams() {
+    const params = new URLSearchParams();
+    params.set('include_channel_meta', '1');
+    params.set('limit', '200');
+    const trimmed = searchTerm.trim();
+    if (trimmed) {
+      params.set('search', trimmed);
+    }
+    if (activeFilter === 'open' || activeFilter === 'completed') {
+      params.append('status', activeFilter);
+    } else if (activeFilter === 'pinned') {
+      params.set('pinned_only', '1');
+    }
+    return params.toString();
+  }
+
+  function normalizeChannelPayload(entry) {
+    const description = (entry.description || '').trim();
+    const firstLine = description.split(/\r?\n/)[0]?.trim() || '';
+    const title = (firstLine || `Request #${entry.id || ''}`).slice(0, 120);
+    return {
+      id: entry.id,
+      title,
+      preview: truncateText(description, 160),
+      status: entry.status || 'open',
+      updated_at: entry.updated_at,
+      is_pinned: Boolean(entry.is_pinned),
+      comment_count: entry.comment_count ?? 0,
+      unread_count: entry.unread_count ?? 0,
+    };
+  }
+
+  function truncateText(value, limit) {
+    if (!value) return '';
+    if (value.length <= limit) return value;
+    return `${value.slice(0, limit - 3)}...`;
+  }
+
+  function renderChannelList(rows) {
+    if (!list) return;
+    state.requests = rows;
+    list.innerHTML = '';
+    const hasActive = rows.some((row) => Number(row.id) === Number(state.active_channel_id));
+    updateFilterNotice(Boolean(state.active_channel_id) && !hasActive);
+    if (!rows.length) {
+      const empty = document.createElement('p');
+      empty.className = 'muted';
+      empty.textContent = 'No requests match the current filters.';
+      list.appendChild(empty);
+      buttons = [];
+      announceResults(0);
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    rows.forEach((row) => {
+      fragment.appendChild(createChannelButton(row));
+    });
+    list.appendChild(fragment);
+    bindChannelButtons();
+    applyFilters();
+    announceResults(rows.length);
+  }
+
+  function updateFilterNotice(shouldShow) {
+    if (!filterNotice) return;
+    if (shouldShow) {
+      filterNotice.removeAttribute('hidden');
+    } else {
+      filterNotice.setAttribute('hidden', 'hidden');
+    }
+  }
+
+  function createChannelButton(channel) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'request-channel';
+    button.dataset.channelId = channel.id;
+    button.dataset.channelStatus = channel.status;
+    button.dataset.channelPinned = channel.is_pinned ? 'true' : 'false';
+    button.setAttribute('data-channel-node', '');
+    if (Number(channel.id) === Number(state.active_channel_id)) {
+      button.setAttribute('aria-current', 'true');
+    }
+
+    const title = document.createElement('span');
+    title.className = 'request-channel__title';
+    title.textContent = channel.title;
+
+    const meta = document.createElement('span');
+    meta.className = 'request-channel__meta';
+    const status = document.createElement('span');
+    status.className = 'request-channel__status';
+    status.textContent = (channel.status || '').replace(/^(.)/, (match) => match.toUpperCase());
+    const time = document.createElement('span');
+    time.className = 'request-channel__time';
+    time.dataset.channelTime = '';
+    if (channel.updated_at) {
+      time.setAttribute('data-timestamp', channel.updated_at);
+    }
+    const presence = document.createElement('span');
+    presence.className = 'request-channel__presence';
+    presence.setAttribute('data-channel-presence', '');
+    presence.setAttribute('hidden', 'hidden');
+    meta.append(status, time, presence);
+
+    const preview = document.createElement('span');
+    preview.className = 'request-channel__preview';
+    preview.textContent = channel.preview;
+
+    const badges = document.createElement('div');
+    badges.className = 'request-channel__badges';
+    if (channel.is_pinned) {
+      const pin = document.createElement('span');
+      pin.className = 'request-channel__pin';
+      pin.setAttribute('aria-label', 'Pinned channel');
+      pin.textContent = '📌';
+      badges.appendChild(pin);
+    }
+    const replies = document.createElement('span');
+    replies.className = 'request-channel__badge';
+    replies.textContent = `${channel.comment_count || 0} replies`;
+    badges.appendChild(replies);
+    if (channel.unread_count) {
+      const unread = document.createElement('span');
+      unread.className = 'request-channel__badge request-channel__badge--unread';
+      unread.setAttribute('data-channel-unread', '');
+      unread.textContent = channel.unread_count;
+      badges.appendChild(unread);
+    }
+
+    button.append(title, meta, preview, badges);
+    channelMeta[channel.id] = channel;
+    return button;
+  }
+
+  function bindChannelButtons() {
+    buttons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
+    buttons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const channelId = Number(btn.dataset.channelId);
+        selectChannel(channelId, btn);
+      });
+      updateRelativeTime(btn);
+    });
+  }
+
+  function setLoading(isLoading) {
+    if (!list) return;
+    if (isLoading) {
+      list.setAttribute('aria-busy', 'true');
+      container.setAttribute('data-loading', 'true');
+    } else {
+      list.removeAttribute('aria-busy');
+      container.removeAttribute('data-loading');
+    }
+  }
+
+  function announceResults(count) {
+    if (!resultsAnnouncer) return;
+    resultsAnnouncer.textContent = `${count} channel${count === 1 ? '' : 's'} loaded`;
   }
 
   let lastTypingSignal = 0;
@@ -45,11 +270,18 @@
 
   let activeFilter = 'all';
   let searchTerm = '';
+  let searchDebounce = null;
+  let inflightController = null;
+
+  function buildQueryKey(filter = activeFilter, term = searchTerm) {
+    return `${filter}::${term.trim().toLowerCase()}`;
+  }
 
   if (searchInput) {
     searchInput.addEventListener('input', () => {
-      searchTerm = searchInput.value.trim().toLowerCase();
+      searchTerm = searchInput.value;
       applyFilters();
+      scheduleSearch();
     });
   }
 
@@ -63,6 +295,25 @@
         node.setAttribute('aria-pressed', node === button ? 'true' : 'false');
       });
       applyFilters();
+      scheduleSearch();
+    });
+  }
+
+  if (filterReset) {
+    filterReset.addEventListener('click', () => {
+      if (searchInput) {
+        searchInput.value = '';
+      }
+      searchTerm = '';
+      activeFilter = 'all';
+      if (filters) {
+        filters.querySelectorAll('[data-channel-filter]').forEach((node) => {
+          node.setAttribute('aria-pressed', node.dataset.channelFilter === 'all' ? 'true' : 'false');
+        });
+      }
+      applyFilters();
+      scheduleSearch();
+      updateFilterNotice(false);
     });
   }
 
@@ -113,10 +364,11 @@
   }
 
   function applyFilters() {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
     buttons.forEach((btn) => {
       const status = (btn.dataset.channelStatus || '').toLowerCase();
       const isPinned = btn.dataset.channelPinned === 'true';
-      const matchesSearch = btn.textContent.toLowerCase().includes(searchTerm);
+      const matchesSearch = btn.textContent.toLowerCase().includes(normalizedSearch);
       let matchesFilter = true;
       if (activeFilter === 'open' || activeFilter === 'completed') {
         matchesFilter = status === activeFilter;
@@ -265,9 +517,15 @@
   }
 
   async function refreshPresence() {
-    const ids = buttons
-      .map((btn) => Number(btn.dataset.channelId))
-      .filter((id) => Number.isFinite(id));
+    const idSet = new Set(
+      buttons
+        .map((btn) => Number(btn.dataset.channelId))
+        .filter((id) => Number.isFinite(id)),
+    );
+    if (Number(state.active_channel_id)) {
+      idSet.add(Number(state.active_channel_id));
+    }
+    const ids = Array.from(idSet).filter((id) => Number.isFinite(id));
     if (!ids.length) return;
     const params = ids.map((id) => `id=${id}`).join('&');
     try {

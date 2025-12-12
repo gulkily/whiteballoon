@@ -44,6 +44,13 @@
         </button>
       {% endfor %}
     </div>
+    <div class="request-channels__notice" data-channel-filter-notice hidden>
+      <span>Active request is hidden by the current filters.</span>
+      <button type="button" class="channel-filter channel-filter--reset" data-channel-reset>
+        Clear filters
+      </button>
+    </div>
+    <div class="sr-only" aria-live="polite" data-channel-results-announcer></div>
     <div class="request-channels__list" data-channel-list role="listbox" aria-label="Help request channels">
       {% if channel_requests %}
         {% for channel in channel_requests %}

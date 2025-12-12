@@ -2,13 +2,17 @@ from __future__ import annotations
 
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
 
 from app.dependencies import SessionDep, SessionUser, require_authenticated_user, require_session_user
 from app.models import HelpRequest, User
 from app.modules.requests import services
-from app.services import request_pin_service
+from app.services import (
+    request_channel_metrics,
+    request_channel_reads,
+    request_pin_service,
+)
 
 router = APIRouter(prefix="/api/requests", tags=["requests"])
 
@@ -32,6 +36,8 @@ class RequestResponse(BaseModel):
     sync_scope: str = "private"
     is_pinned: bool = False
     pin_rank: int | None = None
+    comment_count: int | None = None
+    unread_count: int | None = None
 
     @classmethod
     def from_model(
@@ -42,6 +48,8 @@ class RequestResponse(BaseModel):
         can_complete: bool = False,
         is_pinned: bool = False,
         pin_rank: int | None = None,
+        comment_count: int | None = None,
+        unread_count: int | None = None,
     ) -> "RequestResponse":
         return cls(
             id=request.id,
@@ -57,6 +65,8 @@ class RequestResponse(BaseModel):
             sync_scope=getattr(request, "sync_scope", "private"),
             is_pinned=is_pinned,
             pin_rank=pin_rank,
+            comment_count=comment_count,
+            unread_count=unread_count,
         )
 
 
@@ -69,10 +79,44 @@ def calculate_can_complete(help_request: HelpRequest, user: User) -> bool:
 
 
 @router.get("/", response_model=List[RequestResponse])
-def list_requests(db: SessionDep, session_user: SessionUser = Depends(require_session_user)) -> List[RequestResponse]:
-    requests = services.list_requests(db)
+def list_requests(
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    search: str | None = Query(None),
+    status: list[str] | None = Query(None),
+    pinned_only: bool = Query(False, alias="pinned_only"),
+    limit: int | None = Query(50, ge=1, le=200),
+    include_channel_meta: bool = Query(False, alias="include_channel_meta"),
+) -> List[RequestResponse]:
+    requests = services.list_requests(
+        db,
+        search=search,
+        statuses=status,
+        pinned_only=pinned_only,
+        limit=limit,
+    )
     creator_usernames = services.load_creator_usernames(db, requests)
     pin_map = request_pin_service.get_pin_map(db)
+    comment_counts: dict[int, int] = {}
+    unread_totals: dict[int, int] = {}
+    if include_channel_meta:
+        request_ids = [item.id for item in requests if item.id]
+        session_record = session_user.session
+        last_seen = getattr(session_record, "last_seen_at", None)
+        comment_counts, recent_counts = request_channel_metrics.load_comment_counts(
+            db,
+            request_ids,
+            newer_than=last_seen,
+        )
+        read_counts = {}
+        session_id = getattr(session_record, "id", None)
+        if session_id:
+            read_counts = request_channel_reads.get_read_counts(session_id, request_ids)
+        for request_id in request_ids:
+            unread = recent_counts.get(request_id, 0)
+            if request_id in read_counts:
+                unread = max(comment_counts.get(request_id, 0) - read_counts[request_id], 0)
+            unread_totals[request_id] = unread
     return [
         RequestResponse.from_model(
             item,
@@ -80,6 +124,8 @@ def list_requests(db: SessionDep, session_user: SessionUser = Depends(require_se
             can_complete=calculate_can_complete(item, session_user.user),
             is_pinned=item.id in pin_map,
             pin_rank=pin_map.get(item.id).rank if item.id in pin_map else None,
+            comment_count=comment_counts.get(item.id),
+            unread_count=unread_totals.get(item.id),
         )
         for item in requests
     ]

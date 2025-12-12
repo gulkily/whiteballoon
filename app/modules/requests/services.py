@@ -1,21 +1,50 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Sequence
+from typing import Iterable, List, Sequence
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.models import HelpRequest, User
+from app.models import HelpRequest, RequestAttribute, User
+from app.services import request_pin_service
 
 
-def list_requests(session: Session, *, limit: int = 50) -> List[HelpRequest]:
-    statement = (
-        select(HelpRequest)
-        .where(HelpRequest.status != "pending")
-        .order_by(HelpRequest.created_at.desc())
-        .limit(limit)
-    )
+def list_requests(
+    session: Session,
+    *,
+    limit: int | None = 50,
+    search: str | None = None,
+    statuses: Iterable[str] | None = None,
+    pinned_only: bool = False,
+    include_pending: bool = False,
+) -> List[HelpRequest]:
+    statement = select(HelpRequest)
+    if pinned_only:
+        statement = statement.join(
+            RequestAttribute,
+            (RequestAttribute.request_id == HelpRequest.id)
+            & (RequestAttribute.key == request_pin_service.PIN_ATTRIBUTE_KEY),
+        )
+    if not include_pending:
+        statement = statement.where(HelpRequest.status != "pending")
+    if statuses:
+        normalized = {status.strip().lower() for status in statuses if status}
+        if normalized:
+            statement = statement.where(HelpRequest.status.in_(normalized))
+    if search:
+        query = search.strip()
+        if query:
+            pattern = f"%{query.lower()}%"
+            statement = statement.where(
+                func.lower(HelpRequest.description).like(pattern)
+                | func.lower(HelpRequest.title).like(pattern)
+            )
+
+    statement = statement.order_by(HelpRequest.created_at.desc())
+    if limit is not None:
+        statement = statement.limit(limit)
     return list(session.exec(statement).all())
 
 

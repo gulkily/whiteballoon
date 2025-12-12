@@ -7,7 +7,7 @@ import re
 from datetime import datetime
 from collections import Counter
 from pathlib import Path
-from typing import Annotated, Literal, Optional, cast
+from typing import Annotated, Iterable, Literal, Optional, Sequence, cast
 from urllib.parse import urlencode, urlparse
 from uuid import uuid4
 
@@ -55,6 +55,7 @@ from app.services import (
     invite_map_cache_service,
     request_chat_search_service,
     request_chat_suggestions,
+    request_channel_metrics,
     request_channel_presence,
     request_channel_reads,
     request_pin_service,
@@ -299,10 +300,23 @@ def _truncate_text(text: str, limit: int = 220) -> str:
 
 def _serialize_requests(
     db: Session,
-    items,
+    items: Sequence[HelpRequest] | None = None,
     viewer: Optional[User] = None,
     pin_map: Optional[dict[int, request_pin_service.PinMetadata]] = None,
+    *,
+    limit: int | None = 50,
+    search: str | None = None,
+    statuses: Optional[Iterable[str]] = None,
+    pinned_only: bool = False,
 ):
+    if items is None:
+        items = request_services.list_requests(
+            db,
+            limit=limit,
+            search=search,
+            statuses=statuses,
+            pinned_only=pinned_only,
+        )
     creator_usernames = request_services.load_creator_usernames(db, items)
     serialized = []
     for item in items:
@@ -349,37 +363,6 @@ def _build_request_channel_rows(
             }
         )
     return rows
-
-
-def _load_channel_comment_counts(
-    db: Session,
-    request_ids: list[int],
-    *,
-    newer_than: Optional[datetime] = None,
-) -> tuple[dict[int, int], dict[int, int]]:
-    if not request_ids:
-        return {}, {}
-
-    stmt = (
-        select(RequestComment.help_request_id, func.count())
-        .where(RequestComment.help_request_id.in_(request_ids))
-        .where(RequestComment.deleted_at.is_(None))
-        .group_by(RequestComment.help_request_id)
-    )
-    total_counts = {request_id: count for request_id, count in db.exec(stmt).all()}
-
-    unread_counts: dict[int, int] = {}
-    if newer_than:
-        unread_stmt = (
-            select(RequestComment.help_request_id, func.count())
-            .where(RequestComment.help_request_id.in_(request_ids))
-            .where(RequestComment.deleted_at.is_(None))
-            .where(RequestComment.created_at > newer_than)
-            .group_by(RequestComment.help_request_id)
-        )
-        unread_counts = {request_id: count for request_id, count in db.exec(unread_stmt).all()}
-
-    return total_counts, unread_counts
 
 
 def _build_request_channel_chat_context(
@@ -794,7 +777,7 @@ def request_channels_workspace(
     request_objects = request_services.list_requests(db)
     serialized_requests = _serialize_requests(db, request_objects, viewer=viewer)
     request_ids = [int(item["id"]) for item in serialized_requests if item.get("id")]
-    comment_counts, unread_counts = _load_channel_comment_counts(
+    comment_counts, unread_counts = request_channel_metrics.load_comment_counts(
         db,
         request_ids,
         newer_than=session_record.last_seen_at,
