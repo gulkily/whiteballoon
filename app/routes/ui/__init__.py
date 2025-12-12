@@ -1050,11 +1050,6 @@ def request_detail(
     chat_topic: list[str] | None = Query(None, alias="chat_topic"),
     chat_participant: list[int] | None = Query(None, alias="chat_participant"),
 ) -> Response:
-    settings = config.get_settings()
-    if settings.request_channels_enabled and request.query_params.get("legacy") != "1" and not _wants_json(request):
-        redirect_url = f"/requests/channels?channel={request_id}"
-        return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
-
     help_request = request_services.get_request_by_id(db, request_id=request_id)
     chat_filters = {
         "query": (chat_q or "").strip(),
