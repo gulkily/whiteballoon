@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 from app.config import get_settings
 from app.db import get_engine
 from app.models import HelpRequest, RequestComment
+from app.dedalus import logging as dedalus_logging
 from app.services import request_chat_search_service
 
 
@@ -54,8 +55,38 @@ class LLMTopicClassifier:
         output = getattr(response, "final_output", "") or str(response)
         return self._parse_tags(output)
 
-    def classify(self, *, comment_id: int, text: str) -> list[str]:
-        return asyncio.run(self._classify_async(comment_id=comment_id, text=text))
+    def classify(
+        self,
+        *,
+        comment_id: int,
+        text: str,
+        request_id: int | None = None,
+    ) -> list[str]:
+        prompt = text
+        run_id = dedalus_logging.start_logged_run(
+            user_id="cli",
+            entity_type="request_chat",
+            entity_id=str(request_id) if request_id else None,
+            model=self._model,
+            prompt=prompt,
+            context_hash=str(comment_id),
+        )
+        try:
+            result = asyncio.run(self._classify_async(comment_id=comment_id, text=text))
+        except Exception as exc:  # pragma: no cover - logging path
+            dedalus_logging.finalize_logged_run(
+                run_id=run_id,
+                response=None,
+                status="error",
+                error=str(exc),
+            )
+            raise
+        dedalus_logging.finalize_logged_run(
+            run_id=run_id,
+            response=json.dumps(result),
+            status="success",
+        )
+        return result
 
     @staticmethod
     def _parse_tags(raw_output: str) -> list[str]:
@@ -127,10 +158,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _resolve_request_ids(session: Session, ids: Iterable[int] | None, include_all: bool) -> list[int]:
-    resolved = set(filter(None, ids or []))
+    resolved = {value for value in (ids or []) if value}
     if include_all or not resolved:
         rows = session.exec(select(HelpRequest.id)).all()
-        resolved.update(row[0] for row in rows if row[0])
+        resolved.update(row for row in rows if row)
     return sorted(resolved)
 
 
@@ -162,6 +193,7 @@ def _build_classifier(
     *,
     allow_all: bool,
     allowed_comment_ids: set[int],
+    request_id: int,
 ) -> request_chat_search_service.ClassifierFn | None:
     if not adapter:
         return None
@@ -169,10 +201,12 @@ def _build_classifier(
     allow_all_scope = allow_all or not allowed_comment_ids
     allowed = set(allowed_comment_ids)
 
+    request_scope = request_id
+
     def classify(comment_id: int, text: str) -> list[str]:
         if not allow_all_scope and comment_id not in allowed:
             return []
-        return adapter.classify(comment_id=comment_id, text=text)
+        return adapter.classify(comment_id=comment_id, text=text, request_id=request_scope)
 
     return classify
 
@@ -209,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
                 adapter,
                 allow_all=bool(ns.llm_all),
                 allowed_comment_ids=allowed_ids,
+                request_id=request_id,
             )
             index = request_chat_search_service.refresh_chat_index(
                 session,
