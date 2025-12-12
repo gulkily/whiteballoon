@@ -435,7 +435,11 @@ def cmd_comment_llm(args: list[str]) -> int:
 
     cmd = [str(vpy), "-m", COMMENT_LLM_MODULE, *passthrough]
     info("Running comment LLM batch planner/executor")
-    return _run_process(cmd)
+    return _run_process(
+        cmd,
+        graceful_interrupt=True,
+        interrupt_message="Comment LLM run interrupted",
+    )
 
 
 def cmd_promote_comment(args: list[str]) -> int:
