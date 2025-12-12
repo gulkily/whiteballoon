@@ -981,6 +981,16 @@
   margin-bottom: 4px;
 }
 
+.channel-message__time {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.channel-message__time:focus-visible,
+.channel-message__time:hover {
+  text-decoration: underline;
+}
+
 .channel-message__text {
   line-height: 1.4;
 }
