@@ -51,7 +51,8 @@
 
   if (filters) {
     filters.addEventListener('click', (event) => {
-      const button = event.target.closest('[data-channel-filter]');
+      const target = event.target;
+      const button = target instanceof Element ? target.closest('[data-channel-filter]') : null;
       if (!button) return;
       activeFilter = button.dataset.channelFilter || 'all';
       filters.querySelectorAll('[data-channel-filter]').forEach((node) => {
