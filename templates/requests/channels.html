@@ -102,6 +102,44 @@
     {% endif %}
   </section>
 </section>
+{% if session and session.is_fully_authenticated %}
+<dialog class="request-comment__modal" data-comment-promote-modal>
+  <form class="stack" data-comment-promote-form>
+    <h2>Promote comment to request</h2>
+    <p class="small-text" data-comment-promote-context></p>
+    <div class="alert alert--warning" data-comment-promote-warning hidden>
+      <p data-comment-promote-warning-text></p>
+    </div>
+    <label class="stack">
+      <span>Summary</span>
+      <textarea rows="4" data-comment-promote-description required></textarea>
+    </label>
+    <label class="stack">
+      <span>Contact email (optional)</span>
+      <input type="email" data-comment-promote-contact />
+    </label>
+    <label class="stack">
+      <span>Status</span>
+      <select data-comment-promote-status>
+        <option value="open">Open</option>
+        <option value="pending">Pending</option>
+      </select>
+    </label>
+    <label class="stack" data-comment-promote-override-row hidden>
+      <span class="small-text">Create another request even though this comment was promoted before</span>
+      <div class="form-check">
+        <input type="checkbox" data-comment-promote-override />
+        <span>Allow duplicate promotion</span>
+      </div>
+    </label>
+    <div class="alert alert--error" data-comment-promote-error hidden></div>
+    <div class="request-comments__form-footer">
+      <button type="button" class="button button--ghost" data-comment-promote-cancel>Cancel</button>
+      <button type="submit" class="button" data-comment-promote-submit>Create request</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
 <script id="channel-bootstrap" type="application/json">
   {{ {
     "requests": channel_requests,
@@ -109,4 +147,7 @@
   } | tojson }}
 </script>
 <script src="/static/js/request-channels.js" defer></script>
+{% if session and session.is_fully_authenticated %}
+<script src="/static/js/comment-promotion.js" defer></script>
+{% endif %}
 {% endblock %}

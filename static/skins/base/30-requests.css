@@ -1012,6 +1012,23 @@
   gap: 8px;
   font-size: 0.85rem;
   margin-bottom: 4px;
+  align-items: center;
+}
+
+.channel-message__action {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.channel-message__action:hover,
+.channel-message__action:focus-visible {
+  text-decoration: underline;
 }
 
 .channel-message__time {

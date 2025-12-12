@@ -387,10 +387,12 @@ def _build_request_channel_chat_context(
         "request": request_payload,
         "comments": detail_context.get("comments", []),
         "can_comment": detail_context.get("can_comment", False),
+        "can_promote_comments": detail_context.get("can_promote_comments", False),
         "comment_form_errors": detail_context.get("comment_form_errors", []),
         "comment_form_body": detail_context.get("comment_form_body", ""),
         "comment_max_length": detail_context.get("comment_max_length"),
         "comment_display_names": detail_context.get("comment_display_names", {}),
+        "comment_promotions": detail_context.get("comment_promotions", {}),
         "session_username": detail_context.get("session_username"),
         "session_avatar_url": detail_context.get("session_avatar_url"),
     }

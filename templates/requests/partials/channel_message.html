@@ -1,5 +1,13 @@
 {% set display_name = comment.display_name or chat.comment_display_names.get(comment.user_id) or '@' ~ comment.username %}
-<li class="channel-message" data-comment-id="{{ comment.id }}">
+{% set promotion_entries = chat.comment_promotions.get(comment.id) if chat.comment_promotions else [] %}
+{% set latest_promotion = promotion_entries[-1] if promotion_entries else none %}
+<li
+  class="channel-message"
+  data-comment-id="{{ comment.id }}"
+  data-comment-username="{{ comment.username }}"
+  data-comment-display-name="{{ display_name }}"
+  {% if latest_promotion %}data-comment-promoted-request="{{ latest_promotion.request_id }}"{% endif %}
+>
   <div class="channel-message__avatar" aria-hidden="true">
     {{ (display_name | trim)[:2] | upper }}
   </div>
@@ -9,7 +17,17 @@
       <a class="channel-message__time" href="/comments/{{ comment.id }}" title="View comment permalink">
         <time datetime="{{ comment.created_at_iso or comment.created_at }}">{{ comment.created_at | friendly_time }}</time>
       </a>
+      {% if chat.can_promote_comments %}
+        <button
+          type="button"
+          class="channel-message__action"
+          data-comment-promote
+          data-comment-promote-id="{{ comment.id }}"
+        >
+          Promote
+        </button>
+      {% endif %}
     </div>
-    <div class="channel-message__text">{{ comment.body | e | replace('\n', '<br />') | safe }}</div>
+    <div class="channel-message__text" data-comment-body-text>{{ comment.body | e | replace('\n', '<br />') | safe }}</div>
   </div>
 </li>
