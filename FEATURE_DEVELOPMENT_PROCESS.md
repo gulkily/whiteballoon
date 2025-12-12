@@ -76,7 +76,7 @@ Each step MUST be a separate file in `docs/plans/`:
 - **Step 4**: `{feature_name}_step4_implementation_summary.md`
 
 **Commit Discipline**: Keep each stage’s document uncommitted until the user reviews it. Commit only after approval and immediately before starting the next stage to keep IDE “dirty file” views meaningful.
-**Plan Review**: Do not commit Step 1–3 plan files until the user explicitly reviews and approves them. Deliver the drafts for feedback, wait for “Approved Step N”, then commit right before moving on.
+**Plan Review**: Do not commit Step 1–3 plan files until the user explicitly reviews and approves them. Deliver the drafts for feedback, wait for “Approved Step N”, then commit before beginning development.
 
 ## Key Rules
 
