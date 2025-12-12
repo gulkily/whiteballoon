@@ -28,9 +28,9 @@
   let searchTerm = '';
   let searchDebounce = null;
   let inflightController = null;
-  let lastTypingSignal = 0;
-  let typingIndicator = null;
-  let announcer = null;
+  var lastTypingSignal = 0;
+  var typingIndicator = null;
+  var announcer = null;
 
   if (buttons.length) {
     buttons.forEach((btn) => {
