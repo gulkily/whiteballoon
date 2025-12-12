@@ -23,6 +23,14 @@
   const resultsAnnouncer = container.querySelector('[data-channel-results-announcer]');
   const channelMeta = {};
   const resultCache = new Map();
+  const visibleCount = container.querySelector('[data-channel-result-count-value]');
+  let activeFilter = 'all';
+  let searchTerm = '';
+  let searchDebounce = null;
+  let inflightController = null;
+  let lastTypingSignal = 0;
+  let typingIndicator = null;
+  let announcer = null;
 
   if (buttons.length) {
     buttons.forEach((btn) => {
@@ -253,11 +261,10 @@
   function announceResults(count) {
     if (!resultsAnnouncer) return;
     resultsAnnouncer.textContent = `${count} channel${count === 1 ? '' : 's'} loaded`;
+    if (visibleCount) {
+      visibleCount.textContent = count;
+    }
   }
-
-  let lastTypingSignal = 0;
-  let typingIndicator = null;
-  let announcer = null;
 
   wireChatPane(chatPane);
   const heartbeat = setInterval(() => pingPresence(false), 8000);
@@ -267,11 +274,6 @@
     clearInterval(heartbeat);
     clearInterval(presencePoller);
   });
-
-  let activeFilter = 'all';
-  let searchTerm = '';
-  let searchDebounce = null;
-  let inflightController = null;
 
   function buildQueryKey(filter = activeFilter, term = searchTerm) {
     return `${filter}::${term.trim().toLowerCase()}`;

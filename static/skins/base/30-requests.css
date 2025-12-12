@@ -781,6 +781,12 @@
   display: none;
 }
 
+.request-channels__result-count {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
 .channel-filter {
   border: 1px solid rgba(124, 58, 237, 0.3);
   background: transparent;
