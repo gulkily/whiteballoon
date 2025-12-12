@@ -22,6 +22,7 @@ from app.services import (
     comment_llm_insights_db,
     comment_llm_store,
 )
+from app.dedalus import logging as dedalus_logging
 
 
 MIN_BATCH_SIZE = 1
@@ -144,6 +145,46 @@ class BatchLLMResult:
     batch_index: int
     analyses: list[CommentAnalysis]
     raw_response: str
+
+
+@dataclass(frozen=True)
+class DedalusBatchLogContext:
+    cli_run_id: str
+    snapshot_label: str
+    model: str
+    comment_ids: tuple[int, ...]
+
+    def context_hash(self) -> str | None:
+        if not self.comment_ids:
+            return None
+        return ",".join(str(comment_id) for comment_id in self.comment_ids)
+
+    def prompt_summary(self, *, batch_index: int, attempt: int) -> str:
+        attempt_note = f" attempt {attempt}" if attempt > 1 else ""
+        comment_preview = ", ".join(str(comment_id) for comment_id in self.comment_ids) or "n/a"
+        return (
+            f"Comment LLM batch #{batch_index}{attempt_note} for snapshot '{self.snapshot_label}' "
+            f"(cli run {self.cli_run_id}; {len(self.comment_ids)} comments; comment_ids={comment_preview})"
+        )
+
+    def entity_id(self, *, batch_index: int) -> str:
+        return f"{self.cli_run_id}:{batch_index:03d}"
+
+
+def _build_log_context(
+    *,
+    cli_run_id: str,
+    snapshot_label: str,
+    model: str,
+    comments: Sequence[CommentPayload],
+) -> DedalusBatchLogContext:
+    comment_ids = tuple(comment.id for comment in comments if comment.id)
+    return DedalusBatchLogContext(
+        cli_run_id=cli_run_id,
+        snapshot_label=snapshot_label,
+        model=model,
+        comment_ids=comment_ids,
+    )
 
 
 class CommentBatchPlanner:
@@ -439,12 +480,24 @@ def parse_batch_response(
 
 
 class BatchLLMClient:
-    def analyze_batch(self, *, batch_index: int, comments: Sequence[CommentPayload]) -> BatchLLMResult:  # pragma: no cover - protocol
+    def analyze_batch(
+        self,
+        *,
+        batch_index: int,
+        comments: Sequence[CommentPayload],
+        log_context: DedalusBatchLogContext | None = None,
+    ) -> BatchLLMResult:  # pragma: no cover - protocol
         raise NotImplementedError
 
 
 class MockBatchLLMClient(BatchLLMClient):
-    def analyze_batch(self, *, batch_index: int, comments: Sequence[CommentPayload]) -> BatchLLMResult:
+    def analyze_batch(
+        self,
+        *,
+        batch_index: int,
+        comments: Sequence[CommentPayload],
+        log_context: DedalusBatchLogContext | None = None,
+    ) -> BatchLLMResult:
         payload = {
             "batch_index": batch_index,
             "comments": [],
@@ -507,21 +560,53 @@ class DedalusBatchLLMClient(BatchLLMClient):
             return "\n".join(str(item) for item in outputs)
         return str(response)
 
-    def analyze_batch(self, *, batch_index: int, comments: Sequence[CommentPayload]) -> BatchLLMResult:
+    def analyze_batch(
+        self,
+        *,
+        batch_index: int,
+        comments: Sequence[CommentPayload],
+        log_context: DedalusBatchLogContext | None = None,
+    ) -> BatchLLMResult:
         expected = {comment.id: comment for comment in comments}
         prompt = build_prompt(batch_index, comments)
-        attempts = 0
+        failures = 0
         while True:
+            attempt = failures + 1
+            log_run_id: str | None = None
+            if log_context:
+                log_run_id = dedalus_logging.start_logged_run(
+                    user_id="cli",
+                    entity_type="comment_llm_batch",
+                    entity_id=log_context.entity_id(batch_index=batch_index),
+                    model=log_context.model,
+                    prompt=log_context.prompt_summary(batch_index=batch_index, attempt=attempt),
+                    context_hash=log_context.context_hash(),
+                )
             try:
                 raw = asyncio.run(self._run_async(prompt))
-                return parse_batch_response(raw, batch_index=batch_index, expected_comments=expected)
+                parsed = parse_batch_response(raw, batch_index=batch_index, expected_comments=expected)
+                if log_run_id:
+                    dedalus_logging.finalize_logged_run(
+                        run_id=log_run_id,
+                        response=raw,
+                        status="success",
+                    )
+                return parsed
             except Exception as exc:  # pragma: no cover - external dependency
-                attempts += 1
-                if attempts > self._max_retries:
+                if log_run_id:
+                    dedalus_logging.finalize_logged_run(
+                        run_id=log_run_id,
+                        response=None,
+                        status="error",
+                        error=str(exc),
+                    )
+                failures += 1
+                if failures > self._max_retries:
                     raise
-                delay = self._retry_wait * attempts
+                delay = self._retry_wait * failures
                 print(
-                    f"[batch {batch_index:03d}] Dedalus call failed ({exc}); retrying in {delay:.1f}s...")
+                    f"[batch {batch_index:03d}] Dedalus call failed ({exc}); retrying in {delay:.1f}s..."
+                )
                 time.sleep(delay)
 
 
@@ -971,7 +1056,19 @@ def main(argv: list[str] | None = None) -> int:
                     f"[batch {idx:03d}] Sending {len(batch_comments)} comments "
                     f"(~{est_input} in / ~{est_output} out tokens, est cost ${est_cost:.4f})"
                 )
-                result = client.analyze_batch(batch_index=idx, comments=batch_comments)
+                log_context = None
+                if ns.provider == "dedalus":
+                    log_context = _build_log_context(
+                        cli_run_id=run_id,
+                        snapshot_label=summary.snapshot_label,
+                        model=ns.model,
+                        comments=batch_comments,
+                    )
+                result = client.analyze_batch(
+                    batch_index=idx,
+                    comments=batch_comments,
+                    log_context=log_context,
+                )
                 print(
                     f"[batch {idx:03d}] Received {len(result.analyses)} analyses; cumulative est cost ${cumulative_estimated_cost:.4f}"
                 )
