@@ -6,8 +6,8 @@
   <div class="channel-message__content">
     <div class="channel-message__meta">
       <span class="channel-message__author">{{ display_name }}</span>
-      <a class="channel-message__time" href="/comments/{{ comment.id }}">
-        <time datetime="{{ comment.created_at }}">{{ comment.created_at }}</time>
+      <a class="channel-message__time" href="/comments/{{ comment.id }}" title="View comment permalink">
+        <time datetime="{{ comment.created_at_iso or comment.created_at }}">{{ comment.created_at | friendly_time }}</time>
       </a>
     </div>
     <div class="channel-message__text">{{ comment.body | e | replace('\n', '<br />') | safe }}</div>
