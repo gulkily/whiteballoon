@@ -48,6 +48,7 @@ class Settings:
     comment_insights_indicator_enabled: bool = _get_bool(os.getenv("COMMENT_INSIGHTS_INDICATOR"), False)
     profile_signal_glaze_enabled: bool = _get_bool(os.getenv("PROFILE_SIGNAL_GLAZE"), False)
     pinned_requests_limit: int = int(os.getenv("WB_PINNED_REQUESTS_LIMIT", "3"))
+    request_channels_enabled: bool = _get_bool(os.getenv("REQUEST_CHANNELS"), False)
 
 
 @lru_cache(maxsize=1)

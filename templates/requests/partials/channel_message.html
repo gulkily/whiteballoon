@@ -1,0 +1,13 @@
+{% set display_name = comment.display_name or chat.comment_display_names.get(comment.user_id) or '@' ~ comment.username %}
+<li class="channel-message" data-comment-id="{{ comment.id }}">
+  <div class="channel-message__avatar" aria-hidden="true">
+    {{ (display_name | trim)[:2] | upper }}
+  </div>
+  <div class="channel-message__content">
+    <div class="channel-message__meta">
+      <span class="channel-message__author">{{ display_name }}</span>
+      <time class="channel-message__time" datetime="{{ comment.created_at }}">{{ comment.created_at }}</time>
+    </div>
+    <div class="channel-message__text">{{ comment.body | e | replace('\n', '<br />') | safe }}</div>
+  </div>
+</li>

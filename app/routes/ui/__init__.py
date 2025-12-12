@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import json
 import logging
 import math
 import re
+from datetime import datetime
 from collections import Counter
 from pathlib import Path
 from typing import Annotated, Literal, Optional, cast
@@ -22,6 +24,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel
 from sqlalchemy import and_, desc, func, literal, or_, union_all
 from sqlmodel import Session, select
 
@@ -52,6 +55,8 @@ from app.services import (
     invite_map_cache_service,
     request_chat_search_service,
     request_chat_suggestions,
+    request_channel_presence,
+    request_channel_reads,
     request_pin_service,
     request_comment_service,
     signal_profile_snapshot_service,
@@ -100,6 +105,11 @@ BROWSE_TABS = [
     {"slug": "comments", "label": "Comments"},
     {"slug": "profiles", "label": "Profiles"},
 ]
+
+
+class ChannelPresencePayload(BaseModel):
+    request_id: int
+    typing: bool = False
 
 
 def _normalize_filter_values(values: list[str]) -> set[str]:
@@ -308,6 +318,99 @@ def _serialize_requests(
             ).model_dump()
         )
     return serialized
+
+
+def _build_request_channel_rows(
+    requests: list[dict[str, object]],
+    *,
+    comment_counts: Optional[dict[int, int]] = None,
+    unread_counts: Optional[dict[int, int]] = None,
+    read_counts: Optional[dict[int, int]] = None,
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for item in requests:
+        description = (item.get("description") or "").strip()
+        first_line = description.splitlines()[0].strip() if description else ""
+        title = first_line or f"Request #{item.get('id')}"
+        request_id = int(item.get("id")) if item.get("id") else None
+        unread_total = unread_counts.get(request_id, 0) if (unread_counts and request_id) else 0
+        if read_counts and request_id in read_counts:
+            unread_total = max((comment_counts or {}).get(request_id, 0) - read_counts[request_id], 0)
+        rows.append(
+            {
+                "id": request_id,
+                "title": title[:120],
+                "preview": _truncate_text(description, limit=160),
+                "status": item.get("status"),
+                "updated_at": item.get("updated_at"),
+                "is_pinned": bool(item.get("is_pinned")),
+                "comment_count": (comment_counts.get(request_id, 0) if (comment_counts and request_id) else 0),
+                "unread_count": unread_total,
+            }
+        )
+    return rows
+
+
+def _load_channel_comment_counts(
+    db: Session,
+    request_ids: list[int],
+    *,
+    newer_than: Optional[datetime] = None,
+) -> tuple[dict[int, int], dict[int, int]]:
+    if not request_ids:
+        return {}, {}
+
+    stmt = (
+        select(RequestComment.help_request_id, func.count())
+        .where(RequestComment.help_request_id.in_(request_ids))
+        .where(RequestComment.deleted_at.is_(None))
+        .group_by(RequestComment.help_request_id)
+    )
+    total_counts = {request_id: count for request_id, count in db.exec(stmt).all()}
+
+    unread_counts: dict[int, int] = {}
+    if newer_than:
+        unread_stmt = (
+            select(RequestComment.help_request_id, func.count())
+            .where(RequestComment.help_request_id.in_(request_ids))
+            .where(RequestComment.deleted_at.is_(None))
+            .where(RequestComment.created_at > newer_than)
+            .group_by(RequestComment.help_request_id)
+        )
+        unread_counts = {request_id: count for request_id, count in db.exec(unread_stmt).all()}
+
+    return total_counts, unread_counts
+
+
+def _build_request_channel_chat_context(
+    request: Request,
+    db: Session,
+    session_user: SessionUser,
+    help_request: HelpRequest,
+) -> dict[str, object]:
+    detail_context = _build_request_detail_context(
+        request,
+        db,
+        session_user,
+        help_request,
+        page=1,
+    )
+    request_item = detail_context.get("request_item")
+    if isinstance(request_item, RequestResponse):
+        request_payload = request_item.model_dump()
+    else:
+        request_payload = request_item
+    return {
+        "request": request_payload,
+        "comments": detail_context.get("comments", []),
+        "can_comment": detail_context.get("can_comment", False),
+        "comment_form_errors": detail_context.get("comment_form_errors", []),
+        "comment_form_body": detail_context.get("comment_form_body", ""),
+        "comment_max_length": detail_context.get("comment_max_length"),
+        "comment_display_names": detail_context.get("comment_display_names", {}),
+        "session_username": detail_context.get("session_username"),
+        "session_avatar_url": detail_context.get("session_avatar_url"),
+    }
 
 
 def _format_proof_receipts(proof_points: list[dict[str, str]] | None) -> list[dict[str, object]]:
@@ -673,6 +776,138 @@ def home(
     )
 
 
+@router.get("/requests/channels")
+def request_channels_workspace(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    request_id: int | None = Query(None, alias="channel"),
+) -> Response:
+    settings = config.get_settings()
+    if not settings.request_channels_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request channels disabled")
+
+    viewer = session_user.user
+    session_record = session_user.session
+    session_role = describe_session_role(viewer, session_record)
+
+    request_objects = request_services.list_requests(db)
+    serialized_requests = _serialize_requests(db, request_objects, viewer=viewer)
+    request_ids = [int(item["id"]) for item in serialized_requests if item.get("id")]
+    comment_counts, unread_counts = _load_channel_comment_counts(
+        db,
+        request_ids,
+        newer_than=session_record.last_seen_at,
+    )
+    read_counts = request_channel_reads.get_read_counts(session_record.id, request_ids)
+    request_lookup = {help_request.id: help_request for help_request in request_objects if help_request.id}
+    channel_rows = _build_request_channel_rows(
+        serialized_requests,
+        comment_counts=comment_counts,
+        unread_counts=unread_counts,
+        read_counts=read_counts,
+    )
+
+    active_channel_id = request_id
+    if active_channel_id is None and channel_rows:
+        active_channel_id = channel_rows[0]["id"]
+
+    active_channel = None
+    active_request_payload = None
+    active_chat_context = None
+    if active_channel_id is not None:
+        active_channel = next((row for row in channel_rows if row["id"] == active_channel_id), None)
+        active_request_payload = next(
+            (item for item in serialized_requests if item["id"] == active_channel_id),
+            None,
+        )
+        help_request = request_lookup.get(active_channel_id)
+        if help_request:
+            active_chat_context = _build_request_channel_chat_context(
+                request,
+                db,
+                session_user,
+                help_request,
+            )
+        request_channel_reads.mark_read(
+            session_record.id,
+            active_channel_id,
+            comment_count=comment_counts.get(active_channel_id, 0),
+        )
+
+    context = {
+        "request": request,
+        "user": viewer,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": viewer.username,
+        "session_avatar_url": session_user.avatar_url,
+        "channel_requests": channel_rows,
+        "channel_requests_json": json.dumps(channel_rows),
+        "active_channel": active_channel,
+        "active_channel_request": active_request_payload,
+        "active_channel_id": active_channel_id,
+        "active_chat_context": active_chat_context,
+    }
+    return templates.TemplateResponse("requests/channels.html", context)
+
+
+@router.get("/requests/channels/{request_id}/panel")
+def request_channel_panel(
+    request: Request,
+    request_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    settings = config.get_settings()
+    if not settings.request_channels_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request channels disabled")
+
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    chat_context = _build_request_channel_chat_context(request, db, session_user, help_request)
+    request_channel_reads.mark_read(
+        session_user.session.id,
+        help_request.id,
+        comment_count=len(chat_context.get("comments", [])),
+    )
+    template = templates.get_template("requests/partials/channel_chat.html")
+    html = template.render({"request": request, "user": session_user.user, "chat": chat_context})
+
+    channel_meta = {
+        "id": chat_context["request"].get("id"),
+        "comment_count": len(chat_context.get("comments", [])),
+        "status": chat_context["request"].get("status"),
+    }
+    return JSONResponse({"html": html, "channel": channel_meta})
+
+
+@router.post("/requests/channels/presence")
+def update_request_channel_presence(
+    payload: ChannelPresencePayload,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    settings = config.get_settings()
+    if not settings.request_channels_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request channels disabled")
+    request_channel_presence.mark_presence(session_user.user, payload.request_id, typing=payload.typing)
+    return JSONResponse({"ok": True})
+
+
+@router.get("/requests/channels/presence")
+def get_request_channel_presence(
+    id: list[int] = Query([], alias="id"),
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    settings = config.get_settings()
+    if not settings.request_channels_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request channels disabled")
+    if not id:
+        return JSONResponse({"presence": {}})
+    presence = request_channel_presence.list_presence(id)
+    return JSONResponse({"presence": presence})
+
+
 @router.get("/browse")
 def browse_content(
     request: Request,
@@ -815,6 +1050,11 @@ def request_detail(
     chat_topic: list[str] | None = Query(None, alias="chat_topic"),
     chat_participant: list[int] | None = Query(None, alias="chat_participant"),
 ) -> Response:
+    settings = config.get_settings()
+    if settings.request_channels_enabled and request.query_params.get("legacy") != "1" and not _wants_json(request):
+        redirect_url = f"/requests/channels?channel={request_id}"
+        return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
+
     help_request = request_services.get_request_by_id(db, request_id=request_id)
     chat_filters = {
         "query": (chat_q or "").strip(),
