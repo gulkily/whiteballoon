@@ -663,6 +663,8 @@ def print_help() -> None:
     print("  create-invite [opts]  Generate invite tokens")
     print("  import-signal-group   Import a Signal Desktop group export (local seed)")
     print("  chat <command>        Chat/comment utilities (index, embed, llm)")
+    print("  comment-llm [opts]    Plan/execute LLM batches and queue promotions")
+    print("  promote-comment-batch Run queued comment promotions")
     print("  profile-glaze [opts]  Analyze comments + glaze Signal bios in one shot")
     print("  session <command>     Inspect or manage authentication sessions")
     print("  dedalus test [opts]   Run the Dedalus verification script")
