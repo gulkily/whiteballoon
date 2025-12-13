@@ -10,11 +10,15 @@
 {% set readonly = readonly if readonly is defined else False %}
 {% set session = session if session is defined else None %}
 {% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
+{% set signal_ledger_active = skin_active_name(request) == 'signal-ledger' %}
 <section class="section request-list-layout">
   <div class="request-list__filter">
     {% include "requests/partials/filter_bar.html" %}
   </div>
   <div class="request-list__content">
+  {% if signal_ledger_active %}
+    {% include "requests/partials/signal_ledger_metrics.html" %}
+  {% endif %}
   <div
     class="card stack requests-hero is-collapsed"
     id="request-form-card"

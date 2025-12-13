@@ -89,10 +89,9 @@ def _resolve_bundle_url(name: str, registry: SkinRegistry) -> tuple[str, bool]:
     return fallback, False
 
 
-def skin_bundle_href(request: Request) -> str:
-    settings = get_settings()
+def _resolve_desired_skin(request: Request, settings: Settings) -> str:
     if not settings.skins_enabled:
-        return "/static/skins/default.css"
+        return settings.skin_default
 
     allowed = _normalize_allowed(settings)
     desired = settings.skin_default
@@ -100,6 +99,15 @@ def skin_bundle_href(request: Request) -> str:
         override = request.query_params.get(settings.skin_preview_param)
         if override and override in allowed:
             desired = override
+    return desired
+
+
+def skin_bundle_href(request: Request) -> str:
+    settings = get_settings()
+    if not settings.skins_enabled:
+        return "/static/skins/default.css"
+
+    desired = _resolve_desired_skin(request, settings)
 
     manifest_path = str(_manifest_path(settings))
     registry = _load_manifest(manifest_path)
@@ -136,5 +144,11 @@ def available_skins() -> dict[str, SkinBundle]:
     return bundles
 
 
+def active_skin_name(request: Request) -> str:
+    settings = get_settings()
+    return _resolve_desired_skin(request, settings)
+
+
 def register_skin_helpers(templates: Jinja2Templates) -> None:
     templates.env.globals.setdefault("skin_bundle_href", skin_bundle_href)
+    templates.env.globals.setdefault("skin_active_name", active_skin_name)

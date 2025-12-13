@@ -196,6 +196,78 @@ def _build_reset_url(base_path: str, current_items: list[tuple[str, str]]) -> st
     return f"{base_path}?{query}" if query else base_path
 
 
+def _trim_request_title(help_request: HelpRequest) -> str:
+    explicit = (help_request.title or "").strip()
+    if explicit:
+        return explicit
+    description = (help_request.description or "").strip()
+    if not description:
+        return f"Request #{help_request.id}" if help_request.id else "Request"
+    first_line = description.splitlines()[0].strip()
+    condensed = re.sub(r"\s+", " ", first_line)
+    if len(condensed) <= 96:
+        return condensed
+    return condensed[:93].rstrip() + "…"
+
+
+def _build_signal_ledger_metrics(requests: Sequence[HelpRequest]) -> dict[str, object]:
+    total = len(requests)
+    open_count = sum(1 for item in requests if item.status == "open")
+    completed_count = sum(1 for item in requests if item.status == "completed")
+    contact_ready = sum(1 for item in requests if (item.contact_email or "").strip())
+    verified_count = sum(1 for item in requests if getattr(item, "sync_scope", "private") != "private")
+
+    def _percent(numerator: int, denominator: int) -> int:
+        if denominator <= 0:
+            return 0
+        return int(round((numerator / denominator) * 100))
+
+    network_health = _percent(completed_count, total)
+    capital_share = _percent(contact_ready, total)
+    verification_rate = _percent(verified_count, total)
+    return {
+        "total_requests": total,
+        "network_health": {
+            "value": network_health,
+            "unit": "%",
+            "delta": completed_count - open_count,
+            "delta_positive": completed_count >= open_count,
+            "meta": f"{completed_count} completed / {open_count} open",
+        },
+        "capital_flows": {
+            "value": contact_ready,
+            "unit": "cases",
+            "delta": capital_share,
+            "delta_positive": capital_share >= 50,
+            "meta": f"{capital_share}% include contact handoffs",
+        },
+        "verification_chain": {
+            "value": verification_rate,
+            "unit": "%",
+            "delta": verified_count,
+            "delta_positive": verified_count >= (total // 2 if total else 0),
+            "meta": f"{verified_count} in shared scope",
+        },
+    }
+
+
+def _build_signal_ledger_timeline(requests: Sequence[HelpRequest]) -> list[dict[str, object]]:
+    sorted_requests = sorted(requests, key=lambda item: item.updated_at, reverse=True)
+    timeline: list[dict[str, object]] = []
+    for help_request in sorted_requests[:8]:
+        timeline.append(
+            {
+                "id": help_request.id,
+                "title": _trim_request_title(help_request),
+                "status": help_request.status,
+                "updated_at": help_request.updated_at,
+                "sync_scope": getattr(help_request, "sync_scope", "private"),
+                "has_contact": bool((help_request.contact_email or "").strip()),
+            }
+        )
+    return timeline
+
+
 def _normalize_search_term(value: Optional[str]) -> Optional[str]:
     if value is None:
         return None
@@ -738,6 +810,8 @@ def home(
     filters_active = bool(topic_filters or urgency_filters or status_filters)
     show_pinned_section = not filters_active
     pinned_payload = pinned_requests if show_pinned_section else []
+    signal_ledger_metrics = _build_signal_ledger_metrics(filtered_objects)
+    signal_ledger_timeline = _build_signal_ledger_timeline(filtered_objects)
     return templates.TemplateResponse(
         "requests/index.html",
         {
@@ -760,6 +834,8 @@ def home(
             "show_pinned_section": show_pinned_section,
             "can_pin_requests": user.is_admin,
             "pinned_request_count": len(pinned_payload),
+            "signal_ledger_metrics": signal_ledger_metrics,
+            "signal_ledger_timeline": signal_ledger_timeline,
         },
     )
 

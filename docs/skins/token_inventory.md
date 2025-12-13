@@ -84,3 +84,4 @@ Remember to restart the app after changing these values so `get_settings()` relo
 - **default** – current brand palette with gradient background.
 - **terminal** – retro green-on-black terminal aesthetic (monospace fonts, neon accents). Enable via `WB_SKINS_ALLOWED=default,terminal` and `WB_SKIN_DEFAULT=terminal` if desired.
 - **paper** – notebook-inspired cream palette with handwritten fonts and dotted-grid background. Enable via `WB_SKINS_ALLOWED=default,paper`.
+- **signal-ledger** – investor-grade deep navy theme with copper + teal accents, serif headings, KPI hero row, and horizontal timeline strip. Enable via `WB_SKINS_ALLOWED=default,terminal,paper,signal-ledger` and preview with `?skin=signal-ledger` when preview mode is on.
