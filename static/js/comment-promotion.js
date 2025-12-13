@@ -96,6 +96,8 @@
     closeModal();
   });
 
+  const isChannelsView = Boolean(document.querySelector('[data-request-channels]'));
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!activeCommentId) {
@@ -139,10 +141,13 @@
         throw new Error(detail);
       }
 
+      closeModal();
       if (data && data.id) {
-        window.location.href = `/requests/${data.id}`;
-      } else {
-        closeModal();
+        const targetUrl = isChannelsView
+          ? `/requests/channels?channel=${data.id}`
+          : `/requests/${data.id}`;
+        window.location.href = targetUrl;
+        return;
       }
     } catch (error) {
       setError(error.message || 'Unable to promote comment');
