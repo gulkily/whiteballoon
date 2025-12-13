@@ -61,6 +61,12 @@ def site_menu(
                     requires_full=True,
                 ),
                 _build_link(
+                    title="Request channels",
+                    description="Live chat view of every help request with unread indicators.",
+                    href="/requests/channels",
+                    requires_full=True,
+                ),
+                _build_link(
                     title="Send Welcome",
                     description="Generate invite links, personalized notes, and onboarding tips.",
                     href="/invite/new",

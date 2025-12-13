@@ -415,8 +415,8 @@ def _build_request_channel_rows(
     unread_counts: Optional[dict[int, int]] = None,
     read_counts: Optional[dict[int, int]] = None,
 ) -> list[dict[str, object]]:
-    rows: list[dict[str, object]] = []
-    for item in requests:
+    ordered_rows: list[tuple[int, dict[str, object]]] = []
+    for index, item in enumerate(requests):
         description = (item.get("description") or "").strip()
         first_line = description.splitlines()[0].strip() if description else ""
         title = first_line or f"Request #{item.get('id')}"
@@ -424,19 +424,31 @@ def _build_request_channel_rows(
         unread_total = unread_counts.get(request_id, 0) if (unread_counts and request_id) else 0
         if read_counts and request_id in read_counts:
             unread_total = max((comment_counts or {}).get(request_id, 0) - read_counts[request_id], 0)
-        rows.append(
-            {
-                "id": request_id,
-                "title": title[:120],
-                "preview": _truncate_text(description, limit=160),
-                "status": item.get("status"),
-                "updated_at": item.get("updated_at"),
-                "is_pinned": bool(item.get("is_pinned")),
-                "comment_count": (comment_counts.get(request_id, 0) if (comment_counts and request_id) else 0),
-                "unread_count": unread_total,
-            }
-        )
-    return rows
+        row = {
+            "id": request_id,
+            "title": title[:120],
+            "preview": _truncate_text(description, limit=160),
+            "status": item.get("status"),
+            "updated_at": item.get("updated_at"),
+            "is_pinned": bool(item.get("is_pinned")),
+            "pin_rank": item.get("pin_rank"),
+            "comment_count": (comment_counts.get(request_id, 0) if (comment_counts and request_id) else 0),
+            "unread_count": unread_total,
+        }
+        ordered_rows.append((index, row))
+
+    def _sort_key(payload: tuple[int, dict[str, object]]) -> tuple[int, float]:
+        idx, row = payload
+        is_pinned = bool(row.get("is_pinned"))
+        rank = row.get("pin_rank")
+        if isinstance(rank, int):
+            rank_key = float(rank)
+        else:
+            rank_key = float(idx)
+        return (0 if is_pinned else 1, rank_key if is_pinned else float(idx))
+
+    ordered_rows.sort(key=_sort_key)
+    return [row for _, row in ordered_rows]
 
 
 def _build_request_channel_chat_context(
@@ -856,7 +868,8 @@ def request_channels_workspace(
     session_role = describe_session_role(viewer, session_record)
 
     request_objects = request_services.list_requests(db)
-    serialized_requests = _serialize_requests(db, request_objects, viewer=viewer)
+    pin_map = request_pin_service.get_pin_map(db)
+    serialized_requests = _serialize_requests(db, request_objects, viewer=viewer, pin_map=pin_map)
     request_ids = [int(item["id"]) for item in serialized_requests if item.get("id")]
     comment_counts, unread_counts = request_channel_metrics.load_comment_counts(
         db,
