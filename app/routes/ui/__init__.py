@@ -1174,12 +1174,18 @@ def recurring_requests_page(
     template_list = recurring_template_service.list_templates_for_user(db, user_id=viewer.id)
     delivery_modes = list(RecurringRequestDeliveryMode)
     interval_options = _recurring_interval_options()
+    prepared_templates: list[dict[str, object]] = []
     for template in template_list:
         preset = _match_interval_preset(template.interval_minutes)
-        template.interval_preset = preset
         custom_value, custom_unit = _minutes_to_custom_interval(template.interval_minutes)
-        template.custom_interval_value = custom_value
-        template.custom_interval_unit = custom_unit
+        prepared_templates.append(
+            {
+                "record": template,
+                "interval_preset": preset,
+                "custom_interval_value": custom_value,
+                "custom_interval_unit": custom_unit,
+            }
+        )
     context = {
         "request": request,
         "user": viewer,
@@ -1187,7 +1193,7 @@ def recurring_requests_page(
         "session_role": describe_session_role(viewer, session_record),
         "session_username": viewer.username,
         "session_avatar_url": _get_account_avatar(db, viewer.id),
-        "templates": template_list,
+        "templates": prepared_templates,
         "delivery_modes": delivery_modes,
         "interval_options": interval_options,
     }

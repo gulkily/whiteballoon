@@ -66,7 +66,8 @@
   </div>
 
   {% if templates %}
-    {% for template in templates %}
+    {% for entry in templates %}
+      {% set template = entry.record %}
       <article class="card stack" data-recurring-template>
         <header class="stack stack--row stack--center">
           <div class="stack">
@@ -123,23 +124,23 @@
               <label>Repeat cadence</label>
               <select name="interval_preset">
                 <option value="">Custom interval</option>
-                {% for option in interval_options %}
-                  <option value="{{ option.value }}"{% if template.interval_preset == option.value %} selected{% endif %}>{{ option.label }}</option>
-                {% endfor %}
-              </select>
-            </div>
-            <div class="input-group">
-              <label>Custom interval</label>
-              <div class="stack stack--row stack--gap-md">
-                <input name="custom_interval_value" type="number" min="1" value="{{ template.custom_interval_value }}" />
-                <select name="custom_interval_unit">
-                  <option value="minutes"{% if template.custom_interval_unit == 'minutes' %} selected{% endif %}>Minutes</option>
-                  <option value="hours"{% if template.custom_interval_unit == 'hours' %} selected{% endif %}>Hours</option>
-                  <option value="days"{% if template.custom_interval_unit == 'days' %} selected{% endif %}>Days</option>
-                  <option value="weeks"{% if template.custom_interval_unit == 'weeks' %} selected{% endif %}>Weeks</option>
-                </select>
-              </div>
-            </div>
+            {% for option in interval_options %}
+              <option value="{{ option.value }}"{% if entry.interval_preset == option.value %} selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="input-group">
+          <label>Custom interval</label>
+          <div class="stack stack--row stack--gap-md">
+            <input name="custom_interval_value" type="number" min="1" value="{{ entry.custom_interval_value }}" />
+            <select name="custom_interval_unit">
+              <option value="minutes"{% if entry.custom_interval_unit == 'minutes' %} selected{% endif %}>Minutes</option>
+              <option value="hours"{% if entry.custom_interval_unit == 'hours' %} selected{% endif %}>Hours</option>
+              <option value="days"{% if entry.custom_interval_unit == 'days' %} selected{% endif %}>Days</option>
+              <option value="weeks"{% if entry.custom_interval_unit == 'weeks' %} selected{% endif %}>Weeks</option>
+            </select>
+          </div>
+        </div>
             <div class="input-group">
               <label>Next run</label>
               <input name="next_run_at" type="datetime-local" value="{{ template.next_run_at.strftime('%Y-%m-%dT%H:%M') if template.next_run_at else '' }}" />
