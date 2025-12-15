@@ -95,13 +95,14 @@
           <p class="muted small-text">Resource tags</p>
           <div class="comment-insights-card__chips">
             {% for tag in comment_insights_summary.resource_tags %}
-              {% set tag_value = tag.label | lower %}
+              {% set tag_value = tag.slug %}
               {% set resource_href = request.url.remove_query_params('insight_resource').include_query_params(insight_resource=tag_value) %}
               <a
-                class="meta-chip meta-chip--small{% if tag_value in insight_filters.resource %} is-active{% endif %}"
+                class="meta-chip meta-chip--small{% if tag_value in insight_filters.resource %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
                 href="{{ resource_href }}"
                 data-insight-chip="resource"
                 data-insight-value="{{ tag_value }}"
+                {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
               >
                 {{ tag.label }}{% if tag.count > 1 %} <span class="comment-insights-card__count">{{ tag.count }}</span>{% endif %}
               </a>
@@ -114,13 +115,14 @@
           <p class="muted small-text">Request tags</p>
           <div class="comment-insights-card__chips">
             {% for tag in comment_insights_summary.request_tags %}
-              {% set tag_value = tag.label | lower %}
+              {% set tag_value = tag.slug %}
               {% set request_href = request.url.remove_query_params('insight_request').include_query_params(insight_request=tag_value) %}
               <a
-                class="meta-chip meta-chip--small meta-chip--ghost{% if tag_value in insight_filters.request %} is-active{% endif %}"
+                class="meta-chip meta-chip--small meta-chip--ghost{% if tag_value in insight_filters.request %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
                 href="{{ request_href }}"
                 data-insight-chip="request"
                 data-insight-value="{{ tag_value }}"
+                {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
               >
                 {{ tag.label }}{% if tag.count > 1 %} <span class="comment-insights-card__count">{{ tag.count }}</span>{% endif %}
               </a>
@@ -194,22 +196,27 @@
           <p class="promoted-comment-card__summary">{{ promoted_comment_context.insight.summary }}</p>
         {% endif %}
         <div class="promoted-comment-card__tags">
-          {% if promoted_comment_context.insight.resource_tags %}
+          {% set promoted_resource_tags = promoted_comment_context.insight.resource_tag_colors %}
+          {% if promoted_resource_tags %}
             <div class="promoted-comment-card__tag-group">
               <span class="muted small-text">Resource tags</span>
               <div class="promoted-comment-card__chips">
-                {% for tag in promoted_comment_context.insight.resource_tags %}
-                  <span class="meta-chip meta-chip--small">{{ tag }}</span>
+                {% for tag in promoted_resource_tags %}
+                  <span class="meta-chip meta-chip--small{% if tag.hue is not none %} meta-chip--tagged{% endif %}" {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}>{{ tag.label }}</span>
                 {% endfor %}
               </div>
             </div>
           {% endif %}
-          {% if promoted_comment_context.insight.request_tags %}
+          {% set promoted_request_tags = promoted_comment_context.insight.request_tag_colors %}
+          {% if promoted_request_tags %}
             <div class="promoted-comment-card__tag-group">
               <span class="muted small-text">Request tags</span>
               <div class="promoted-comment-card__chips">
-                {% for tag in promoted_comment_context.insight.request_tags %}
-                  <span class="meta-chip meta-chip--small meta-chip--ghost">{{ tag }}</span>
+                {% for tag in promoted_request_tags %}
+                  <span
+                    class="meta-chip meta-chip--small meta-chip--ghost{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                    {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+                  >{{ tag.label }}</span>
                 {% endfor %}
               </div>
             </div>

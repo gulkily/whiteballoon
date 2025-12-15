@@ -41,22 +41,30 @@
             <p class="comment-detail__insight-summary">{{ comment_insight.summary }}</p>
           {% endif %}
           <div class="comment-detail__insight-tags">
-            {% if comment_insight.resource_tags %}
+            {% set resource_tag_colors = comment_insight.resource_tag_colors %}
+            {% if resource_tag_colors %}
               <div class="comment-detail__insight-group">
                 <span class="muted small-text">Resource tags</span>
                 <div class="comment-detail__insight-chips">
-                  {% for tag in comment_insight.resource_tags %}
-                    <span class="meta-chip meta-chip--small">{{ tag }}</span>
+                  {% for tag in resource_tag_colors %}
+                    <span
+                      class="meta-chip meta-chip--small{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                      {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+                    >{{ tag.label }}</span>
                   {% endfor %}
                 </div>
               </div>
             {% endif %}
-            {% if comment_insight.request_tags %}
+            {% set request_tag_colors = comment_insight.request_tag_colors %}
+            {% if request_tag_colors %}
               <div class="comment-detail__insight-group">
                 <span class="muted small-text">Request tags</span>
                 <div class="comment-detail__insight-chips">
-                  {% for tag in comment_insight.request_tags %}
-                    <span class="meta-chip meta-chip--small meta-chip--ghost">{{ tag }}</span>
+                  {% for tag in request_tag_colors %}
+                    <span
+                      class="meta-chip meta-chip--small meta-chip--ghost{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                      {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+                    >{{ tag.label }}</span>
                   {% endfor %}
                 </div>
               </div>

@@ -60,6 +60,7 @@ from app.services import (
     request_channel_reads,
     request_pin_service,
     request_comment_service,
+    tag_color_service,
     signal_profile_snapshot_service,
     user_attribute_service,
     user_profile_highlight_service,
@@ -600,23 +601,36 @@ def _insight_metadata_matches(metadata: dict[str, object], filters: dict[str, se
     return True
 
 
-def _record_tag_summary(storage: dict[str, dict[str, object]], label: str, comment_id: int) -> None:
-    cleaned = (label or "").strip()
-    if not cleaned:
+def _record_tag_summary(
+    storage: dict[str, dict[str, object]],
+    tag_entry: tag_color_service.TagHue,
+    comment_id: int,
+) -> None:
+    label = (tag_entry.label or "").strip()
+    slug = tag_entry.slug
+    if not (label and slug):
         return
-    entry = storage.get(cleaned)
+    entry = storage.get(slug)
     if not entry:
-        entry = {"count": 0, "comment_id": comment_id}
-        storage[cleaned] = entry
+        entry = {
+            "label": label,
+            "slug": slug,
+            "count": 0,
+            "comment_id": comment_id,
+            "hue": tag_entry.hue,
+        }
+        storage[slug] = entry
     entry["count"] += 1
 
 
 def _format_tag_summary(storage: dict[str, dict[str, object]]) -> list[dict[str, object]]:
     items = [
         {
-            "label": label,
+            "label": data.get("label") or label,
             "count": data["count"],
             "href": f"/comments/{data['comment_id']}",
+            "slug": data.get("slug") or label,
+            "hue": data.get("hue"),
         }
         for label, data in storage.items()
     ]
@@ -646,10 +660,10 @@ def _build_request_comment_insights_summary(help_request_id: int) -> Optional[di
     sentiment_counts: Counter[str] = Counter()
 
     for analysis in analyses:
-        for tag in analysis.resource_tags:
-            _record_tag_summary(resource_counts, tag, analysis.comment_id)
-        for tag in analysis.request_tags:
-            _record_tag_summary(request_counts, tag, analysis.comment_id)
+        for tag_entry in analysis.resource_tag_hues():
+            _record_tag_summary(resource_counts, tag_entry, analysis.comment_id)
+        for tag_entry in analysis.request_tag_hues():
+            _record_tag_summary(request_counts, tag_entry, analysis.comment_id)
         if analysis.urgency:
             urgency_counts[analysis.urgency] += 1
         if analysis.sentiment:

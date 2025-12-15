@@ -17,8 +17,12 @@
       <td>{{ item.comment_id }}</td>
       <td>{{ item.summary }}</td>
       <td>
-        {% for tag in item.resource_tags %}<span class="badge badge-info">{{ tag }}</span>{% endfor %}
-        {% for tag in item.request_tags %}<span class="badge badge-warning">{{ tag }}</span>{% endfor %}
+        {% for tag in item.resource_tag_colors %}
+          <span class="meta-chip meta-chip--small{% if tag.hue is not none %} meta-chip--tagged{% endif %}" {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}>{{ tag.label }}</span>
+        {% endfor %}
+        {% for tag in item.request_tag_colors %}
+          <span class="meta-chip meta-chip--small meta-chip--ghost{% if tag.hue is not none %} meta-chip--tagged{% endif %}" {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}>{{ tag.label }}</span>
+        {% endfor %}
       </td>
       <td>
         <a class="btn btn-link" href="/comments/{{ item.comment_id }}" target="_blank">View comment</a>
