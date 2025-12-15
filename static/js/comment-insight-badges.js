@@ -36,17 +36,53 @@
     });
   }
 
+  function normalizeTagEntries(colored, fallback) {
+    var entries = [];
+    if (Array.isArray(colored) && colored.length) {
+      colored.forEach(function (item) {
+        if (!item || !item.label) {
+          return;
+        }
+        var hue = item.hue;
+        if (typeof hue === 'string') {
+          var parsed = Number(hue);
+          hue = isFinite(parsed) ? parsed : null;
+        } else if (typeof hue !== 'number' || !isFinite(hue)) {
+          hue = null;
+        }
+        entries.push({ label: item.label, hue: hue });
+      });
+    } else if (Array.isArray(fallback)) {
+      fallback.forEach(function (label) {
+        if (label) {
+          entries.push({ label: label, hue: null });
+        }
+      });
+    }
+    return entries;
+  }
+
+  function renderTagChip(entry, baseClass) {
+    var classes = baseClass;
+    var style = '';
+    if (entry.hue !== null && entry.hue !== undefined) {
+      classes += ' meta-chip--tagged';
+      style = ' style="--tag-hue: ' + entry.hue + 'deg"';
+    }
+    return '<span class="' + classes + '"' + style + '>' + escapeHtml(entry.label) + '</span>';
+  }
+
   function renderInsight(data) {
     var parts = [];
     if (data.summary) {
       parts.push('<p><strong>Summary:</strong> ' + escapeHtml(data.summary) + '</p>');
     }
     var tags = [];
-    (data.resource_tags || []).forEach(function (tag) {
-      tags.push('<span class="meta-chip meta-chip--small">' + escapeHtml(tag) + '</span>');
+    normalizeTagEntries(data.resource_tag_colors, data.resource_tags).forEach(function (entry) {
+      tags.push(renderTagChip(entry, 'meta-chip meta-chip--small'));
     });
-    (data.request_tags || []).forEach(function (tag) {
-      tags.push('<span class="meta-chip meta-chip--small meta-chip--ghost">' + escapeHtml(tag) + '</span>');
+    normalizeTagEntries(data.request_tag_colors, data.request_tags).forEach(function (entry) {
+      tags.push(renderTagChip(entry, 'meta-chip meta-chip--small meta-chip--ghost'));
     });
     if (tags.length) {
       parts.push('<div class="comment-insight-tags">' + tags.join(' ') + '</div>');
