@@ -7,3 +7,8 @@
 - Verification: Documented findings above; no code changes yet.
 
 (Stages 2–5 pending.)
+
+## Stage 2 – Navbar markup restructuring
+- Rebuilt `templates/partials/account_nav.html` with two sections: a primary nav (`Requests`, `Comments`, `Browse`, `Menu`) and a utility rail housing a single Admin chip, optional half-auth badge, avatar, and Sign Out form.
+- Removed the duplicated admin badge next to the username; admins now see only the linked "Admin" chip while non-admins keep the descriptive role label.
+- Verification: Rendered the partial within templates to ensure the new markup loads without errors (no CSS adjustments yet); confirmed four primary links display in order and that admin-only labeling shows once.
