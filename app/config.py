@@ -49,6 +49,7 @@ class Settings:
     profile_signal_glaze_enabled: bool = _get_bool(os.getenv("PROFILE_SIGNAL_GLAZE"), False)
     pinned_requests_limit: int = int(os.getenv("WB_PINNED_REQUESTS_LIMIT", "3"))
     request_channels_enabled: bool = _get_bool(os.getenv("REQUEST_CHANNELS"), False)
+    recurring_template_poll_seconds: int = int(os.getenv("RECURRING_TEMPLATE_POLL_SECONDS", "300"))
 
 
 @lru_cache(maxsize=1)

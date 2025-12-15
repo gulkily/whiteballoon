@@ -32,6 +32,23 @@ def get_template_for_user(
     return template
 
 
+def list_due_templates(
+    session: Session,
+    *,
+    limit: int = 50,
+) -> list[RecurringRequestTemplate]:
+    now = datetime.utcnow()
+    statement = (
+        select(RecurringRequestTemplate)
+        .where(RecurringRequestTemplate.paused.is_(False))
+        .where(RecurringRequestTemplate.next_run_at.is_not(None))
+        .where(RecurringRequestTemplate.next_run_at <= now)
+        .order_by(RecurringRequestTemplate.next_run_at.asc())
+        .limit(limit)
+    )
+    return list(session.exec(statement).all())
+
+
 def create_template(
     session: Session,
     *,
