@@ -61,6 +61,32 @@ HELP_REQUEST_STATUS_OPEN = "open"
 HELP_REQUEST_STATUS_COMPLETED = "completed"
 
 
+class RecurringRequestDeliveryMode(str, Enum):
+    draft = "draft"
+    publish = "publish"
+
+
+class RecurringRequestTemplate(SQLModel, table=True):
+    __tablename__ = "recurring_request_templates"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_by_user_id: int = Field(foreign_key="users.id", nullable=False, index=True)
+    title: Optional[str] = Field(default=None, max_length=200)
+    description: str = Field(default="", sa_column=Column(Text, nullable=False))
+    contact_email_override: Optional[str] = Field(default=None, max_length=255)
+    delivery_mode: RecurringRequestDeliveryMode = Field(
+        default=RecurringRequestDeliveryMode.draft,
+        sa_column=Column(SAEnum(RecurringRequestDeliveryMode), nullable=False),
+    )
+    interval_minutes: int = Field(default=0, nullable=False)
+    next_run_at: Optional[datetime] = Field(default=None, index=True)
+    last_run_at: Optional[datetime] = Field(default=None)
+    paused: bool = Field(default=False, nullable=False)
+    last_error: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
 class RequestComment(SQLModel, table=True):
     __tablename__ = "request_comments"
 
