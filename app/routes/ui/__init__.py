@@ -1173,6 +1173,13 @@ def recurring_requests_page(
     session_record = session_user.session
     template_list = recurring_template_service.list_templates_for_user(db, user_id=viewer.id)
     delivery_modes = list(RecurringRequestDeliveryMode)
+    interval_options = _recurring_interval_options()
+    for template in template_list:
+        preset = _match_interval_preset(template.interval_minutes)
+        template.interval_preset = preset
+        custom_value, custom_unit = _minutes_to_custom_interval(template.interval_minutes)
+        template.custom_interval_value = custom_value
+        template.custom_interval_unit = custom_unit
     context = {
         "request": request,
         "user": viewer,
@@ -1182,6 +1189,7 @@ def recurring_requests_page(
         "session_avatar_url": _get_account_avatar(db, viewer.id),
         "templates": template_list,
         "delivery_modes": delivery_modes,
+        "interval_options": interval_options,
     }
     return templates.TemplateResponse("requests/recurring.html", context)
 
@@ -1196,11 +1204,18 @@ def create_recurring_template(
     description: Annotated[str, Form(...)],
     contact_email_override: Annotated[Optional[str], Form()] = None,
     delivery_mode: Annotated[str, Form()] = RecurringRequestDeliveryMode.draft.value,
-    interval_minutes: Annotated[int, Form(...)],
+    interval_preset: Annotated[Optional[str], Form()] = None,
+    custom_interval_value: Annotated[Optional[int], Form()] = None,
+    custom_interval_unit: Annotated[Optional[str], Form()] = "days",
     next_run_at: Annotated[Optional[str], Form()] = None,
 ):
     delivery = _parse_delivery_mode(delivery_mode)
     next_run = _parse_datetime_local(next_run_at)
+    interval_minutes = _resolve_interval_minutes(
+        interval_preset,
+        custom_interval_value,
+        custom_interval_unit,
+    )
     recurring_template_service.create_template(
         db,
         user_id=session_user.user.id,
@@ -1226,7 +1241,9 @@ def recurring_template_action(
     description: Annotated[Optional[str], Form()] = None,
     contact_email_override: Annotated[Optional[str], Form()] = None,
     delivery_mode: Annotated[Optional[str], Form()] = None,
-    interval_minutes: Annotated[Optional[int], Form()] = None,
+    interval_preset: Annotated[Optional[str], Form()] = None,
+    custom_interval_value: Annotated[Optional[int], Form()] = None,
+    custom_interval_unit: Annotated[Optional[str], Form()] = None,
     next_run_at: Annotated[Optional[str], Form()] = None,
 ):
     template = recurring_template_service.get_template_for_user(
@@ -1244,6 +1261,13 @@ def recurring_template_action(
     elif action_value == "edit":
         mode = _parse_delivery_mode(delivery_mode) if delivery_mode else None
         next_run = _parse_datetime_local(next_run_at)
+        resolved_interval = None
+        if interval_preset or custom_interval_value is not None:
+            resolved_interval = _resolve_interval_minutes(
+                interval_preset,
+                custom_interval_value,
+                custom_interval_unit,
+            )
         recurring_template_service.update_template(
             db,
             template=template,
@@ -1251,7 +1275,7 @@ def recurring_template_action(
             description=description,
             contact_email_override=contact_email_override,
             delivery_mode=mode,
-            interval_minutes=interval_minutes,
+            interval_minutes=resolved_interval,
             next_run_at=next_run,
         )
     else:
@@ -2421,6 +2445,60 @@ def _parse_datetime_local(value: str | None) -> datetime | None:
         return datetime.fromisoformat(value)
     except ValueError as error:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid date/time") from error
+
+
+def _resolve_interval_minutes(
+    interval_preset: str | None,
+    custom_value: int | None,
+    custom_unit: str | None,
+) -> int:
+    if interval_preset:
+        try:
+            minutes = int(interval_preset)
+        except ValueError as error:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid interval preset") from error
+        if minutes <= 0:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Interval must be positive")
+        return minutes
+
+    if not custom_value or custom_value <= 0:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Custom interval must be positive")
+    unit = (custom_unit or "minutes").lower()
+    unit_map = {
+        "minutes": 1,
+        "hours": 60,
+        "days": 1440,
+        "weeks": 10080,
+    }
+    if unit not in unit_map:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid interval unit")
+    minutes = custom_value * unit_map[unit]
+    if minutes <= 0:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Interval must be positive")
+    return minutes
+
+
+def _recurring_interval_options() -> list[dict[str, str]]:
+    return [
+        {"value": "1440", "label": "Daily"},
+        {"value": "2880", "label": "Every 2 days"},
+        {"value": "10080", "label": "Weekly"},
+        {"value": "20160", "label": "Every 2 weeks"},
+    ]
+
+
+def _match_interval_preset(minutes: int) -> str | None:
+    for option in _recurring_interval_options():
+        if minutes == int(option["value"]):
+            return option["value"]
+    return None
+
+
+def _minutes_to_custom_interval(minutes: int) -> tuple[int, str]:
+    for unit, factor in (("weeks", 10080), ("days", 1440), ("hours", 60)):
+        if minutes % factor == 0:
+            return minutes // factor, unit
+    return minutes, "minutes"
 
 
 def _build_request_browse_conditions(

@@ -25,8 +25,27 @@
         <input id="template-contact" name="contact_email_override" type="email" />
       </div>
       <div class="input-group">
-        <label for="template-interval">Repeat every <span class="muted">(minutes)</span></label>
-        <input id="template-interval" name="interval_minutes" type="number" min="1" required value="1440" />
+        <label for="template-interval-preset">Repeat cadence</label>
+        <select id="template-interval-preset" name="interval_preset">
+          <option value="">Custom interval</option>
+          {% for option in interval_options %}
+            <option value="{{ option.value }}">{{ option.label }}</option>
+          {% endfor %}
+        </select>
+        <p class="muted">Choose a preset or leave as custom and set the interval below.</p>
+      </div>
+      <div class="input-group">
+        <label>Custom interval</label>
+        <div class="stack stack--row stack--gap-md">
+          <input name="custom_interval_value" type="number" min="1" value="1" />
+          <select name="custom_interval_unit">
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+            <option value="days" selected>Days</option>
+            <option value="weeks">Weeks</option>
+          </select>
+        </div>
+        <p class="muted">Used when no preset is selected.</p>
       </div>
       <div class="input-group">
         <label for="template-next-run">Next run <span class="muted">(optional)</span></label>
@@ -101,8 +120,25 @@
               <input name="contact_email_override" type="email" value="{{ template.contact_email_override or '' }}" />
             </div>
             <div class="input-group">
-              <label>Interval (minutes)</label>
-              <input name="interval_minutes" type="number" min="1" value="{{ template.interval_minutes }}" />
+              <label>Repeat cadence</label>
+              <select name="interval_preset">
+                <option value="">Custom interval</option>
+                {% for option in interval_options %}
+                  <option value="{{ option.value }}"{% if template.interval_preset == option.value %} selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Custom interval</label>
+              <div class="stack stack--row stack--gap-md">
+                <input name="custom_interval_value" type="number" min="1" value="{{ template.custom_interval_value }}" />
+                <select name="custom_interval_unit">
+                  <option value="minutes"{% if template.custom_interval_unit == 'minutes' %} selected{% endif %}>Minutes</option>
+                  <option value="hours"{% if template.custom_interval_unit == 'hours' %} selected{% endif %}>Hours</option>
+                  <option value="days"{% if template.custom_interval_unit == 'days' %} selected{% endif %}>Days</option>
+                  <option value="weeks"{% if template.custom_interval_unit == 'weeks' %} selected{% endif %}>Weeks</option>
+                </select>
+              </div>
             </div>
             <div class="input-group">
               <label>Next run</label>
