@@ -1236,6 +1236,7 @@ def comment_detail(
 
     serialized_request = _serialize_requests(db, [help_request], viewer=viewer)
     request_payload = serialized_request[0] if serialized_request else None
+    comment_insight = comment_llm_insights_service.get_analysis_by_comment_id(comment.id)
 
     context = {
         "request": request,
@@ -1248,6 +1249,7 @@ def comment_detail(
         "comment_author": author,
         "comment_display_name": display_name,
         "request_summary": request_payload,
+        "comment_insight": comment_insight,
     }
     return templates.TemplateResponse("comments/detail.html", context)
 

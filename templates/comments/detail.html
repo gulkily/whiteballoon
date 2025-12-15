@@ -27,6 +27,70 @@
       {% with comment = comment, comment_permalink_href = request.url.path %}
         {% include "partials/comment_card.html" %}
       {% endwith %}
+      {% if comment_insight %}
+        <section class="comment-detail__insight">
+          <header class="comment-detail__insight-header">
+            <p class="muted small-text">AI assessment</p>
+            {% if comment_insight.recorded_at %}
+              <time class="muted small-text" datetime="{{ comment_insight.recorded_at }}">
+                Captured {{ comment_insight.recorded_at | friendly_time }}
+              </time>
+            {% endif %}
+          </header>
+          {% if comment_insight.summary %}
+            <p class="comment-detail__insight-summary">{{ comment_insight.summary }}</p>
+          {% endif %}
+          <div class="comment-detail__insight-tags">
+            {% if comment_insight.resource_tags %}
+              <div class="comment-detail__insight-group">
+                <span class="muted small-text">Resource tags</span>
+                <div class="comment-detail__insight-chips">
+                  {% for tag in comment_insight.resource_tags %}
+                    <span class="meta-chip meta-chip--small">{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% if comment_insight.request_tags %}
+              <div class="comment-detail__insight-group">
+                <span class="muted small-text">Request tags</span>
+                <div class="comment-detail__insight-chips">
+                  {% for tag in comment_insight.request_tags %}
+                    <span class="meta-chip meta-chip--small meta-chip--ghost">{{ tag }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          <dl class="comment-detail__insight-meta">
+            <div>
+              <dt>Urgency</dt>
+              <dd>{{ comment_insight.urgency | title if comment_insight.urgency else 'Not noted' }}</dd>
+            </div>
+            <div>
+              <dt>Sentiment</dt>
+              <dd>{{ comment_insight.sentiment | title if comment_insight.sentiment else 'Not noted' }}</dd>
+            </div>
+            <div>
+              <dt>Audience</dt>
+              <dd>{{ comment_insight.audience or 'Not captured' }}</dd>
+            </div>
+            <div>
+              <dt>Residency stage</dt>
+              <dd>{{ comment_insight.residency_stage or 'Not captured' }}</dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd>
+                {{ comment_insight.location or 'Not captured' }}
+                {% if comment_insight.location_precision %}
+                  <span class="muted small-text">({{ comment_insight.location_precision }})</span>
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      {% endif %}
     </article>
 
     {% if request_summary %}
