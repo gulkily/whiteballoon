@@ -12,3 +12,8 @@
 - Rebuilt `templates/partials/account_nav.html` with two sections: a primary nav (`Requests`, `Comments`, `Browse`, `Menu`) and a utility rail housing a single Admin chip, optional half-auth badge, avatar, and Sign Out form.
 - Removed the duplicated admin badge next to the username; admins now see only the linked "Admin" chip while non-admins keep the descriptive role label.
 - Verification: Rendered the partial within templates to ensure the new markup loads without errors (no CSS adjustments yet); confirmed four primary links display in order and that admin-only labeling shows once.
+
+## Stage 3 – Navigation styling + responsiveness
+- Updated `static/skins/base/10-navigation.css` with styles for `.account-nav__primary`, `.account-nav__link`, and `.account-nav__utility`, aligning the split layout and adding hover states for primary links.
+- Added responsive rules so primary links wrap cleanly and the utility section stacks full-width inside the mobile nav panel; adjusted the Sign Out button to match the compact pill style.
+- Verification: Manual inspection in the dev server confirmed the nav maintains spacing on desktop and collapses gracefully in the mobile panel; hover styles apply without affecting other buttons.
