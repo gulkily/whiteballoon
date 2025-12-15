@@ -7,8 +7,12 @@ from sqlmodel import Session, select
 
 from app.models import (
     RecurringRequestDeliveryMode,
+    RecurringRequestRun,
     RecurringRequestTemplate,
+    RequestAttribute,
 )
+
+RECURRING_TEMPLATE_ATTRIBUTE_KEY = "recurring_template_id"
 
 
 def list_templates_for_user(session: Session, *, user_id: int) -> list[RecurringRequestTemplate]:
@@ -121,4 +125,84 @@ def update_template(
 
 def delete_template(session: Session, *, template: RecurringRequestTemplate) -> None:
     session.delete(template)
+    session.commit()
+
+
+def tag_request_with_template(
+    session: Session,
+    *,
+    request_id: int,
+    template_id: int,
+) -> None:
+    statement = select(RequestAttribute).where(
+        RequestAttribute.request_id == request_id,
+        RequestAttribute.key == RECURRING_TEMPLATE_ATTRIBUTE_KEY,
+    )
+    attribute = session.exec(statement).first()
+    value = str(template_id)
+    now = datetime.utcnow()
+    if attribute:
+        attribute.value = value
+        attribute.updated_at = now
+    else:
+        attribute = RequestAttribute(
+            request_id=request_id,
+            key=RECURRING_TEMPLATE_ATTRIBUTE_KEY,
+            value=value,
+            created_at=now,
+            updated_at=now,
+        )
+    session.add(attribute)
+    session.commit()
+
+
+def load_template_metadata(
+    session: Session,
+    request_ids: list[int],
+) -> dict[int, dict[str, object]]:
+    if not request_ids:
+        return {}
+    attribute_rows = session.exec(
+        select(RequestAttribute)
+        .where(RequestAttribute.request_id.in_(request_ids))
+        .where(RequestAttribute.key == RECURRING_TEMPLATE_ATTRIBUTE_KEY)
+    ).all()
+    template_ids = {int(attr.value) for attr in attribute_rows if attr.value and attr.value.isdigit()}
+    if not template_ids:
+        return {}
+    templates = session.exec(
+        select(RecurringRequestTemplate).where(RecurringRequestTemplate.id.in_(template_ids))
+    ).all()
+    template_lookup = {template.id: template for template in templates if template.id}
+    result: dict[int, dict[str, object]] = {}
+    for attr in attribute_rows:
+        try:
+            template_id = int(attr.value)
+        except (ValueError, TypeError):
+            continue
+        template = template_lookup.get(template_id)
+        if not template:
+            continue
+        result[attr.request_id] = {
+            "template_id": template.id,
+            "template_title": template.title or "Untitled template",
+        }
+    return result
+
+
+def record_run(
+    session: Session,
+    *,
+    template_id: int,
+    request_id: int | None,
+    status_value: str,
+    error_message: str | None = None,
+) -> None:
+    run = RecurringRequestRun(
+        template_id=template_id,
+        request_id=request_id,
+        status=status_value,
+        error_message=error_message,
+    )
+    session.add(run)
     session.commit()

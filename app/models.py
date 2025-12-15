@@ -87,6 +87,17 @@ class RecurringRequestTemplate(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 
+class RecurringRequestRun(SQLModel, table=True):
+    __tablename__ = "recurring_request_runs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    template_id: int = Field(foreign_key="recurring_request_templates.id", nullable=False, index=True)
+    request_id: Optional[int] = Field(default=None, foreign_key="help_requests.id")
+    status: str = Field(default="success", max_length=32, nullable=False)
+    error_message: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
 class RequestComment(SQLModel, table=True):
     __tablename__ = "request_comments"
 

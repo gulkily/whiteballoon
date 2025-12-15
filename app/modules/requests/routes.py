@@ -9,6 +9,7 @@ from app.dependencies import SessionDep, SessionUser, require_authenticated_user
 from app.models import HelpRequest, User
 from app.modules.requests import services
 from app.services import (
+    recurring_template_service,
     request_channel_metrics,
     request_channel_reads,
     request_pin_service,
@@ -49,6 +50,8 @@ class RequestResponse(BaseModel):
     pin_rank: int | None = None
     comment_count: int | None = None
     unread_count: int | None = None
+    recurring_template_id: int | None = None
+    recurring_template_title: str | None = None
 
     @classmethod
     def from_model(
@@ -61,6 +64,8 @@ class RequestResponse(BaseModel):
         pin_rank: int | None = None,
         comment_count: int | None = None,
         unread_count: int | None = None,
+        recurring_template_id: int | None = None,
+        recurring_template_title: str | None = None,
     ) -> "RequestResponse":
         return cls(
             id=request.id,
@@ -78,6 +83,8 @@ class RequestResponse(BaseModel):
             pin_rank=pin_rank,
             comment_count=comment_count,
             unread_count=unread_count,
+            recurring_template_id=recurring_template_id,
+            recurring_template_title=recurring_template_title,
         )
 
 
@@ -108,6 +115,10 @@ def list_requests(
     )
     creator_usernames = services.load_creator_usernames(db, requests)
     pin_map = request_pin_service.get_pin_map(db)
+    template_metadata = recurring_template_service.load_template_metadata(
+        db,
+        [item.id for item in requests if item.id],
+    )
     comment_counts: dict[int, int] = {}
     unread_totals: dict[int, int] = {}
     if include_channel_meta:
@@ -137,6 +148,8 @@ def list_requests(
             pin_rank=pin_map.get(item.id).rank if item.id in pin_map else None,
             comment_count=comment_counts.get(item.id),
             unread_count=unread_totals.get(item.id),
+            recurring_template_id=template_metadata.get(item.id, {}).get("template_id") if template_metadata else None,
+            recurring_template_title=template_metadata.get(item.id, {}).get("template_title") if template_metadata else None,
         )
         for item in requests
     ]

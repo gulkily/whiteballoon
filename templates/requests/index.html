@@ -95,16 +95,22 @@
                  data-draft-id="{{ draft.id }}"
                  data-draft-description="{{ draft.description | default('', true) | e }}"
                  data-draft-contact="{{ draft.contact_email | default('', true) | e }}">
-          <header class="request-draft__meta">
-            <span class="meta-chip meta-chip--status meta-chip--muted">
-              <span class="meta-chip__label">Status</span>
-              <span class="meta-chip__value">Draft</span>
+        <header class="request-draft__meta">
+          <span class="meta-chip meta-chip--status meta-chip--muted">
+            <span class="meta-chip__label">Status</span>
+            <span class="meta-chip__value">Draft</span>
+          </span>
+          {% if draft.recurring_template_title %}
+            <span class="meta-chip">
+              <span class="meta-chip__label">Template</span>
+              <span class="meta-chip__value">{{ draft.recurring_template_title }}</span>
             </span>
-            <time class="meta-chip meta-chip--timestamp" datetime="{{ draft.updated_at }}">
-              <span class="meta-chip__label">Updated</span>
-              <span class="meta-chip__value">{{ draft.updated_at | friendly_time }}</span>
-            </time>
-          </header>
+          {% endif %}
+          <time class="meta-chip meta-chip--timestamp" datetime="{{ draft.updated_at }}">
+            <span class="meta-chip__label">Updated</span>
+            <span class="meta-chip__value">{{ draft.updated_at | friendly_time }}</span>
+          </time>
+        </header>
           <p class="request-draft__summary">{{ draft.description or 'No additional details yet.' }}</p>
           <div class="actions">
             {% if draft.contact_email %}

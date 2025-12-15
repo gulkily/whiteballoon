@@ -13,6 +13,7 @@ from app.models import (
     User,
 )
 from app.modules.requests import services as request_services
+from app.services import recurring_template_service
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +43,19 @@ def _process_template(session: Session, template: RecurringRequestTemplate) -> N
         else HELP_REQUEST_STATUS_DRAFT
     )
 
-    request_services.create_request(
+    new_request = request_services.create_request(
         session,
         user=owner,
         description=template.description,
         contact_email=template.contact_email_override,
         status_value=status_value,
     )
+    if new_request.id:
+        recurring_template_service.tag_request_with_template(
+            session,
+            request_id=new_request.id,
+            template_id=template.id,
+        )
 
     now = datetime.utcnow()
     template.last_run_at = now
@@ -57,6 +64,13 @@ def _process_template(session: Session, template: RecurringRequestTemplate) -> N
     template.updated_at = now
     session.add(template)
     session.commit()
+
+    recurring_template_service.record_run(
+        session,
+        template_id=template.id,
+        request_id=new_request.id,
+        status_value="success",
+    )
 
     logger.info(
         "Recurring template %s generated a %s request",
@@ -83,3 +97,10 @@ def _mark_template_error(session: Session, template: RecurringRequestTemplate, m
     template.updated_at = datetime.utcnow()
     session.add(template)
     session.commit()
+    recurring_template_service.record_run(
+        session,
+        template_id=template.id,
+        request_id=None,
+        status_value="error",
+        error_message=message[:500],
+    )

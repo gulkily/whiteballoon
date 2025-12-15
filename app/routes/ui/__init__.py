@@ -396,10 +396,13 @@ def _serialize_requests(
             pinned_only=pinned_only,
         )
     creator_usernames = request_services.load_creator_usernames(db, items)
+    request_ids = [item.id for item in items if item.id]
+    template_metadata = recurring_template_service.load_template_metadata(db, request_ids)
     serialized = []
     for item in items:
         can_complete = calculate_can_complete(item, viewer) if viewer else False
         pin_metadata = pin_map.get(item.id) if pin_map else None
+        template_info = template_metadata.get(item.id) if template_metadata else None
         serialized.append(
             RequestResponse.from_model(
                 item,
@@ -407,6 +410,8 @@ def _serialize_requests(
                 can_complete=can_complete,
                 is_pinned=pin_metadata is not None,
                 pin_rank=pin_metadata.rank if pin_metadata else None,
+                recurring_template_id=template_info.get("template_id") if template_info else None,
+                recurring_template_title=template_info.get("template_title") if template_info else None,
             ).model_dump()
         )
     return serialized
