@@ -62,5 +62,23 @@
       </div>
     </div>
   {% endfor %}
+
+  <div class="card stack menu-section">
+    <header class="stack">
+      <h2>Session</h2>
+      <p class="muted">Sign out securely from this device.</p>
+    </header>
+    <div class="menu-grid">
+      <form class="menu-card" action="/logout" method="post">
+        <div class="menu-card__body">
+          <h3>Sign out</h3>
+          <p class="muted">End your current session and require authentication next time.</p>
+        </div>
+        <div class="menu-card__meta">
+          <button type="submit" class="button button--ghost">Sign out</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </section>
 {% endblock %}

@@ -17,3 +17,7 @@
 - Updated `static/skins/base/10-navigation.css` with styles for `.account-nav__primary`, `.account-nav__link`, and `.account-nav__utility`, aligning the split layout and adding hover states for primary links.
 - Added responsive rules so primary links wrap cleanly and the utility section stacks full-width inside the mobile nav panel; adjusted the Sign Out button to match the compact pill style.
 - Verification: Manual inspection in the dev server confirmed the nav maintains spacing on desktop and collapses gracefully in the mobile panel; hover styles apply without affecting other buttons.
+
+## Stage 4 – Relocate Sign Out to Menu page
+- Removed the Sign Out form from the navbar utility rail and added a dedicated “Session” card with a POST form on `templates/menu/index.html`, keeping the action discoverable but out of the high-frequency nav.
+- Verification: Loaded the Menu page to confirm the new card renders and successfully submits the logout form; navbar no longer presents a Sign Out button.
