@@ -76,6 +76,12 @@ def site_menu(
                     href="/invite/new",
                     requires_full=True,
                 ),
+                _build_link(
+                    title="Recurring requests",
+                    description="Manage templates that auto-create chores or meeting reminders.",
+                    href="/requests/recurring",
+                    requires_full=True,
+                ),
             ],
         },
         {
