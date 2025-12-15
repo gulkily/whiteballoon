@@ -569,28 +569,6 @@ textarea::placeholder {
   );
 }
 
-.meta-chip--resource {
-  position: relative;
-  padding-left: 1.05rem;
-}
-
-.meta-chip--resource::before {
-  content: '';
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 50%;
-  background: var(--tag-chip-color, currentColor);
-  opacity: 0.85;
-  position: absolute;
-  left: 0.35rem;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.meta-chip--resource:not(.meta-chip--tagged)::before {
-  display: none;
-}
-
 .meta-chip--status {
   background: rgba(34, 197, 94, 0.16);
   color: var(--color-success);

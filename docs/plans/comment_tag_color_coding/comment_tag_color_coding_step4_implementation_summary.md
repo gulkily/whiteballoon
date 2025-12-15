@@ -12,8 +12,7 @@
 
 ## Stage 3 – Shared CSS styling
 - Introduced `--tag-chip-*` variables in `static/skins/base/20-components.css` and a `meta-chip--tagged` modifier that now drives tinted text/borders (no fill) so resource chips aren’t overwhelming while skins can override saturation/lightness.
-- Added a small color dot via `.meta-chip--resource::before` to visually distinguish offers, while request chips keep their dashed outlines and inherit the hue for borders/text.
-- Verification: Local stylesheet inspection confirmed tagged chips render transparent backgrounds, the new dot only appears when hue metadata exists, and untagged chips retain the legacy appearance.
+- Verification: Local stylesheet inspection confirmed tagged chips render transparent backgrounds with only hue-tinted outlines/text, while request ghost chips keep their dashed treatment and untagged chips retain the legacy appearance.
 
 ## Stage 4 – Admin/JS badge parity
 - `static/js/comment-insight-badges.js` now normalizes the new `resource_tag_colors` / `request_tag_colors` payloads (with fallback to legacy arrays) and emits the same tagged chip markup for the AJAX popover.
