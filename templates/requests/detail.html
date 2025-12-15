@@ -103,7 +103,7 @@
                 data-insight-chip="resource"
                 data-insight-value="{{ tag_value }}"
               >
-                {{ tag.label }}{% if tag.count > 1 %} ×{{ tag.count }}{% endif %}
+                {{ tag.label }}{% if tag.count > 1 %} <span class="comment-insights-card__count">{{ tag.count }}</span>{% endif %}
               </a>
             {% endfor %}
           </div>
@@ -122,7 +122,7 @@
                 data-insight-chip="request"
                 data-insight-value="{{ tag_value }}"
               >
-                {{ tag.label }}{% if tag.count > 1 %} ×{{ tag.count }}{% endif %}
+                {{ tag.label }}{% if tag.count > 1 %} <span class="comment-insights-card__count">{{ tag.count }}</span>{% endif %}
               </a>
             {% endfor %}
           </div>

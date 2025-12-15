@@ -498,6 +498,12 @@
   gap: 0.35rem;
 }
 
+.comment-insights-card__count {
+  margin-left: 0.25rem;
+  font-weight: 500;
+  color: var(--color-muted);
+}
+
 .comment-insights-card__chips .meta-chip.is-active {
   border-color: var(--color-accent);
   background: var(--color-surface-accent);
