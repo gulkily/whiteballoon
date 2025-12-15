@@ -4,7 +4,7 @@ import json
 from dataclasses import asdict, dataclass
 from typing import Iterable, Optional
 
-from app.services import comment_llm_insights_db
+from app.services import comment_llm_insights_db, tag_color_service
 
 
 @dataclass
@@ -26,7 +26,24 @@ class CommentInsight:
     recorded_at: str
 
     def to_dict(self) -> dict[str, object]:
-        return asdict(self)
+        data = asdict(self)
+        data["resource_tag_colors"] = self.resource_tag_colors
+        data["request_tag_colors"] = self.request_tag_colors
+        return data
+
+    def resource_tag_hues(self) -> list[tag_color_service.TagHue]:
+        return tag_color_service.build_tag_hues(self.resource_tags)
+
+    def request_tag_hues(self) -> list[tag_color_service.TagHue]:
+        return tag_color_service.build_tag_hues(self.request_tags)
+
+    @property
+    def resource_tag_colors(self) -> list[dict[str, object]]:
+        return [entry.to_dict() for entry in self.resource_tag_hues()]
+
+    @property
+    def request_tag_colors(self) -> list[dict[str, object]]:
+        return [entry.to_dict() for entry in self.request_tag_hues()]
 
 
 @dataclass
