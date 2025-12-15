@@ -17,6 +17,7 @@ def _build_link(
     href: str,
     requires_full: bool = False,
     admin_only: bool = False,
+    icon: str | None = None,
 ) -> dict[str, object]:
     return {
         "title": title,
@@ -24,6 +25,7 @@ def _build_link(
         "href": href,
         "requires_full": requires_full,
         "admin_only": admin_only,
+        "icon": icon,
     }
 
 
@@ -47,12 +49,14 @@ def site_menu(
                     title="Requests workspace",
                     description="Catch up on every open help request, pin threads, and share your own.",
                     href="/requests/channels",
+                    icon="partials/icons/nav_requests.svg",
                 ),
                 _build_link(
                     title="Members directory",
                     description="Browse people who have opted into sharing and folks you invited.",
                     href="/members",
                     requires_full=True,
+                    icon="partials/icons/nav_browse.svg",
                 ),
                 _build_link(
                     title="Invite map",

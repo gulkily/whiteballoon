@@ -28,7 +28,9 @@
             <article class="{{ classes }}" aria-disabled="true">
               <div class="menu-card__body">
                 <h3>
-                  <span class="menu-card__icon">{% include link.icon %}</span>
+                  {% if link.icon %}
+                    <span class="menu-card__icon">{% include link.icon %}</span>
+                  {% endif %}
                   {{ link.title }}
                 </h3>
                 <p class="muted">{{ link.description }}</p>
@@ -49,7 +51,9 @@
             <a class="{{ classes }}" href="{{ link.href }}">
               <div class="menu-card__body">
                 <h3>
-                  <span class="menu-card__icon">{% include link.icon %}</span>
+                  {% if link.icon %}
+                    <span class="menu-card__icon">{% include link.icon %}</span>
+                  {% endif %}
                   {{ link.title }}
                 </h3>
                 <p class="muted">{{ link.description }}</p>
