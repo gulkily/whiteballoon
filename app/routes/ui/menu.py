@@ -46,7 +46,7 @@ def site_menu(
                 _build_link(
                     title="Requests feed",
                     description="Catch up on every open help request and share your own.",
-                    href="/",
+                    href="/requests",
                 ),
                 _build_link(
                     title="Members directory",

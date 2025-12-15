@@ -709,6 +709,29 @@ def home(
         return response
 
     session_role = describe_session_role(user, session_record)
+    return _render_requests_page(request, db, user, session_record, session_role)
+
+
+@router.get("/requests")
+def requests_feed(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    user = session_user.user
+    session_record = session_user.session
+    session_role = describe_session_role(user, session_record)
+    return _render_requests_page(request, db, user, session_record, session_role)
+
+
+def _render_requests_page(
+    request: Request,
+    db: SessionDep,
+    user: User,
+    session_record: UserSession,
+    session_role: Optional[dict[str, str]],
+) -> Response:
+    session_avatar_url = _get_account_avatar(db, user.id)
 
     if not session_record.is_fully_authenticated:
         auth_request = None
@@ -724,8 +747,6 @@ def home(
             viewer=user,
         )
 
-        session_avatar_url = _get_account_avatar(db, user.id)
-
         context = {
             "request": request,
             "user": user,
@@ -740,8 +761,6 @@ def home(
             "session_avatar_url": session_avatar_url,
         }
         return templates.TemplateResponse("requests/pending.html", context)
-
-    session_avatar_url = _get_account_avatar(db, user.id)
 
     query_params = request.query_params
     topic_filters = _normalize_filter_values(query_params.getlist("topic"))
