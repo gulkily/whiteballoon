@@ -1163,6 +1163,165 @@ def browse_content(
     return templates.TemplateResponse("browse/index.html", context)
 
 
+@router.get("/requests/recurring")
+def recurring_requests_page(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    viewer = session_user.user
+    session_record = session_user.session
+    templates = recurring_template_service.list_templates_for_user(db, user_id=viewer.id)
+    delivery_modes = list(RecurringRequestDeliveryMode)
+    context = {
+        "request": request,
+        "user": viewer,
+        "session": session_record,
+        "session_role": describe_session_role(viewer, session_record),
+        "session_username": viewer.username,
+        "session_avatar_url": _get_account_avatar(db, viewer.id),
+        "templates": templates,
+        "delivery_modes": delivery_modes,
+    }
+    return templates.TemplateResponse("requests/recurring.html", context)
+
+
+@router.post("/requests/recurring")
+def create_recurring_template(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    *,
+    title: Annotated[Optional[str], Form()] = None,
+    description: Annotated[str, Form(...)],
+    contact_email_override: Annotated[Optional[str], Form()] = None,
+    delivery_mode: Annotated[str, Form()] = RecurringRequestDeliveryMode.draft.value,
+    interval_minutes: Annotated[int, Form(...)],
+    next_run_at: Annotated[Optional[str], Form()] = None,
+):
+    delivery = _parse_delivery_mode(delivery_mode)
+    next_run = _parse_datetime_local(next_run_at)
+    recurring_template_service.create_template(
+        db,
+        user_id=session_user.user.id,
+        title=title,
+        description=description,
+        contact_email_override=contact_email_override,
+        delivery_mode=delivery,
+        interval_minutes=interval_minutes,
+        next_run_at=next_run,
+    )
+    return RedirectResponse(url="/requests/recurring", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/requests/recurring/{template_id}/action")
+def recurring_template_action(
+    template_id: int,
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+    *,
+    action: Annotated[str, Form(...)],
+    title: Annotated[Optional[str], Form()] = None,
+    description: Annotated[Optional[str], Form()] = None,
+    contact_email_override: Annotated[Optional[str], Form()] = None,
+    delivery_mode: Annotated[Optional[str], Form()] = None,
+    interval_minutes: Annotated[Optional[int], Form()] = None,
+    next_run_at: Annotated[Optional[str], Form()] = None,
+):
+    template = recurring_template_service.get_template_for_user(
+        db,
+        template_id=template_id,
+        user_id=session_user.user.id,
+    )
+    action_value = action.lower().strip()
+    if action_value == "delete":
+        recurring_template_service.delete_template(db, template=template)
+    elif action_value == "pause":
+        recurring_template_service.update_template(db, template=template, paused=True)
+    elif action_value == "resume":
+        recurring_template_service.update_template(db, template=template, paused=False)
+    elif action_value == "edit":
+        mode = _parse_delivery_mode(delivery_mode) if delivery_mode else None
+        next_run = _parse_datetime_local(next_run_at)
+        recurring_template_service.update_template(
+            db,
+            template=template,
+            title=title,
+            description=description,
+            contact_email_override=contact_email_override,
+            delivery_mode=mode,
+            interval_minutes=interval_minutes,
+            next_run_at=next_run,
+        )
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown action")
+    return RedirectResponse(url="/requests/recurring", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/requests/{request_id}/complete")
+def complete_request(
+    request_id: int,
+    request: Request,
+    db: SessionDep,
+    user: User = Depends(require_authenticated_user),
+):
+    request_services.mark_completed(db, request_id=request_id, user=user)
+    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@router.post("/requests/{request_id}/pin")
+def pin_request(
+    request_id: int,
+    request: Request,
+    db: SessionDep,
+    user: User = Depends(require_admin),
+    rank: Annotated[Optional[int], Form()] = None,
+    next: Annotated[Optional[str], Form()] = None,
+):
+    help_request = request_services.get_request_by_id(db, request_id=request_id)
+    already_pinned = request_pin_service.request_is_pinned(db, request_id=request_id)
+    if not already_pinned:
+        request_pin_service.ensure_capacity(db)
+        request_pin_service.set_pin(db, request=help_request, actor=user, rank=rank)
+    elif rank is not None:
+        request_pin_service.update_pin_rank(db, request_id=request_id, new_rank=rank)
+    return _redirect_back(request, next)
+
+
+@router.post("/requests/{request_id}/unpin")
+def unpin_request(
+    request_id: int,
+    request: Request,
+    db: SessionDep,
+    user: User = Depends(require_admin),
+    next: Annotated[Optional[str], Form()] = None,
+):
+    # Ensure request exists even if attribute missing
+    request_services.get_request_by_id(db, request_id=request_id)
+    request_pin_service.clear_pin(db, request_id=request_id)
+    return _redirect_back(request, next)
+
+
+@router.post("/requests/{request_id}/pin/reorder")
+def reorder_pinned_request(
+    request_id: int,
+    request: Request,
+    direction: Annotated[str, Form()],
+    db: SessionDep,
+    user: User = Depends(require_admin),
+    next: Annotated[Optional[str], Form()] = None,
+):
+    direction_value = direction.lower()
+    if direction_value not in {"up", "down"}:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid direction")
+    request_services.get_request_by_id(db, request_id=request_id)
+    literal_direction = cast(Literal["up", "down"], direction_value)
+    request_pin_service.shift_pin(db, request_id=request_id, direction=literal_direction)
+    return _redirect_back(request, next)
+
+
+
 @router.get("/requests/{request_id}")
 def request_detail(
     request: Request,
@@ -2244,164 +2403,6 @@ def create_request(
         status_value=status_value,
     )
     return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-
-@router.get("/requests/recurring")
-def recurring_requests_page(
-    request: Request,
-    db: SessionDep,
-    session_user: SessionUser = Depends(require_session_user),
-):
-    viewer = session_user.user
-    session_record = session_user.session
-    templates = recurring_template_service.list_templates_for_user(db, user_id=viewer.id)
-    delivery_modes = list(RecurringRequestDeliveryMode)
-    context = {
-        "request": request,
-        "user": viewer,
-        "session": session_record,
-        "session_role": describe_session_role(viewer, session_record),
-        "session_username": viewer.username,
-        "session_avatar_url": _get_account_avatar(db, viewer.id),
-        "templates": templates,
-        "delivery_modes": delivery_modes,
-    }
-    return templates.TemplateResponse("requests/recurring.html", context)
-
-
-@router.post("/requests/recurring")
-def create_recurring_template(
-    request: Request,
-    db: SessionDep,
-    session_user: SessionUser = Depends(require_session_user),
-    *,
-    title: Annotated[Optional[str], Form()] = None,
-    description: Annotated[str, Form(...)],
-    contact_email_override: Annotated[Optional[str], Form()] = None,
-    delivery_mode: Annotated[str, Form()] = RecurringRequestDeliveryMode.draft.value,
-    interval_minutes: Annotated[int, Form(...)],
-    next_run_at: Annotated[Optional[str], Form()] = None,
-):
-    delivery = _parse_delivery_mode(delivery_mode)
-    next_run = _parse_datetime_local(next_run_at)
-    recurring_template_service.create_template(
-        db,
-        user_id=session_user.user.id,
-        title=title,
-        description=description,
-        contact_email_override=contact_email_override,
-        delivery_mode=delivery,
-        interval_minutes=interval_minutes,
-        next_run_at=next_run,
-    )
-    return RedirectResponse(url="/requests/recurring", status_code=status.HTTP_303_SEE_OTHER)
-
-
-@router.post("/requests/recurring/{template_id}/action")
-def recurring_template_action(
-    template_id: int,
-    request: Request,
-    db: SessionDep,
-    session_user: SessionUser = Depends(require_session_user),
-    *,
-    action: Annotated[str, Form(...)],
-    title: Annotated[Optional[str], Form()] = None,
-    description: Annotated[Optional[str], Form()] = None,
-    contact_email_override: Annotated[Optional[str], Form()] = None,
-    delivery_mode: Annotated[Optional[str], Form()] = None,
-    interval_minutes: Annotated[Optional[int], Form()] = None,
-    next_run_at: Annotated[Optional[str], Form()] = None,
-):
-    template = recurring_template_service.get_template_for_user(
-        db,
-        template_id=template_id,
-        user_id=session_user.user.id,
-    )
-    action_value = action.lower().strip()
-    if action_value == "delete":
-        recurring_template_service.delete_template(db, template=template)
-    elif action_value == "pause":
-        recurring_template_service.update_template(db, template=template, paused=True)
-    elif action_value == "resume":
-        recurring_template_service.update_template(db, template=template, paused=False)
-    elif action_value == "edit":
-        mode = _parse_delivery_mode(delivery_mode) if delivery_mode else None
-        next_run = _parse_datetime_local(next_run_at)
-        recurring_template_service.update_template(
-            db,
-            template=template,
-            title=title,
-            description=description,
-            contact_email_override=contact_email_override,
-            delivery_mode=mode,
-            interval_minutes=interval_minutes,
-            next_run_at=next_run,
-        )
-    else:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown action")
-    return RedirectResponse(url="/requests/recurring", status_code=status.HTTP_303_SEE_OTHER)
-
-
-@router.post("/requests/{request_id}/complete")
-def complete_request(
-    request_id: int,
-    request: Request,
-    db: SessionDep,
-    user: User = Depends(require_authenticated_user),
-):
-    request_services.mark_completed(db, request_id=request_id, user=user)
-    return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
-
-
-@router.post("/requests/{request_id}/pin")
-def pin_request(
-    request_id: int,
-    request: Request,
-    db: SessionDep,
-    user: User = Depends(require_admin),
-    rank: Annotated[Optional[int], Form()] = None,
-    next: Annotated[Optional[str], Form()] = None,
-):
-    help_request = request_services.get_request_by_id(db, request_id=request_id)
-    already_pinned = request_pin_service.request_is_pinned(db, request_id=request_id)
-    if not already_pinned:
-        request_pin_service.ensure_capacity(db)
-        request_pin_service.set_pin(db, request=help_request, actor=user, rank=rank)
-    elif rank is not None:
-        request_pin_service.update_pin_rank(db, request_id=request_id, new_rank=rank)
-    return _redirect_back(request, next)
-
-
-@router.post("/requests/{request_id}/unpin")
-def unpin_request(
-    request_id: int,
-    request: Request,
-    db: SessionDep,
-    user: User = Depends(require_admin),
-    next: Annotated[Optional[str], Form()] = None,
-):
-    # Ensure request exists even if attribute missing
-    request_services.get_request_by_id(db, request_id=request_id)
-    request_pin_service.clear_pin(db, request_id=request_id)
-    return _redirect_back(request, next)
-
-
-@router.post("/requests/{request_id}/pin/reorder")
-def reorder_pinned_request(
-    request_id: int,
-    request: Request,
-    direction: Annotated[str, Form()],
-    db: SessionDep,
-    user: User = Depends(require_admin),
-    next: Annotated[Optional[str], Form()] = None,
-):
-    direction_value = direction.lower()
-    if direction_value not in {"up", "down"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid direction")
-    request_services.get_request_by_id(db, request_id=request_id)
-    literal_direction = cast(Literal["up", "down"], direction_value)
-    request_pin_service.shift_pin(db, request_id=request_id, direction=literal_direction)
-    return _redirect_back(request, next)
 
 
 def _parse_delivery_mode(value: str | None) -> RecurringRequestDeliveryMode:
