@@ -21,3 +21,7 @@
 ## Stage 4 – Relocate Sign Out to Menu page
 - Removed the Sign Out form from the navbar utility rail and added a dedicated “Session” card with a POST form on `templates/menu/index.html`, keeping the action discoverable but out of the high-frequency nav.
 - Verification: Loaded the Menu page to confirm the new card renders and successfully submits the logout form; navbar no longer presents a Sign Out button.
+
+## Stage 5 – QA + documentation
+- Ran through admin and non-admin accounts on desktop + mobile widths to confirm: primary links remain visible/wrapping, admin chip displays once, half-auth badge still appears, and Sign Out is only present on the Menu card.
+- Documented the new layout and behavior in this summary; no automated tests were added since changes are presentation-only (manual verification sufficed).
