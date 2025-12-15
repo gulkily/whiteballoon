@@ -1001,6 +1001,15 @@ textarea::placeholder {
 .menu-card__body h3 {
   margin: 0;
   font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.menu-card__icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
 }
 
 .menu-card__meta {

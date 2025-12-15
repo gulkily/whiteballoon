@@ -4,15 +4,18 @@
 {% set show_admin = user.is_admin %}
 {% set show_half_auth = session and (not session.is_fully_authenticated) %}
 {% set primary_links = [
-  {"label": "Requests", "href": "/requests/channels"},
-  {"label": "Comments", "href": "/browse?tab=comments"},
-  {"label": "Browse", "href": "/browse"},
-  {"label": "Menu", "href": "/menu"},
+  {"label": "Requests", "href": "/requests/channels", "icon": "partials/icons/nav_requests.svg"},
+  {"label": "Comments", "href": "/browse?tab=comments", "icon": "partials/icons/nav_comments.svg"},
+  {"label": "Browse", "href": "/browse", "icon": "partials/icons/nav_browse.svg"},
+  {"label": "Menu", "href": "/menu", "icon": "partials/icons/nav_menu.svg"},
 ] %}
 <div class="account-nav">
   <nav class="account-nav__primary" aria-label="Primary">
     {% for link in primary_links %}
-      <a class="account-nav__link" href="{{ link.href }}">{{ link.label }}</a>
+      <a class="account-nav__link" href="{{ link.href }}">
+        <span class="account-nav__link-icon">{% include link.icon %}</span>
+        <span class="account-nav__link-label">{{ link.label }}</span>
+      </a>
     {% endfor %}
   </nav>
   <div class="account-nav__utility">

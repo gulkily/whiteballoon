@@ -27,7 +27,10 @@
           {% if is_disabled %}
             <article class="{{ classes }}" aria-disabled="true">
               <div class="menu-card__body">
-                <h3>{{ link.title }}</h3>
+                <h3>
+                  <span class="menu-card__icon">{% include link.icon %}</span>
+                  {{ link.title }}
+                </h3>
                 <p class="muted">{{ link.description }}</p>
               </div>
               <div class="menu-card__meta">
@@ -45,7 +48,10 @@
           {% else %}
             <a class="{{ classes }}" href="{{ link.href }}">
               <div class="menu-card__body">
-                <h3>{{ link.title }}</h3>
+                <h3>
+                  <span class="menu-card__icon">{% include link.icon %}</span>
+                  {{ link.title }}
+                </h3>
                 <p class="muted">{{ link.description }}</p>
               </div>
               <div class="menu-card__meta">

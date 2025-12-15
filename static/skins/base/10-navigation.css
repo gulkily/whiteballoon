@@ -224,6 +224,20 @@
 }
 
 .account-nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.account-nav__link-icon svg {
+  display: block;
+}
+
+.account-nav__link-label {
+  line-height: 1;
+}
+
+.account-nav__link {
   text-decoration: none;
   font-weight: 600;
   padding: 0.35rem 0.9rem;
@@ -405,6 +419,7 @@
   .nav-mobile-panel .account-nav__signout .button {
     width: 100%;
     text-align: center;
+    justify-content: center;
   }
 
   .nav-mobile-panel .account-status {
