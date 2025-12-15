@@ -11,7 +11,7 @@
   <div class="card stack">
     <h1>Recurring request templates</h1>
     <p class="muted">Use templates to recreate chores, meetings, or reminders on a fixed cadence. Draft mode keeps the request private for review; publish mode posts directly to the feed.</p>
-    <form method="post" action="/requests/recurring" class="form-grid">
+    <form method="post" action="/requests/recurring" class="form-grid" data-recurring-form>
       <div class="input-group">
         <label for="template-title">Title <span class="muted">(optional)</span></label>
         <input id="template-title" name="title" type="text" maxlength="200" />
@@ -26,26 +26,24 @@
       </div>
       <div class="input-group">
         <label for="template-interval-preset">Repeat cadence</label>
-        <select id="template-interval-preset" name="interval_preset">
+        <select id="template-interval-preset" name="interval_preset" data-interval-preset>
           <option value="">Custom interval</option>
           {% for option in interval_options %}
             <option value="{{ option.value }}">{{ option.label }}</option>
           {% endfor %}
         </select>
-        <p class="muted">Choose a preset or leave as custom and set the interval below.</p>
       </div>
       <div class="input-group">
         <label>Custom interval</label>
         <div class="stack stack--row stack--gap-md">
-          <input name="custom_interval_value" type="number" min="1" value="1" />
-          <select name="custom_interval_unit">
+          <input name="custom_interval_value" type="number" min="1" value="1" data-custom-value />
+          <select name="custom_interval_unit" data-custom-unit>
             <option value="minutes">Minutes</option>
             <option value="hours">Hours</option>
             <option value="days" selected>Days</option>
             <option value="weeks">Weeks</option>
           </select>
         </div>
-        <p class="muted">Used when no preset is selected.</p>
       </div>
       <div class="input-group">
         <label for="template-next-run">Next run <span class="muted">(optional)</span></label>
@@ -106,7 +104,7 @@
 
         <details>
           <summary>Edit template</summary>
-          <form method="post" action="/requests/recurring/{{ template.id }}/action" class="form-grid">
+          <form method="post" action="/requests/recurring/{{ template.id }}/action" class="form-grid" data-recurring-form>
             <input type="hidden" name="action" value="edit" />
             <div class="input-group">
               <label>Title</label>
@@ -122,22 +120,22 @@
             </div>
             <div class="input-group">
               <label>Repeat cadence</label>
-              <select name="interval_preset">
+              <select name="interval_preset" data-interval-preset>
                 <option value="">Custom interval</option>
-            {% for option in interval_options %}
-              <option value="{{ option.value }}"{% if entry.interval_preset == option.value %} selected{% endif %}>{{ option.label }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="input-group">
-          <label>Custom interval</label>
-          <div class="stack stack--row stack--gap-md">
-            <input name="custom_interval_value" type="number" min="1" value="{{ entry.custom_interval_value }}" />
-            <select name="custom_interval_unit">
-              <option value="minutes"{% if entry.custom_interval_unit == 'minutes' %} selected{% endif %}>Minutes</option>
-              <option value="hours"{% if entry.custom_interval_unit == 'hours' %} selected{% endif %}>Hours</option>
-              <option value="days"{% if entry.custom_interval_unit == 'days' %} selected{% endif %}>Days</option>
-              <option value="weeks"{% if entry.custom_interval_unit == 'weeks' %} selected{% endif %}>Weeks</option>
+                {% for option in interval_options %}
+                  <option value="{{ option.value }}"{% if entry.interval_preset == option.value %} selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Custom interval</label>
+              <div class="stack stack--row stack--gap-md">
+                <input name="custom_interval_value" type="number" min="1" value="{{ entry.custom_interval_value }}" data-custom-value />
+                <select name="custom_interval_unit" data-custom-unit>
+                  <option value="minutes"{% if entry.custom_interval_unit == 'minutes' %} selected{% endif %}>Minutes</option>
+                  <option value="hours"{% if entry.custom_interval_unit == 'hours' %} selected{% endif %}>Hours</option>
+                  <option value="days"{% if entry.custom_interval_unit == 'days' %} selected{% endif %}>Days</option>
+                  <option value="weeks"{% if entry.custom_interval_unit == 'weeks' %} selected{% endif %}>Weeks</option>
             </select>
           </div>
         </div>
@@ -166,4 +164,30 @@
     </div>
   {% endif %}
 </section>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-recurring-form]').forEach((form) => {
+      const presetField = form.querySelector('[data-interval-preset]');
+      const valueField = form.querySelector('[data-custom-value]');
+      const unitField = form.querySelector('[data-custom-unit]');
+      if (!presetField || !valueField || !unitField) {
+        return;
+      }
+      presetField.addEventListener('change', () => {
+        if (!presetField.value) {
+          return;
+        }
+        unitField.value = 'minutes';
+        valueField.value = presetField.value;
+      });
+      const clearPreset = () => {
+        if (presetField.value) {
+          presetField.value = '';
+        }
+      };
+      valueField.addEventListener('input', clearPreset);
+      unitField.addEventListener('change', clearPreset);
+    });
+  });
+</script>
 {% endblock %}
