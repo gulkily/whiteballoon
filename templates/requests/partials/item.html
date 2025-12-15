@@ -4,6 +4,8 @@
 {% set has_creator_link = creator_username != '' %}
 {% set creator_name = creator_username if has_creator_link else 'Community member' %}
 {% set request_icon = '✨' if item.status != 'completed' else '💫' %}
+{% set status_display = 'Archived' if item.status == 'completed' else 'Active' %}
+{% set status_chip_class = 'meta-chip meta-chip--status meta-chip--muted' if item.status == 'completed' else 'meta-chip meta-chip--status meta-chip--success' %}
 {% set show_detail_link = show_detail_link if show_detail_link is defined else True %}
 {% set show_meta = show_meta if show_meta is defined else True %}
 {% set requester_value = request_icon ~ ' ' ~ (creator_username if has_creator_link else creator_name) %}
@@ -90,9 +92,8 @@
               <span class="meta-chip__value">{{ requester_value }}</span>
             {% endif %}
           </span>
-          <span class="meta-chip meta-chip--status">
-            <span class="meta-chip__label">Status</span>
-            <span class="meta-chip__value">{{ item.status|title }}</span>
+          <span class="{{ status_chip_class }}" aria-label="Status">
+            <span class="meta-chip__value">{{ status_display }}</span>
           </span>
           {% if show_detail_link %}
             <a class="meta-chip meta-chip--timestamp" href="{{ request_url }}" title="View request details">

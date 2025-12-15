@@ -181,10 +181,11 @@
       : `<span class="meta-chip meta-chip--requester"><span class="meta-chip__label">Requester</span><span class="meta-chip__value">${escapeHtml(
           requesterValue,
         )}</span></span>`;
-
-    const statusChip = `<span class="meta-chip meta-chip--status"><span class="meta-chip__label">Status</span><span class="meta-chip__value">${capitalize(
-      item.status,
-    )}</span></span>`;
+    const statusDisplay = item.status === 'completed' ? 'Archived' : 'Active';
+    const statusChipClass = item.status === 'completed'
+      ? 'meta-chip meta-chip--status meta-chip--muted'
+      : 'meta-chip meta-chip--status meta-chip--success';
+    const statusChip = `<span class="${statusChipClass}" aria-label="Status"><span class="meta-chip__value">${statusDisplay}</span></span>`;
 
     const timestampChip = `<a class="meta-chip meta-chip--timestamp" href="${escapeHtml(requestUrl)}" title="View request details"><span class="meta-chip__label">Updated</span><time class="meta-chip__value" datetime="${escapeHtml(
       item.created_at,
