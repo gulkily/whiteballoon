@@ -8,6 +8,7 @@
 
 {% block content %}
 {% set draft_requests = draft_requests if draft_requests is defined else [] %}
+{% set has_drafts = draft_requests|length > 0 %}
 {% set readonly = readonly if readonly is defined else False %}
 {% set session = session if session is defined else None %}
 {% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
@@ -78,7 +79,11 @@
     </noscript>
   </div>
 
-  <section class="card stack request-drafts" data-request-drafts {% if not draft_requests %}hidden{% endif %}>
+  <section
+    class="card stack request-drafts"
+    data-request-drafts
+    data-has-drafts="{{ 'true' if has_drafts else 'false' }}"
+    {% if not has_drafts %}hidden style="display:none;"{% endif %}>
     <header class="stack stack--row stack--center">
       <h2 class="grow">Drafts</h2>
       <p class="muted" data-request-draft-count>{{ draft_requests|length }} in progress</p>
@@ -126,7 +131,7 @@
         </article>
       {% endfor %}
     </div>
-    <p class="muted" data-request-draft-empty {% if draft_requests %}hidden{% endif %}>Saved drafts will appear here.</p>
+    <p class="muted" data-request-draft-empty {% if has_drafts %}hidden{% endif %}>Saved drafts will appear here.</p>
   </section>
 
   {% if pinned_requests %}

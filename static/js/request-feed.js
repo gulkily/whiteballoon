@@ -417,6 +417,7 @@
 
   function setupDrafts(panel) {
     bootstrapDraftCache(panel);
+    setDraftPanelVisibility(panel, draftCache.size > 0);
     panel.addEventListener('click', async (event) => {
       const trigger = event.target instanceof Element ? event.target.closest('[data-draft-action]') : null;
       if (!trigger) {
@@ -471,14 +472,12 @@
 
   function renderDrafts(panel, drafts) {
     const list = panel.querySelector('[data-request-draft-list]');
-    const empty = panel.querySelector('[data-request-draft-empty]');
     const countLabel = panel.querySelector('[data-request-draft-count]');
-    if (!list || !empty) {
+    if (!list) {
       return;
     }
     const hasDrafts = drafts.length > 0;
-    panel.hidden = !hasDrafts;
-    empty.hidden = hasDrafts;
+    setDraftPanelVisibility(panel, hasDrafts);
     if (countLabel) {
       countLabel.textContent = `${drafts.length} in progress`;
     }
@@ -488,6 +487,19 @@
     }
     const items = drafts.map(renderDraftCard).join('');
     list.innerHTML = items;
+  }
+
+  function setDraftPanelVisibility(panel, hasDrafts) {
+    if (!panel) {
+      return;
+    }
+    panel.hidden = !hasDrafts;
+    panel.style.display = hasDrafts ? '' : 'none';
+    panel.dataset.hasDrafts = hasDrafts ? 'true' : 'false';
+    const empty = panel.querySelector('[data-request-draft-empty]');
+    if (empty) {
+      empty.hidden = hasDrafts;
+    }
   }
 
   function renderDraftCard(draft) {
