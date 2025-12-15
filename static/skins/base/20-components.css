@@ -559,12 +559,6 @@ textarea::placeholder {
 
 .meta-chip--tagged {
   --tag-chip-color: hsl(var(--tag-hue, 0deg), var(--tag-chip-saturation), var(--tag-chip-lightness));
-  background: var(--tag-chip-color);
-  color: var(--tag-chip-solid-text);
-  border: none;
-}
-
-.meta-chip--tagged.meta-chip--ghost {
   background: transparent;
   color: var(--tag-chip-color);
   border: 1px solid hsla(
@@ -573,7 +567,28 @@ textarea::placeholder {
     var(--tag-chip-lightness),
     var(--tag-chip-border-alpha)
   );
-  border-style: solid;
+}
+
+.meta-chip--resource {
+  position: relative;
+  padding-left: 1.05rem;
+}
+
+.meta-chip--resource::before {
+  content: '';
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--tag-chip-color, currentColor);
+  opacity: 0.85;
+  position: absolute;
+  left: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.meta-chip--resource:not(.meta-chip--tagged)::before {
+  display: none;
 }
 
 .meta-chip--status {
@@ -639,6 +654,16 @@ textarea::placeholder {
 
 [data-theme="dark"] .meta-chip--ghost {
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.meta-chip--tagged.meta-chip--ghost {
+  color: var(--tag-chip-color);
+  border-color: hsla(
+    var(--tag-hue, 0deg),
+    var(--tag-chip-saturation),
+    var(--tag-chip-lightness),
+    var(--tag-chip-border-alpha)
+  );
 }
 
 .meta-chip__hint {

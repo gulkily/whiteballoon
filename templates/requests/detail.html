@@ -98,7 +98,7 @@
               {% set tag_value = tag.slug %}
               {% set resource_href = request.url.remove_query_params('insight_resource').include_query_params(insight_resource=tag_value) %}
               <a
-                class="meta-chip meta-chip--small{% if tag_value in insight_filters.resource %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                class="meta-chip meta-chip--small meta-chip--resource{% if tag_value in insight_filters.resource %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
                 href="{{ resource_href }}"
                 data-insight-chip="resource"
                 data-insight-value="{{ tag_value }}"
@@ -118,7 +118,7 @@
               {% set tag_value = tag.slug %}
               {% set request_href = request.url.remove_query_params('insight_request').include_query_params(insight_request=tag_value) %}
               <a
-                class="meta-chip meta-chip--small meta-chip--ghost{% if tag_value in insight_filters.request %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                class="meta-chip meta-chip--small meta-chip--ghost meta-chip--request{% if tag_value in insight_filters.request %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
                 href="{{ request_href }}"
                 data-insight-chip="request"
                 data-insight-value="{{ tag_value }}"
@@ -202,7 +202,7 @@
               <span class="muted small-text">Resource tags</span>
               <div class="promoted-comment-card__chips">
                 {% for tag in promoted_resource_tags %}
-                  <span class="meta-chip meta-chip--small{% if tag.hue is not none %} meta-chip--tagged{% endif %}" {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}>{{ tag.label }}</span>
+                  <span class="meta-chip meta-chip--small meta-chip--resource{% if tag.hue is not none %} meta-chip--tagged{% endif %}" {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}>{{ tag.label }}</span>
                 {% endfor %}
               </div>
             </div>
@@ -214,7 +214,7 @@
               <div class="promoted-comment-card__chips">
                 {% for tag in promoted_request_tags %}
                   <span
-                    class="meta-chip meta-chip--small meta-chip--ghost{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                    class="meta-chip meta-chip--small meta-chip--ghost meta-chip--request{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
                     {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
                   >{{ tag.label }}</span>
                 {% endfor %}

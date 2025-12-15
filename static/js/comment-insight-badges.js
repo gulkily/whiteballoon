@@ -79,10 +79,10 @@
     }
     var tags = [];
     normalizeTagEntries(data.resource_tag_colors, data.resource_tags).forEach(function (entry) {
-      tags.push(renderTagChip(entry, 'meta-chip meta-chip--small'));
+      tags.push(renderTagChip(entry, 'meta-chip meta-chip--small meta-chip--resource'));
     });
     normalizeTagEntries(data.request_tag_colors, data.request_tags).forEach(function (entry) {
-      tags.push(renderTagChip(entry, 'meta-chip meta-chip--small meta-chip--ghost'));
+      tags.push(renderTagChip(entry, 'meta-chip meta-chip--small meta-chip--ghost meta-chip--request'));
     });
     if (tags.length) {
       parts.push('<div class="comment-insight-tags">' + tags.join(' ') + '</div>');

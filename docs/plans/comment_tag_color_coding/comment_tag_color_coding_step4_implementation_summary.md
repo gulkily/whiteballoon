@@ -11,9 +11,9 @@
 - Verification: Instantiated a `CommentInsight` via REPL to inspect the new `resource_tag_colors` output and reviewed the updated templates to ensure every surface now reads the enriched objects.
 
 ## Stage 3 – Shared CSS styling
-- Introduced `--tag-chip-*` variables in `static/skins/base/20-components.css` and a `meta-chip--tagged` modifier that renders deterministic HSL fills/borders while letting each skin override saturation/lightness/text colors.
-- Ghost chips switch to solid outlines tinted with the same hue so resource/request chips stay visually distinct yet consistent with the base component system.
-- Verification: Local stylesheet inspection confirmed the modifiers only apply when `meta-chip--tagged` is present, preserving existing chip behavior elsewhere.
+- Introduced `--tag-chip-*` variables in `static/skins/base/20-components.css` and a `meta-chip--tagged` modifier that now drives tinted text/borders (no fill) so resource chips aren’t overwhelming while skins can override saturation/lightness.
+- Added a small color dot via `.meta-chip--resource::before` to visually distinguish offers, while request chips keep their dashed outlines and inherit the hue for borders/text.
+- Verification: Local stylesheet inspection confirmed tagged chips render transparent backgrounds, the new dot only appears when hue metadata exists, and untagged chips retain the legacy appearance.
 
 ## Stage 4 – Admin/JS badge parity
 - `static/js/comment-insight-badges.js` now normalizes the new `resource_tag_colors` / `request_tag_colors` payloads (with fallback to legacy arrays) and emits the same tagged chip markup for the AJAX popover.
