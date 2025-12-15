@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import get_engine
-from app.services import recurring_template_service
+from app.services import recurring_template_executor, recurring_template_service
 
 logger = logging.getLogger(__name__)
 
@@ -63,13 +63,15 @@ class RecurringTemplateScheduler:
         try:
             with Session(get_engine()) as session:
                 due_templates = recurring_template_service.list_due_templates(session)
-                if due_templates:
-                    logger.info(
-                        "Recurring template scheduler found %s due template(s)",
-                        len(due_templates),
-                    )
-                else:
+                if not due_templates:
                     logger.debug("Recurring template scheduler tick: no due templates")
+                    return
+
+                processed = recurring_template_executor.process_due_templates(session, due_templates)
+                logger.info(
+                    "Recurring template scheduler processed %s template(s)",
+                    processed,
+                )
         except Exception:
             logger.exception("Recurring template scheduler tick failed")
 
