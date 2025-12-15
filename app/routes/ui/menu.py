@@ -44,9 +44,9 @@ def site_menu(
             "description": "Everyday destinations for members.",
             "links": [
                 _build_link(
-                    title="Requests feed",
-                    description="Catch up on every open help request and share your own.",
-                    href="/requests",
+                    title="Requests workspace",
+                    description="Catch up on every open help request, pin threads, and share your own.",
+                    href="/requests/channels",
                 ),
                 _build_link(
                     title="Members directory",
