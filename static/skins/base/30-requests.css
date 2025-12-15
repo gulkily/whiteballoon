@@ -1013,6 +1013,8 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
 }
 
 .channel-message__content {
@@ -1034,6 +1036,17 @@
   font-size: 0.85rem;
   margin-bottom: 4px;
   align-items: center;
+}
+
+.channel-message__author {
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.channel-message__author:hover,
+.channel-message__author:focus-visible {
+  color: var(--color-accent);
 }
 
 .channel-message__footer {
