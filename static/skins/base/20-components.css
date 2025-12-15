@@ -1059,7 +1059,7 @@ textarea::placeholder {
   margin: 0;
   display: grid;
   gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .control-panel__grid li {
