@@ -414,6 +414,12 @@
   box-shadow: var(--skin-button-hover-shadow, 0 14px 26px rgba(124, 58, 237, 0.25));
 }
 
+.button--small,
+.button.small {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
 .button--ghost {
   background: var(--skin-button-ghost-bg, rgba(255, 255, 255, 0.08));
   color: var(--skin-button-ghost-color, var(--color-accent));
@@ -565,6 +571,8 @@ textarea::placeholder {
 
 .meta-chip--timestamp {
   cursor: pointer;
+  color: var(--color-muted);
+  background: rgba(148, 163, 184, 0.15);
 }
 
 .meta-chip__label {

@@ -17,17 +17,19 @@
       <a class="channel-message__time" href="/comments/{{ comment.id }}" title="View comment permalink">
         <time datetime="{{ comment.created_at_iso or comment.created_at }}">{{ comment.created_at | friendly_time }}</time>
       </a>
-      {% if chat.can_promote_comments %}
+    </div>
+    <div class="channel-message__text" data-comment-body-text>{{ comment.body | e | replace('\n', '<br />') | safe }}</div>
+    {% if chat.can_promote_comments %}
+      <div class="channel-message__footer">
         <button
           type="button"
-          class="channel-message__action"
+          class="button button--ghost button--small channel-message__action"
           data-comment-promote
           data-comment-promote-id="{{ comment.id }}"
         >
           Promote
         </button>
-      {% endif %}
-    </div>
-    <div class="channel-message__text" data-comment-body-text>{{ comment.body | e | replace('\n', '<br />') | safe }}</div>
+      </div>
+    {% endif %}
   </div>
 </li>

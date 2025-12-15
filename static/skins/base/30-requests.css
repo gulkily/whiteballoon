@@ -431,6 +431,11 @@
   color: var(--color-accent);
 }
 
+.request-comment__time {
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
 .request-comment__time-link {
   text-decoration: none;
 }
@@ -1031,24 +1036,24 @@
   align-items: center;
 }
 
-.channel-message__action {
-  margin-left: auto;
-  border: none;
-  background: transparent;
-  color: var(--color-accent);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
+.channel-message__footer {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
 }
 
-.channel-message__action:hover,
-.channel-message__action:focus-visible {
-  text-decoration: underline;
+.channel-message__action {
+  margin-left: auto;
+}
+
+.channel-message__action.button {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
 }
 
 .channel-message__time {
-  color: var(--text-muted);
+  color: var(--color-muted);
+  font-weight: 500;
   text-decoration: none;
 }
 
