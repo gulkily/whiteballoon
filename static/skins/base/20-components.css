@@ -1031,6 +1031,12 @@ textarea::placeholder {
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.15);
 }
 
+.control-panel__wrap {
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 3rem);
+}
+
 [data-theme="dark"] .control-panel__shell {
   background: rgba(9, 11, 23, 0.9);
   border-color: rgba(255, 255, 255, 0.08);
