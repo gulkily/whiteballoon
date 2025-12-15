@@ -1031,10 +1031,14 @@ textarea::placeholder {
   box-shadow: 0 30px 80px rgba(15, 23, 42, 0.15);
 }
 
-.control-panel__wrap {
+.control-panel__grid {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   max-width: 1200px;
-  margin-inline: auto;
-  padding-inline: clamp(1rem, 4vw, 3rem);
 }
 
 [data-theme="dark"] .control-panel__shell {
@@ -1057,15 +1061,6 @@ textarea::placeholder {
 
 .control-panel__intro {
   margin-bottom: 2rem;
-}
-
-.control-panel__grid {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: grid;
-  gap: 1.5rem;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
 }
 
 .control-panel__grid li {

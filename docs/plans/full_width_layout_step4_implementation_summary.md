@@ -20,6 +20,7 @@
 
 ## Stage 4 – Template cleanup
 - With the global change, no additional nested `.container` wrappers were required; existing `container--wide` overrides (requests channels, profile) remain for slightly tighter gutters.
+- For `/sync/public`, kept the section full-width but constrained the grid itself (`max-width: 1200px`) so columns stay readable while the rest of the page matches the new fluid layout.
 - Verified that pages previously relying on double containers (menu cards) now inherit the new padding without needing manual tweaks.
 
 ## Stage 5 – QA + docs
