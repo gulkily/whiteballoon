@@ -9,7 +9,7 @@ from fastapi import HTTPException, status
 from sqlmodel import Session, select
 
 from app.config import get_settings
-from app.models import HelpRequest, RequestAttribute, User
+from app.models import HELP_REQUEST_STATUS_DRAFT, HelpRequest, RequestAttribute, User
 
 PIN_ATTRIBUTE_KEY = "pin"
 
@@ -78,6 +78,7 @@ def list_pinned_requests(session: Session, *, limit: int | None = None) -> list[
         select(RequestAttribute, HelpRequest)
         .join(HelpRequest, HelpRequest.id == RequestAttribute.request_id)
         .where(RequestAttribute.key == PIN_ATTRIBUTE_KEY)
+        .where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
     )
     rows = session.exec(statement).all()
     records: list[PinnedRequest] = []

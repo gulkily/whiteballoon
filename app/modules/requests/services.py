@@ -7,7 +7,14 @@ from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.models import HelpRequest, RequestAttribute, User
+from app.models import (
+    HELP_REQUEST_STATUS_DRAFT,
+    HELP_REQUEST_STATUS_OPEN,
+    HELP_REQUEST_STATUS_PENDING,
+    HelpRequest,
+    RequestAttribute,
+    User,
+)
 from app.services import request_pin_service
 
 
@@ -20,7 +27,7 @@ def list_requests(
     pinned_only: bool = False,
     include_pending: bool = False,
 ) -> List[HelpRequest]:
-    statement = select(HelpRequest)
+    statement = select(HelpRequest).where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
     if pinned_only:
         statement = statement.join(
             RequestAttribute,
@@ -60,10 +67,8 @@ def create_request(
     if not summary:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Description required")
 
-    normalized_title = summary.splitlines()[0][:200]
-
     help_request = HelpRequest(
-        title=normalized_title or None,
+        title=_derive_title(summary),
         description=summary,
         contact_email=contact_email or user.contact_email,
         created_by_user_id=user.id,
@@ -127,8 +132,121 @@ def load_creator_usernames(session: Session, requests: Sequence[HelpRequest]) ->
     return {user_id: username for user_id, username in rows}
 
 
-def get_request_by_id(session: Session, *, request_id: int) -> HelpRequest:
+def get_request_by_id(
+    session: Session,
+    *,
+    request_id: int,
+    allow_draft_for_user_id: int | None = None,
+) -> HelpRequest:
     help_request = session.get(HelpRequest, request_id)
     if not help_request:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+    if help_request.status == HELP_REQUEST_STATUS_DRAFT:
+        if allow_draft_for_user_id and help_request.created_by_user_id == allow_draft_for_user_id:
+            return help_request
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
     return help_request
+
+
+def list_drafts_for_user(session: Session, *, user_id: int) -> List[HelpRequest]:
+    statement = (
+        select(HelpRequest)
+        .where(HelpRequest.created_by_user_id == user_id)
+        .where(HelpRequest.status == HELP_REQUEST_STATUS_DRAFT)
+        .order_by(HelpRequest.updated_at.desc())
+    )
+    return list(session.exec(statement).all())
+
+
+def save_draft(
+    session: Session,
+    *,
+    user: User,
+    description: str | None,
+    contact_email: str | None,
+    draft_id: int | None = None,
+) -> HelpRequest:
+    summary = _normalize_summary(description)
+    normalized_title = _derive_title(summary)
+    normalized_contact = contact_email or user.contact_email
+    now = datetime.utcnow()
+
+    if draft_id:
+        help_request = _get_owned_draft(session, draft_id, user)
+        help_request.description = summary
+        help_request.title = normalized_title
+        help_request.contact_email = normalized_contact
+        help_request.updated_at = now
+        session.add(help_request)
+    else:
+        help_request = HelpRequest(
+            title=normalized_title,
+            description=summary,
+            contact_email=normalized_contact,
+            created_by_user_id=user.id,
+            status=HELP_REQUEST_STATUS_DRAFT,
+        )
+        session.add(help_request)
+
+    session.commit()
+    session.refresh(help_request)
+    return help_request
+
+
+def publish_draft(
+    session: Session,
+    *,
+    draft_id: int,
+    user: User,
+    is_fully_authenticated: bool,
+    description: str | None = None,
+    contact_email: str | None = None,
+) -> HelpRequest:
+    help_request = _get_owned_draft(session, draft_id, user)
+    new_summary = description if description is not None else help_request.description
+    summary = _normalize_summary(new_summary)
+    if not summary:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Description required to publish")
+
+    help_request.description = summary
+    help_request.title = _derive_title(summary)
+    if contact_email is not None:
+        help_request.contact_email = contact_email or user.contact_email
+    elif not help_request.contact_email:
+        help_request.contact_email = user.contact_email
+    help_request.status = HELP_REQUEST_STATUS_OPEN if is_fully_authenticated else HELP_REQUEST_STATUS_PENDING
+    help_request.completed_at = None
+    help_request.updated_at = datetime.utcnow()
+    session.add(help_request)
+    session.commit()
+    session.refresh(help_request)
+    return help_request
+
+
+def delete_draft(session: Session, *, draft_id: int, user: User) -> None:
+    help_request = _get_owned_draft(session, draft_id, user)
+    session.delete(help_request)
+    session.commit()
+
+
+def _get_owned_draft(session: Session, draft_id: int, user: User) -> HelpRequest:
+    help_request = session.get(HelpRequest, draft_id)
+    if not help_request or help_request.status != HELP_REQUEST_STATUS_DRAFT:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+    if help_request.created_by_user_id != user.id:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Draft not found")
+    return help_request
+
+
+def _normalize_summary(value: str | None) -> str:
+    return (value or "").strip()
+
+
+def _derive_title(summary: str) -> str | None:
+    if not summary:
+        return None
+    first_line = summary.splitlines()[0] if summary else ""
+    first_line = first_line.strip()
+    if not first_line:
+        return None
+    return first_line[:200]

@@ -39,6 +39,7 @@ from app.dependencies import (
 from app.models import (
     AuthenticationRequest,
     CommentPromotion,
+    HELP_REQUEST_STATUS_DRAFT,
     HelpRequest,
     RequestComment,
     User,
@@ -857,6 +858,11 @@ def _render_requests_page(
     pinned_payload = pinned_requests if show_pinned_section else []
     signal_ledger_metrics = _build_signal_ledger_metrics(filtered_objects)
     signal_ledger_timeline = _build_signal_ledger_timeline(filtered_objects)
+    draft_requests = _serialize_requests(
+        db,
+        request_services.list_drafts_for_user(db, user_id=user.id),
+        viewer=user,
+    )
     return templates.TemplateResponse(
         "requests/index.html",
         {
@@ -881,6 +887,7 @@ def _render_requests_page(
             "pinned_request_count": len(pinned_payload),
             "signal_ledger_metrics": signal_ledger_metrics,
             "signal_ledger_timeline": signal_ledger_timeline,
+            "draft_requests": draft_requests,
         },
     )
 
@@ -1248,7 +1255,8 @@ def comment_detail(
     if not help_request:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
-    if help_request.status == "pending" and not (
+    is_restricted = help_request.status in {"pending", HELP_REQUEST_STATUS_DRAFT}
+    if is_restricted and not (
         viewer.is_admin or help_request.created_by_user_id == viewer.id
     ):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
@@ -2298,7 +2306,10 @@ def _build_request_browse_conditions(
     status_filters: set[str],
     tag_filters: set[str],
 ) -> list:
-    conditions = [HelpRequest.status != "pending"]
+    conditions = [
+        HelpRequest.status != "pending",
+        HelpRequest.status != HELP_REQUEST_STATUS_DRAFT,
+    ]
     if query_text:
         pattern = f"%{query_text}%"
         conditions.append(
@@ -2323,6 +2334,7 @@ def _build_comment_browse_conditions(
     conditions = [
         RequestComment.deleted_at.is_(None),
         HelpRequest.status != "pending",
+        HelpRequest.status != HELP_REQUEST_STATUS_DRAFT,
     ]
     if query_text:
         pattern = f"%{query_text}%"
@@ -2530,7 +2542,11 @@ def _fetch_profile_page(
 def _load_requests_by_ids(db: Session, viewer: User, request_ids: list[int]) -> dict[int, dict[str, object]]:
     if not request_ids:
         return {}
-    stmt = select(HelpRequest).where(HelpRequest.id.in_(request_ids))
+    stmt = (
+        select(HelpRequest)
+        .where(HelpRequest.id.in_(request_ids))
+        .where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
+    )
     rows = db.exec(stmt).all()
     serialized = _serialize_requests(db, rows, viewer=viewer)
     topics_map = {row.id: sorted(_infer_request_topics(row)) for row in rows}
@@ -2551,6 +2567,7 @@ def _load_comments_by_ids(db: Session, comment_ids: list[int]) -> dict[int, dict
         .join(User, User.id == RequestComment.user_id)
         .join(HelpRequest, HelpRequest.id == RequestComment.help_request_id)
         .where(RequestComment.id.in_(comment_ids))
+        .where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
     )
     rows = db.exec(stmt).all()
     lookup: dict[int, dict[str, object]] = {}

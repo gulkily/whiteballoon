@@ -16,7 +16,7 @@ from fastapi.responses import PlainTextResponse, RedirectResponse
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, get_session, require_session_user
-from app.models import HelpRequest, InviteToken, User
+from app.models import HELP_REQUEST_STATUS_DRAFT, HelpRequest, InviteToken, User
 from app import config
 from app.routes.ui.helpers import friendly_time
 from app.dedalus.logging import finalize_logged_run, start_logged_run
@@ -534,6 +534,7 @@ def admin_profile_detail(
     request_statement = (
         select(HelpRequest)
         .where(HelpRequest.created_by_user_id == profile.id)
+        .where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
         .order_by(HelpRequest.created_at.desc())
     )
     help_requests = db.exec(request_statement).all()

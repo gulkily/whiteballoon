@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel
 
 from app.dependencies import SessionDep, SessionUser, require_authenticated_user, require_session_user
@@ -19,6 +19,17 @@ router = APIRouter(prefix="/api/requests", tags=["requests"])
 
 class RequestCreatePayload(BaseModel):
     description: str
+    contact_email: str | None = None
+
+
+class DraftSavePayload(BaseModel):
+    id: int | None = None
+    description: str | None = None
+    contact_email: str | None = None
+
+
+class PublishDraftPayload(BaseModel):
+    description: str | None = None
     contact_email: str | None = None
 
 
@@ -180,3 +191,69 @@ def complete_request(
         created_by_username=creator_usernames.get(help_request.created_by_user_id),
         can_complete=False,
     )
+
+
+@router.get("/drafts", response_model=List[RequestResponse])
+def list_drafts(
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> List[RequestResponse]:
+    drafts = services.list_drafts_for_user(db, user_id=session_user.user.id)
+    return [
+        RequestResponse.from_model(
+            draft,
+            created_by_username=session_user.user.username,
+        )
+        for draft in drafts
+    ]
+
+
+@router.post("/drafts", response_model=RequestResponse)
+def save_draft(
+    payload: DraftSavePayload,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> RequestResponse:
+    draft = services.save_draft(
+        db,
+        user=session_user.user,
+        description=payload.description,
+        contact_email=payload.contact_email,
+        draft_id=payload.id,
+    )
+    return RequestResponse.from_model(
+        draft,
+        created_by_username=session_user.user.username,
+    )
+
+
+@router.post("/{request_id}/publish", response_model=RequestResponse)
+def publish_request(
+    request_id: int,
+    payload: PublishDraftPayload,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> RequestResponse:
+    help_request = services.publish_draft(
+        db,
+        draft_id=request_id,
+        user=session_user.user,
+        is_fully_authenticated=session_user.session.is_fully_authenticated,
+        description=payload.description,
+        contact_email=payload.contact_email,
+    )
+    return RequestResponse.from_model(
+        help_request,
+        created_by_username=session_user.user.username,
+        can_complete=calculate_can_complete(help_request, session_user.user),
+    )
+
+
+@router.delete("/{request_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_request(
+    request_id: int,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    services.delete_draft(db, draft_id=request_id, user=session_user.user)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -3,9 +3,19 @@
 {% set creator_username = item.created_by_username | default('') %}
 {% set has_creator_link = creator_username != '' %}
 {% set creator_name = creator_username if has_creator_link else 'Community member' %}
-{% set request_icon = '✨' if item.status != 'completed' else '💫' %}
-{% set status_display = 'Archived' if item.status == 'completed' else 'Active' %}
-{% set status_chip_class = 'meta-chip meta-chip--status meta-chip--muted' if item.status == 'completed' else 'meta-chip meta-chip--status meta-chip--success' %}
+{% if item.status == 'completed' %}
+  {% set request_icon = '💫' %}
+  {% set status_display = 'Archived' %}
+  {% set status_chip_class = 'meta-chip meta-chip--status meta-chip--muted' %}
+{% elif item.status == 'draft' %}
+  {% set request_icon = '📝' %}
+  {% set status_display = 'Draft' %}
+  {% set status_chip_class = 'meta-chip meta-chip--status meta-chip--muted' %}
+{% else %}
+  {% set request_icon = '✨' %}
+  {% set status_display = 'Active' %}
+  {% set status_chip_class = 'meta-chip meta-chip--status meta-chip--success' %}
+{% endif %}
 {% set show_detail_link = show_detail_link if show_detail_link is defined else True %}
 {% set show_meta = show_meta if show_meta is defined else True %}
 {% set requester_value = request_icon ~ ' ' ~ (creator_username if has_creator_link else creator_name) %}

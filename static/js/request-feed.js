@@ -1,9 +1,15 @@
 (() => {
   const API_BASE = '/api/requests';
+  const DRAFTS_API = `${API_BASE}/drafts`;
+  let draftCache = new Map();
 
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-request-card]').forEach((card) => setupForm(card));
     document.querySelectorAll('[data-request-list]').forEach((list) => setupList(list));
+    const draftsPanel = document.querySelector('[data-request-drafts]');
+    if (draftsPanel) {
+      setupDrafts(draftsPanel);
+    }
   });
   document.addEventListener('click', handleCopyLinkClick);
 
@@ -12,6 +18,8 @@
     const collapsed = card.querySelector('[data-request-collapsed]');
     const showButton = collapsed?.querySelector('[data-request-action="show-form"]');
     const cancelButton = form?.querySelector('[data-request-action="cancel-form"]');
+    const saveDraftButton = form?.querySelector('[data-request-action="save-draft"]');
+    const resetDraftButton = form?.querySelector('[data-request-action="reset-draft"]');
     const readonly = card.dataset.readonly === 'true';
 
     if (collapsed) {
@@ -43,6 +51,7 @@
       const description = (form.querySelector('textarea[name="description"]')?.value || '').trim();
       const contactValue = (form.querySelector('input[name="contact_email"]')?.value || '').trim();
       const contact_email = contactValue || null;
+      const draftId = getDraftId(form);
 
       if (!description) {
         showStatus(card, 'Description is required.', 'error');
@@ -51,25 +60,31 @@
 
       const submitButton = form.querySelector('button[type="submit"]');
       submitButton?.setAttribute('disabled', 'true');
-      showStatus(card, 'Posting request…', 'info');
+      showStatus(card, draftId ? 'Publishing draft…' : 'Posting request…', 'info');
 
       try {
-        const response = await fetch(API_BASE, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Accept: 'application/json',
-          },
-          credentials: 'same-origin',
-          cache: 'no-store',
-          body: JSON.stringify({ description, contact_email }),
-        });
+        if (draftId) {
+          await publishDraftRequest({ draftId, description, contact_email, card, reload: true });
+        } else {
+          const response = await fetch(API_BASE, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            credentials: 'same-origin',
+            cache: 'no-store',
+            body: JSON.stringify({ description, contact_email }),
+          });
 
-        if (!response.ok) {
-          throw new Error(`Request creation failed with status ${response.status}`);
+          if (!response.ok) {
+            throw new Error(`Request creation failed with status ${response.status}`);
+          }
         }
 
         await refreshVisibleLists();
+        await refreshDrafts();
+        clearDraftForm(form);
         window.location.reload();
         return;
       } catch (error) {
@@ -78,6 +93,56 @@
       } finally {
         submitButton?.removeAttribute('disabled');
       }
+    });
+
+    saveDraftButton?.addEventListener('click', async (event) => {
+      event.preventDefault();
+      const description = (form.querySelector('textarea[name="description"]')?.value || '').trim();
+      const contactValue = (form.querySelector('input[name="contact_email"]')?.value || '').trim();
+      if (!description) {
+        showStatus(card, 'Add some details before saving the draft.', 'error');
+        return;
+      }
+      const draftId = getDraftId(form);
+      toggleDraftButtons(form, true);
+      showStatus(card, draftId ? 'Updating draft…' : 'Saving draft…', 'info');
+      try {
+        const response = await fetch(DRAFTS_API, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          credentials: 'same-origin',
+          cache: 'no-store',
+          body: JSON.stringify({
+            id: draftId ? Number(draftId) : null,
+            description,
+            contact_email: contactValue || null,
+          }),
+        });
+        if (!response.ok) {
+          throw new Error(`Draft save failed with status ${response.status}`);
+        }
+        const draft = await safeParseJson(response);
+        if (draft?.id) {
+          setDraftId(form, draft.id);
+          showDraftIndicator(form, draft.id);
+        }
+        showStatus(card, 'Draft saved.', 'success');
+        await refreshDrafts();
+      } catch (error) {
+        console.error(error);
+        showStatus(card, 'Unable to save the draft. Please try again.', 'error');
+      } finally {
+        toggleDraftButtons(form, false);
+      }
+    });
+
+    resetDraftButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      clearDraftForm(form);
+      showStatus(card, 'Draft cleared.', 'info');
     });
   }
 
@@ -149,6 +214,30 @@
     }
   }
 
+  async function refreshDrafts() {
+    const panel = document.querySelector('[data-request-drafts]');
+    if (!panel) {
+      return;
+    }
+    try {
+      const response = await fetch(DRAFTS_API, {
+        headers: { Accept: 'application/json' },
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to refresh drafts.');
+      }
+      const drafts = await safeParseJson(response);
+      if (Array.isArray(drafts)) {
+        updateDraftCache(drafts);
+        renderDrafts(panel, drafts);
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   function renderRequests(list, requests) {
     if (!requests.length) {
       list.innerHTML = '<div class="card"><p class="muted">No requests yet. Be the first to share a need.</p></div>';
@@ -181,10 +270,16 @@
       : `<span class="meta-chip meta-chip--requester"><span class="meta-chip__label">Requester</span><span class="meta-chip__value">${escapeHtml(
           requesterValue,
         )}</span></span>`;
-    const statusDisplay = item.status === 'completed' ? 'Archived' : 'Active';
+    const statusDisplay = item.status === 'completed'
+      ? 'Archived'
+      : item.status === 'draft'
+        ? 'Draft'
+        : 'Active';
     const statusChipClass = item.status === 'completed'
       ? 'meta-chip meta-chip--status meta-chip--muted'
-      : 'meta-chip meta-chip--status meta-chip--success';
+      : item.status === 'draft'
+        ? 'meta-chip meta-chip--status meta-chip--muted'
+        : 'meta-chip meta-chip--status meta-chip--success';
     const statusChip = `<span class="${statusChipClass}" aria-label="Status"><span class="meta-chip__value">${statusDisplay}</span></span>`;
 
     const timestampChip = `<a class="meta-chip meta-chip--timestamp" href="${escapeHtml(requestUrl)}" title="View request details"><span class="meta-chip__label">Updated</span><time class="meta-chip__value" datetime="${escapeHtml(
@@ -255,6 +350,266 @@
     const card = document.querySelector('[data-request-card][data-readonly="false"]');
     if (card) {
       showStatus(card, message, 'error');
+    }
+  }
+
+  function showDraftIndicator(form, draftId) {
+    const indicator = form.querySelector('[data-request-draft-indicator]');
+    const label = form.querySelector('[data-request-draft-label]');
+    if (!indicator || !label) {
+      return;
+    }
+    indicator.hidden = false;
+    label.textContent = `#${draftId}`;
+  }
+
+  function hideDraftIndicator(form) {
+    const indicator = form.querySelector('[data-request-draft-indicator]');
+    const label = form.querySelector('[data-request-draft-label]');
+    if (!indicator || !label) {
+      return;
+    }
+    indicator.hidden = true;
+    label.textContent = '';
+  }
+
+  function setDraftId(form, draftId) {
+    const input = form.querySelector('[data-request-draft-id]');
+    if (input) {
+      input.value = draftId ? String(draftId) : '';
+    }
+  }
+
+  function getDraftId(form) {
+    const input = form.querySelector('[data-request-draft-id]');
+    if (!input || !input.value) {
+      return null;
+    }
+    return input.value;
+  }
+
+  function clearDraftForm(form) {
+    if (!form) {
+      return;
+    }
+    const descriptionField = form.querySelector('textarea[name="description"]');
+    if (descriptionField) {
+      descriptionField.value = '';
+    }
+    const contactField = form.querySelector('input[name="contact_email"]');
+    if (contactField) {
+      contactField.value = contactField.defaultValue ?? '';
+    }
+    setDraftId(form, null);
+    hideDraftIndicator(form);
+  }
+
+  function toggleDraftButtons(form, disabled) {
+    const draftButtons = form.querySelectorAll('[data-request-action="save-draft"], [data-request-action="reset-draft"]');
+    draftButtons.forEach((button) => {
+      if (disabled) {
+        button.setAttribute('disabled', 'true');
+      } else {
+        button.removeAttribute('disabled');
+      }
+    });
+  }
+
+  function setupDrafts(panel) {
+    bootstrapDraftCache(panel);
+    panel.addEventListener('click', async (event) => {
+      const trigger = event.target instanceof Element ? event.target.closest('[data-draft-action]') : null;
+      if (!trigger) {
+        return;
+      }
+      event.preventDefault();
+      const draftId = Number(trigger.getAttribute('data-draft-id'));
+      if (!draftId) {
+        return;
+      }
+      const action = trigger.getAttribute('data-draft-action');
+      if (action === 'edit') {
+        applyDraftToForm(draftId, trigger);
+        return;
+      }
+      if (action === 'publish') {
+        await publishDraftRequest({ draftId, sourceButton: trigger });
+        return;
+      }
+      if (action === 'delete') {
+        await deleteDraft(draftId, trigger);
+      }
+    });
+  }
+
+  function bootstrapDraftCache(panel) {
+    const nextCache = new Map();
+    panel.querySelectorAll('[data-request-draft]').forEach((element) => {
+      const draftId = Number(element.getAttribute('data-draft-id'));
+      if (!draftId) {
+        return;
+      }
+      nextCache.set(draftId, {
+        id: draftId,
+        description: element.getAttribute('data-draft-description') || '',
+        contact_email: element.getAttribute('data-draft-contact') || '',
+        updated_at: element.querySelector('time')?.getAttribute('datetime') || null,
+      });
+    });
+    draftCache = nextCache;
+  }
+
+  function updateDraftCache(drafts) {
+    draftCache = new Map();
+    drafts.forEach((draft) => {
+      if (!draft || typeof draft.id !== 'number') {
+        return;
+      }
+      draftCache.set(draft.id, draft);
+    });
+  }
+
+  function renderDrafts(panel, drafts) {
+    const list = panel.querySelector('[data-request-draft-list]');
+    const empty = panel.querySelector('[data-request-draft-empty]');
+    const countLabel = panel.querySelector('[data-request-draft-count]');
+    if (!list || !empty) {
+      return;
+    }
+    const hasDrafts = drafts.length > 0;
+    panel.hidden = !hasDrafts;
+    empty.hidden = hasDrafts;
+    if (countLabel) {
+      countLabel.textContent = `${drafts.length} in progress`;
+    }
+    if (!hasDrafts) {
+      list.innerHTML = '';
+      return;
+    }
+    const items = drafts.map(renderDraftCard).join('');
+    list.innerHTML = items;
+  }
+
+  function renderDraftCard(draft) {
+    const description = draft.description || '';
+    const contact = draft.contact_email || '';
+    const updatedAt = draft.updated_at ? formatDate(draft.updated_at) : '';
+    const safeSummary = description ? escapeHtml(description) : 'No additional details yet.';
+    const contactLine = contact ? `<span class="muted">Contact: ${escapeHtml(contact)}</span>` : '';
+    return `<article class="request-draft" data-request-draft data-draft-id="${escapeHtml(String(draft.id))}" data-draft-description="${escapeHtml(description)}" data-draft-contact="${escapeHtml(contact)}">\n      <header class="request-draft__meta">\n        <span class="meta-chip meta-chip--status meta-chip--muted"><span class="meta-chip__label">Status</span><span class="meta-chip__value">Draft</span></span>\n        <time class="meta-chip meta-chip--timestamp" datetime="${escapeHtml(draft.updated_at || '')}">\n          <span class="meta-chip__label">Updated</span>\n          <span class="meta-chip__value">${escapeHtml(updatedAt)}</span>\n        </time>\n      </header>\n      <p class="request-draft__summary">${safeSummary}</p>\n      <div class="actions">\n        ${contactLine}\n        <div>\n          <button type="button" class="button button--ghost" data-draft-action="edit" data-draft-id="${escapeHtml(String(draft.id))}">Edit</button>\n          <button type="button" class="button" data-draft-action="publish" data-draft-id="${escapeHtml(String(draft.id))}">Publish</button>\n          <button type="button" class="button button--ghost" data-draft-action="delete" data-draft-id="${escapeHtml(String(draft.id))}">Delete</button>\n        </div>\n      </div>\n    </article>`;
+  }
+
+  function applyDraftToForm(draftId, sourceElement) {
+    const form = document.querySelector('[data-request-form]');
+    const card = document.querySelector('[data-request-card]');
+    if (!form || !card) {
+      return;
+    }
+    const draft = resolveDraftData(draftId, sourceElement);
+    if (!draft) {
+      showStatus(card, 'Unable to load that draft.', 'error');
+      return;
+    }
+    const descriptionField = form.querySelector('textarea[name="description"]');
+    const contactField = form.querySelector('input[name="contact_email"]');
+    if (descriptionField) {
+      descriptionField.value = draft.description || '';
+    }
+    if (contactField && draft.contact_email !== undefined) {
+      contactField.value = draft.contact_email || '';
+    }
+    setDraftId(form, draftId);
+    showDraftIndicator(form, draftId);
+    hideStatus(card);
+    showForm(card);
+  }
+
+  function resolveDraftData(draftId, sourceElement) {
+    if (draftCache.has(draftId)) {
+      return draftCache.get(draftId);
+    }
+    const element = sourceElement?.closest('[data-request-draft]');
+    if (!element) {
+      return null;
+    }
+    return {
+      id: draftId,
+      description: element.getAttribute('data-draft-description') || '',
+      contact_email: element.getAttribute('data-draft-contact') || '',
+      updated_at: element.querySelector('time')?.getAttribute('datetime') || null,
+    };
+  }
+
+  async function publishDraftRequest({ draftId, description, contact_email, card, sourceButton, reload = false }) {
+    const target = sourceButton || card?.querySelector('button[type="submit"]');
+    target?.setAttribute('disabled', 'true');
+    try {
+      const response = await fetch(`${API_BASE}/${draftId}/publish`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        credentials: 'same-origin',
+        cache: 'no-store',
+        body: JSON.stringify({
+          description: description ?? null,
+          contact_email: contact_email ?? null,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Publish failed with status ${response.status}`);
+      }
+      await refreshDrafts();
+      await refreshVisibleLists();
+      const form = document.querySelector('[data-request-form]');
+      if (form && getDraftId(form) === String(draftId)) {
+        clearDraftForm(form);
+      }
+      if (reload) {
+        window.location.reload();
+      } else {
+        const cardRef = document.querySelector('[data-request-card]');
+        if (cardRef) {
+          showStatus(cardRef, 'Draft published.', 'success');
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      if (card) {
+        showStatus(card, 'Unable to publish the draft.', 'error');
+      } else {
+        showGlobalMessage('Unable to publish the draft.');
+      }
+    } finally {
+      target?.removeAttribute('disabled');
+    }
+  }
+
+  async function deleteDraft(draftId, trigger) {
+    trigger?.setAttribute('disabled', 'true');
+    try {
+      const response = await fetch(`${API_BASE}/${draftId}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+        },
+        credentials: 'same-origin',
+        cache: 'no-store',
+      });
+      if (!response.ok && response.status !== 204) {
+        throw new Error(`Delete failed with status ${response.status}`);
+      }
+      await refreshDrafts();
+      const form = document.querySelector('[data-request-form]');
+      if (form && getDraftId(form) === String(draftId)) {
+        clearDraftForm(form);
+      }
+    } catch (error) {
+      console.error(error);
+      showGlobalMessage('Unable to delete the draft.');
+    } finally {
+      trigger?.removeAttribute('disabled');
     }
   }
 

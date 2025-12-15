@@ -41,7 +41,12 @@ class HelpRequest(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: Optional[str] = Field(default=None, max_length=200)
     description: str = Field(default="", max_length=4000)
-    status: str = Field(default="open", index=True, nullable=False)
+    status: str = Field(
+        default="open",
+        index=True,
+        nullable=False,
+        description="Valid statuses: draft, pending, open, completed.",
+    )
     contact_email: Optional[str] = Field(default=None, max_length=255)
     created_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -49,6 +54,11 @@ class HelpRequest(SQLModel, table=True):
     completed_at: Optional[datetime] = Field(default=None)
     sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
+
+HELP_REQUEST_STATUS_DRAFT = "draft"
+HELP_REQUEST_STATUS_PENDING = "pending"
+HELP_REQUEST_STATUS_OPEN = "open"
+HELP_REQUEST_STATUS_COMPLETED = "completed"
 
 
 class RequestComment(SQLModel, table=True):

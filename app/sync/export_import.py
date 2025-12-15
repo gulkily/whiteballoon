@@ -11,6 +11,7 @@ from sqlmodel import Session, select
 
 from app.config import get_settings
 from app.models import (
+    HELP_REQUEST_STATUS_DRAFT,
     HelpRequest,
     InvitePersonalization,
     InviteToken,
@@ -65,7 +66,11 @@ def export_sync_data(session: Session, output_dir: Path) -> list[Path]:
         exported.append(path)
 
     # Requests + comments
-    requests = session.exec(select(HelpRequest).where(HelpRequest.sync_scope == "public")).all()
+    requests = session.exec(
+        select(HelpRequest)
+        .where(HelpRequest.sync_scope == "public")
+        .where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
+    ).all()
     request_ids = [req.id for req in requests]
     comments_map: dict[int, list[dict[str, object]]] = {req_id: [] for req_id in request_ids}
     if request_ids:
