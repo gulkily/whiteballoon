@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -9,6 +10,8 @@ from urllib.parse import urlencode
 from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.routes.ui.helpers import describe_session_role, templates
 from app.services import peer_auth_ledger, peer_auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["peer-auth"])
 
@@ -115,6 +118,12 @@ def peer_auth_approve(
         decision=decision.decision,
         note=decision.note,
     )
+    logger.info(
+        "Peer auth %s request %s by reviewer %s",
+        decision.decision,
+        decision.auth_request_id,
+        viewer.id,
+    )
 
     return _redirect_to_inbox(
         request,
@@ -156,6 +165,12 @@ def peer_auth_deny(
         reviewer_user_id=decision.reviewer_user_id,
         decision=decision.decision,
         note=decision.note,
+    )
+    logger.info(
+        "Peer auth %s request %s by reviewer %s",
+        decision.decision,
+        decision.auth_request_id,
+        viewer.id,
     )
 
     return _redirect_to_inbox(

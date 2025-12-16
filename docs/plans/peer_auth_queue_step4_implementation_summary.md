@@ -27,3 +27,7 @@
 - Added the `/admin/peer-auth/ledger` page (plus Menu/Admin panel links) with download buttons for the SQLite database and checksum text.
 - Introduced `GET /admin/peer-auth/ledger/db` and `/checksum` endpoints guarded by `_require_admin`, streaming the ledger file via `FileResponse` and emitting the latest SHA-256 hash via `PlainTextResponse` respectively.
 - Verification: Imported the updated admin routes, visited the new page locally (seeing download links + latest checksum placeholder), and confirmed the download/checksum endpoints respond with data when a ledger entry exists.
+
+## Stage 6 – QA + instrumentation
+- Added lightweight logging in the peer-auth inbox routes so every approve/deny action records a structured INFO log (`Peer auth {decision} request {id} by reviewer {user}`) for observability.
+- Manual QA: seeded a pending half-auth session via the existing login flow, approved/denied it through `/peer-auth`, confirmed the status banners update, ensured the requester’s session toggled to fully authenticated/expired respectively, verified ledger rows append (via SQLite inspection + checksum page), and downloaded the ledger file to confirm integrity.
