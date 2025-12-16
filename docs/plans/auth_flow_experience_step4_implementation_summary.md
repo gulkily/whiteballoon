@@ -10,4 +10,4 @@
 
 ## Stage 3 – Half-auth notification for logged-in user
 - Changes: Extended `partials/account_nav.html` with a persistent half-auth notice (linking back to `/login/pending` for code access) plus semantic data attributes, styled the alert via `static/skins/base/10-navigation.css`, and introduced `static/js/session-status.js` which polls `/login/status` to auto-dismiss the notice (or swap CTAs/messages) once the session is approved or expires.
-- Verification: Loaded pending dashboards to confirm the notice appears with the new styling/action, then simulated status transitions via the `/login/status` endpoint to ensure the notice rewords itself on denial/expiry and disappears automatically after approval.
+- Verification: Pending manual UI pass — plan is to load a half-auth session, confirm the notice renders with the new CTA, then flip the auth request (approve/deny/expire) to ensure the script hides or rewrites the alert accordingly.
