@@ -313,34 +313,6 @@
   padding: 0.35rem 0.8rem;
 }
 
-.account-nav__notice {
-  margin-top: 0.75rem;
-  padding: 0.75rem 0.9rem;
-  border-radius: 0.75rem;
-  background: var(--skin-account-half-bg);
-  color: var(--skin-account-half-text);
-  border: 1px solid rgba(217, 119, 6, 0.25);
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.account-nav__notice-text {
-  flex: 1 1 12rem;
-  font-weight: 600;
-}
-
-.account-nav__notice-actions {
-  display: inline-flex;
-  gap: 0.35rem;
-}
-
-.account-nav__notice-actions .button {
-  color: inherit;
-  border-color: transparent;
-}
-
 .theme-toggle-wrapper {
   margin-left: 0.75rem;
 }

@@ -91,10 +91,10 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    const notice = document.querySelector('[data-session-status-notice]');
-    if (!notice || typeof window.fetch !== 'function') {
+    if (typeof window.fetch !== 'function') {
       return;
     }
-    initNotice(notice);
+    const notices = document.querySelectorAll('[data-session-status-notice]');
+    notices.forEach((notice) => initNotice(notice));
   });
 })();
