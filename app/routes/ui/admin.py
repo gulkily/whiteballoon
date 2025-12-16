@@ -171,6 +171,8 @@ def admin_peer_auth_ledger(
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
+    if not get_settings().feature_peer_auth_queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
     context = {
         "request": request,
         "user": session_user.user,
@@ -188,6 +190,8 @@ def download_peer_auth_ledger(
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
+    if not get_settings().feature_peer_auth_queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
     ledger_path = peer_auth_ledger.LEDGER_PATH
     if not ledger_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found")
@@ -203,6 +207,8 @@ def peer_auth_ledger_checksum(
     session_user: SessionUser = Depends(require_session_user),
 ):
     _require_admin(session_user)
+    if not get_settings().feature_peer_auth_queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
     checksum = peer_auth_ledger.latest_checksum()
     text = checksum or "No entries recorded yet."
     return PlainTextResponse(text)

@@ -16,3 +16,8 @@
 - Verification: Toggled `WB_FEATURE_SELF_AUTH` locally; confirmed the form disappears + POST returns 403 when off, and that self-auth completes successfully when on.
 
 (Stage 4 pending.)
+
+## Stage 4 – Messaging + telemetry
+- Added guard rails + INFO logs whenever reviewers hit the peer queue or self-auth endpoints while flags are disabled, improving observability of blocked attempts.
+- Hardened `/admin/peer-auth/ledger` (and download/checksum endpoints) to require the peer flag, ensuring direct URL hits respect configuration.
+- Verification: Toggled both flags off and confirmed logs emit the expected messages, ledger endpoints return 404, and `/login/verify` records the blocked attempt.

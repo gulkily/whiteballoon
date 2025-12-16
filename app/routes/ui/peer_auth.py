@@ -23,6 +23,10 @@ def _ensure_reviewer(
 ) -> SessionUser:
     viewer = session_user.user
     if not get_settings().feature_peer_auth_queue:
+        logger.info(
+            "Peer auth queue blocked for user %s because feature flag is disabled",
+            viewer.id,
+        )
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer authentication queue disabled")
 
     if not viewer.is_admin and not session_user.session.is_fully_authenticated:

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
+import logging
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from sqlmodel import select
@@ -12,6 +13,8 @@ from app.models import InviteToken, User, UserSession
 from app.routes.ui.helpers import templates
 from app.modules.requests import services as request_services
 from app.services import auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ui"])
 
@@ -71,6 +74,10 @@ def verify_login(
 ) -> Response:
     settings = get_settings()
     if not settings.feature_self_auth:
+        logger.info(
+            "Self-auth verify attempt blocked for user %s",
+            username,
+        )
         context = {
             "request": request,
             "username": username,
