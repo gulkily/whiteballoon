@@ -13,3 +13,9 @@
 - Built `templates/peer_auth/index.html` with a slim card-based list showing pending session metadata plus the 6-digit code (Review buttons disabled until Stage 3). Scoped fresh styles in `static/skins/base/45-peer-auth.css` and wired it into the bundle for consistent visuals.
 - Surfaced a conditional “Peer authentication” section in the Menu page when `peer_auth_service.user_is_peer_auth_reviewer` returns true so authorized users can discover the queue without bookmarking direct URLs.
 - Verification: Imported the new route module via `python - <<'PY'` to ensure FastAPI wiring succeeds; further UI smoke tests will occur once sample data exists in later stages.
+
+## Stage 3 – Detail drawer + approve/deny form
+- Expanded `peer_auth_service.py` with `PeerAuthDecision` dataclass plus helper functions that promote or deny auth requests (mirroring existing CLI logic) while returning structured decision payloads for future ledger writes.
+- Upgraded the inbox route to show success/error alerts, added POST endpoints for approve/deny actions, and redirected back to `/peer-auth` with friendly messages when reviewers submit attestation notes.
+- Enhanced `templates/peer_auth/index.html` to include expandable “Review session” panels per request featuring note fields and approve/deny forms, with new scoped styles in `static/skins/base/45-peer-auth.css` for alerts, accordions, and form blocks.
+- Verification: Imported the updated router to confirm FastAPI wiring still succeeds; exercised the new forms manually against seeded data to ensure pending entries disappear after approval/denial and alerts reflect the outcome.

@@ -14,7 +14,7 @@ from app.models import (
     UserSession,
 )
 
-from . import user_attribute_service
+from . import auth_service, user_attribute_service
 
 
 PEER_AUTH_REVIEWER_ATTRIBUTE_KEY = "peer_auth_reviewer"
@@ -38,6 +38,16 @@ class PeerAuthSessionSummary:
     device_info: Optional[str]
     status: AuthRequestStatus
     is_session_fully_authenticated: bool
+
+
+@dataclass(slots=True)
+class PeerAuthDecision:
+    auth_request_id: str
+    session_id: str
+    requester_user_id: int
+    reviewer_user_id: int
+    decision: str
+    note: str
 
 
 def _normalize_page_limit(limit: Optional[int]) -> int:
@@ -122,6 +132,77 @@ def get_peer_auth_session(
         return None
     auth_request, session_record, user = row
     return _row_to_summary(auth_request, session_record, user)
+
+
+def _normalize_note(note: Optional[str]) -> str:
+    return note.strip() if note else ""
+
+
+def approve_peer_auth_request(
+    session: Session,
+    *,
+    auth_request_id: str,
+    reviewer: User,
+    note: Optional[str] = None,
+) -> PeerAuthDecision:
+    summary = get_peer_auth_session(session, auth_request_id=auth_request_id)
+    if not summary:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Auth request not found")
+    if summary.status != AuthRequestStatus.pending:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Request already processed")
+
+    auth_request = session.get(AuthenticationRequest, auth_request_id)
+    if not auth_request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Auth request missing")
+
+    auth_service.approve_auth_request(session, auth_request=auth_request, approver=reviewer)
+
+    return PeerAuthDecision(
+        auth_request_id=summary.auth_request_id,
+        session_id=summary.session_id,
+        requester_user_id=summary.user_id,
+        reviewer_user_id=reviewer.id,
+        decision="approved",
+        note=_normalize_note(note),
+    )
+
+
+def deny_peer_auth_request(
+    session: Session,
+    *,
+    auth_request_id: str,
+    reviewer: User,
+    note: Optional[str] = None,
+) -> PeerAuthDecision:
+    auth_request = session.get(AuthenticationRequest, auth_request_id)
+    if not auth_request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Auth request not found")
+    if auth_request.status != AuthRequestStatus.pending:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Request already processed")
+
+    summary = get_peer_auth_session(session, auth_request_id=auth_request_id)
+    if not summary:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session missing")
+
+    auth_request.status = AuthRequestStatus.denied
+    session.add(auth_request)
+
+    orphaned_sessions = session.exec(
+        select(UserSession).where(UserSession.auth_request_id == auth_request.id)
+    ).all()
+    for record in orphaned_sessions:
+        session.delete(record)
+
+    session.commit()
+
+    return PeerAuthDecision(
+        auth_request_id=summary.auth_request_id,
+        session_id=summary.session_id,
+        requester_user_id=summary.user_id,
+        reviewer_user_id=reviewer.id,
+        decision="denied",
+        note=_normalize_note(note),
+    )
 
 
 def user_is_peer_auth_reviewer(session: Session, *, user: User) -> bool:

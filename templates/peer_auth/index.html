@@ -15,6 +15,11 @@
   </header>
 
   <div class="card stack" data-section="peer-auth">
+    {% if peer_auth_status_message %}
+      <div class="peer-auth-alert peer-auth-alert--success">{{ peer_auth_status_message }}</div>
+    {% elif peer_auth_error_message %}
+      <div class="peer-auth-alert peer-auth-alert--error">{{ peer_auth_error_message }}</div>
+    {% endif %}
     <div class="peer-auth-meta">
       <p class="muted small-text">Awaiting review</p>
       <p class="peer-auth-meta__value">{{ peer_auth_pending_count }}</p>
@@ -48,9 +53,39 @@
                 <dd>{{ record.ip_address or 'Unknown' }} · {{ record.device_info or 'Unknown' }}</dd>
               </div>
             </dl>
-            <div class="peer-auth-card__actions">
-              <button class="button button--secondary" type="button" disabled title="Coming soon">Review</button>
-            </div>
+            <details class="peer-auth-card__details">
+              <summary>Review session</summary>
+              <div class="peer-auth-card__review stack">
+                <form method="post" action="/peer-auth/{{ record.auth_request_id }}/approve" class="peer-auth-form">
+                  <label class="stack" for="peer-auth-note-approve-{{ loop.index }}">
+                    <span>Attestation note (optional)</span>
+                    <textarea
+                      id="peer-auth-note-approve-{{ loop.index }}"
+                      name="attestation_note"
+                      rows="3"
+                      placeholder="Confirmed code via call at 4:32pm"
+                    ></textarea>
+                  </label>
+                  <div class="peer-auth-form__actions">
+                    <button class="button" type="submit">Approve</button>
+                  </div>
+                </form>
+                <form method="post" action="/peer-auth/{{ record.auth_request_id }}/deny" class="peer-auth-form peer-auth-form--danger">
+                  <label class="stack" for="peer-auth-note-deny-{{ loop.index }}">
+                    <span>Denial note (optional)</span>
+                    <textarea
+                      id="peer-auth-note-deny-{{ loop.index }}"
+                      name="attestation_note"
+                      rows="2"
+                      placeholder="Could not confirm code via requested channel"
+                    ></textarea>
+                  </label>
+                  <div class="peer-auth-form__actions">
+                    <button class="button button--secondary" type="submit">Deny</button>
+                  </div>
+                </form>
+              </div>
+            </details>
           </li>
         {% endfor %}
       </ol>

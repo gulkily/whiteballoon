@@ -90,3 +90,63 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.peer-auth-alert {
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+}
+
+.peer-auth-alert--success {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.4);
+}
+
+.peer-auth-alert--error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.peer-auth-card__details {
+  border-top: 1px solid var(--color-border-muted);
+  padding-top: 0.75rem;
+}
+
+.peer-auth-card__details summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.peer-auth-card__details[open] summary {
+  color: var(--color-accent);
+}
+
+.peer-auth-card__review {
+  margin-top: 0.75rem;
+}
+
+.peer-auth-form {
+  display: grid;
+  gap: 0.5rem;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .peer-auth-form {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.peer-auth-form textarea {
+  width: 100%;
+}
+
+.peer-auth-form__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.peer-auth-form--danger {
+  border-color: rgba(239, 68, 68, 0.4);
+}
