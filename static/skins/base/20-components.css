@@ -1108,3 +1108,22 @@ textarea::placeholder {
 .control-panel__card h2 {
   margin: 0 0 0.35rem;
 }
+
+[data-page="admin-ledger"] .ledger-downloads {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+[data-page="admin-ledger"] .ledger-download-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.75);
+  display: grid;
+  gap: 0.35rem;
+}
+
+[data-theme="dark"] [data-page="admin-ledger"] .ledger-download-card {
+  background: rgba(15, 23, 42, 0.75);
+}

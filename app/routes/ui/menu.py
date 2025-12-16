@@ -138,15 +138,22 @@ def site_menu(
                         admin_only=True,
                         icon="partials/icons/menu_sync_control.svg",
                     ),
-                    _build_link(
-                        title="Comment insights",
-                        description="Browse AI summaries/tags for request comments.",
-                        href="/admin/comment-insights",
-                        admin_only=True,
-                        icon="partials/icons/menu_comment_insights.svg",
-                    ),
-                ],
-            }
+                _build_link(
+                    title="Comment insights",
+                    description="Browse AI summaries/tags for request comments.",
+                    href="/admin/comment-insights",
+                    admin_only=True,
+                    icon="partials/icons/menu_comment_insights.svg",
+                ),
+                _build_link(
+                    title="Peer auth ledger",
+                    description="Download the reviewer approval/denial log.",
+                    href="/admin/peer-auth/ledger",
+                    admin_only=True,
+                    icon="partials/icons/menu_admin_panel.svg",
+                ),
+            ],
+        }
         )
 
     if is_peer_auth_reviewer:

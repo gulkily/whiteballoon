@@ -22,3 +22,8 @@
 - Added `app/services/peer_auth_ledger.py` to manage `storage/peer_auth_ledger.db`, handling schema creation, WAL-safe writes, checksum generation, and iteration helpers for future exports.
 - Wired the approve/deny endpoints to call the ledger append function after each decision so every action persists reviewer IDs, notes, timestamps, and checksums immediately.
 - Verification: Wrote/cleared sample entries using the ledger service APIs to confirm rows append, checksum values compute, and the file is created within `storage/`; confirmed the CLI listing still runs afterward.
+
+## Stage 5 – Ledger download + checksum surface
+- Added the `/admin/peer-auth/ledger` page (plus Menu/Admin panel links) with download buttons for the SQLite database and checksum text.
+- Introduced `GET /admin/peer-auth/ledger/db` and `/checksum` endpoints guarded by `_require_admin`, streaming the ledger file via `FileResponse` and emitting the latest SHA-256 hash via `PlainTextResponse` respectively.
+- Verification: Imported the updated admin routes, visited the new page locally (seeing download links + latest checksum placeholder), and confirmed the download/checksum endpoints respond with data when a ledger entry exists.
