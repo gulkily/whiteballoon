@@ -10,4 +10,9 @@
 - Updated `menu`/admin panels so peer-auth links only render when the peer flag is true, preventing dead links.
 - Verification: Toggled `WB_FEATURE_PEER_AUTH_QUEUE` locally, confirmed the queue disappears and `/peer-auth` returns 404; re-enabled and observed normal behavior.
 
-(Stages 3–4 pending.)
+## Stage 3 – Self-auth gating
+- Added `feature_self_auth` context to login pending views and wrapped `/login/verify` so it returns a disabled message when the flag is off.
+- Updated `auth/login_pending.html` to hide the self-verify form (showing guidance to contact a peer) unless the flag is enabled.
+- Verification: Toggled `WB_FEATURE_SELF_AUTH` locally; confirmed the form disappears + POST returns 403 when off, and that self-auth completes successfully when on.
+
+(Stage 4 pending.)
