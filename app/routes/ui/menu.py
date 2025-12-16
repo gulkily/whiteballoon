@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Request
 from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.captions import build_caption_payload, load_preferences as load_caption_preferences
 from app.routes.ui.helpers import describe_session_role, templates
+from app.services import peer_auth_service
 
 router = APIRouter(tags=["ui"])
 
@@ -40,6 +41,7 @@ def site_menu(
     session = session_user.session
     is_full_session = session.is_fully_authenticated
     is_admin = user.is_admin
+    is_peer_auth_reviewer = peer_auth_service.user_is_peer_auth_reviewer(db, user=user)
 
     sections = [
         {
@@ -142,6 +144,23 @@ def site_menu(
                         href="/admin/comment-insights",
                         admin_only=True,
                         icon="partials/icons/menu_comment_insights.svg",
+                    ),
+                ],
+            }
+        )
+
+    if is_peer_auth_reviewer:
+        sections.append(
+            {
+                "title": "Peer authentication",
+                "description": "Review half-authenticated sessions waiting for confirmation.",
+                "links": [
+                    _build_link(
+                        title="Review queue",
+                        description="Inspect pending sessions, confirm 6-digit codes, and log approvals.",
+                        href="/peer-auth",
+                        requires_full=True,
+                        icon="partials/icons/menu_admin_panel.svg",
                     ),
                 ],
             }

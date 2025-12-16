@@ -1,0 +1,92 @@
+[data-page="peer-auth"] .peer-auth-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  background: rgba(124, 58, 237, 0.05);
+}
+
+[data-theme="dark"] [data-page="peer-auth"] .peer-auth-meta {
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.peer-auth-meta__value {
+  font-size: clamp(2.25rem, 2rem + 1vw, 3rem);
+  font-weight: 600;
+  margin: 0;
+}
+
+.peer-auth-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.peer-auth-card {
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  background: rgba(255, 255, 255, 0.7);
+  display: grid;
+  gap: 0.75rem;
+}
+
+[data-theme="dark"] .peer-auth-card {
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.peer-auth-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.peer-auth-card__identity {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.peer-auth-card__username {
+  margin: 0;
+  font-weight: 600;
+}
+
+.peer-auth-card__facts {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  margin: 0;
+}
+
+.peer-auth-card__facts dt {
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  margin-bottom: 0.15rem;
+}
+
+.peer-auth-card__facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.peer-auth-card__code {
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  letter-spacing: 0.2em;
+}
+
+.peer-auth-card__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.peer-auth-card__actions .button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
