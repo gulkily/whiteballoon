@@ -3,6 +3,7 @@
 {% set avatar_url = session_avatar_url if session_avatar_url is defined else None %}
 {% set show_admin = user.is_admin %}
 {% set show_half_auth = session and (not session.is_fully_authenticated) %}
+{% set show_nav_status_tags = show_nav_status_tags if show_nav_status_tags is defined else (feature_nav_status_tags | default(True)) %}
 {% set primary_links = [
   {"label": "Requests", "href": "/requests/channels", "icon": "partials/icons/nav_requests.svg"},
   {"label": "Comments", "href": "/browse?tab=comments", "icon": "partials/icons/nav_comments.svg"},
@@ -24,11 +25,11 @@
         <a class="account-status__tag account-status__tag--role account-status__tag--link" href="/admin" data-session-role>
           Admin
         </a>
-      {% else %}
+      {% elif show_nav_status_tags %}
         <span class="account-status__tag account-status__tag--role" data-session-role>{{ session_role.label }}</span>
       {% endif %}
     {% endif %}
-    {% if show_half_auth %}
+    {% if show_half_auth and show_nav_status_tags %}
       <span class="account-status__tag account-status__tag--half" title="Complete verification to unlock full access">Half-auth</span>
     {% endif %}
     <div class="account-nav__peer-alert" data-peer-auth-notice hidden>
