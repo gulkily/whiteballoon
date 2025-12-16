@@ -7,11 +7,12 @@
 {% endblock %}
 
 {% block content %}
+{% import "partials/caption.html" as captions %}
 <section class="section stack" data-page="site-menu">
   <header class="stack">
     <p class="muted small-text">Quick access</p>
     <h1>All destinations</h1>
-    <p class="muted">Jump anywhere in WhiteBalloon without crowding the main navigation.</p>
+    {{ captions.render(menu_caption) }}
   </header>
 
   {% for section in menu_sections %}

@@ -7,6 +7,7 @@
 {% endblock %}
 
 {% block content %}
+{% import "partials/caption.html" as captions %}
 {% set draft_requests = draft_requests if draft_requests is defined else [] %}
 {% set has_drafts = draft_requests|length > 0 %}
 {% set readonly = readonly if readonly is defined else False %}
@@ -36,7 +37,7 @@
         <a class="button button--secondary" href="/invite/new">Send Welcome</a>
         <button type="button" class="button" data-request-action="show-form">Share a request</button>
       </header>
-      <p class="muted">View the latest needs below or add a new one.</p>
+      {{ captions.render(requests_caption) }}
     </div>
 
     <form method="post" action="/requests" class="form-grid" data-request-form hidden>

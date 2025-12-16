@@ -49,6 +49,11 @@ from app.models import (
 )
 from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
+from app.captions import (
+    build_caption_payload,
+    load_preferences as load_caption_preferences,
+)
+from app.captions import load_preferences as load_caption_preferences
 from app.services import (
     auth_service,
     caption_preference_service,
@@ -741,6 +746,7 @@ def _render_requests_page(
     session_role: Optional[dict[str, str]],
 ) -> Response:
     session_avatar_url = _get_account_avatar(db, user.id)
+    caption_prefs = load_caption_preferences(db, user.id)
 
     if not session_record.is_fully_authenticated:
         auth_request = None
@@ -768,6 +774,12 @@ def _render_requests_page(
             "session_role": session_role,
             "session_username": user.username,
             "session_avatar_url": session_avatar_url,
+            "caption_preferences": caption_prefs,
+            "requests_caption": build_caption_payload(
+                caption_prefs,
+                caption_id="requests_hero_intro",
+                text="View the latest needs below or add a new one.",
+            ),
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
@@ -882,6 +894,12 @@ def _render_requests_page(
             "session_role": session_role,
             "session_username": user.username,
             "session_avatar_url": session_avatar_url,
+            "caption_preferences": caption_prefs,
+            "requests_caption": build_caption_payload(
+                caption_prefs,
+                caption_id="requests_hero_intro",
+                text="View the latest needs below or add a new one.",
+            ),
             "filter_options": filter_options,
             "active_filters": {
                 "topics": sorted(topic_filters),
@@ -1598,6 +1616,7 @@ def invite_new(
     db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
 ) -> Response:
+    caption_prefs = load_caption_preferences(db, session_user.user.id)
     context = {
         "request": request,
         "inviter_username": session_user.user.username,
@@ -1605,6 +1624,11 @@ def invite_new(
         "session_role": describe_session_role(session_user.user, session_user.session),
         "session_username": session_user.user.username,
         "session_avatar_url": session_user.avatar_url,
+        "invite_caption": build_caption_payload(
+            caption_prefs,
+            caption_id="invite_intro",
+            text="Make the invite personal so your friend lands with a smile and knows how you plan to support them.",
+        ),
     }
     return templates.TemplateResponse("invite/new.html", context)
 

@@ -5,6 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Request
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
+from app.captions import build_caption_payload, load_preferences as load_caption_preferences
 from app.routes.ui.helpers import describe_session_role, templates
 
 router = APIRouter(tags=["ui"])
@@ -157,6 +158,7 @@ def site_menu(
             )
         section["links"] = filtered_links
 
+    caption_prefs = load_caption_preferences(db, user.id)
     context = {
         "request": request,
         "session": session,
@@ -165,6 +167,11 @@ def site_menu(
         "session_avatar_url": session_user.avatar_url,
         "user": user,
         "menu_sections": sections,
+        "menu_caption": build_caption_payload(
+            caption_prefs,
+            caption_id="menu_intro",
+            text="Jump anywhere in WhiteBalloon without crowding the main navigation.",
+        ),
     }
     return templates.TemplateResponse("menu/index.html", context)
 
