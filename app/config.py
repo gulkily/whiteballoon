@@ -50,6 +50,8 @@ class Settings:
     pinned_requests_limit: int = int(os.getenv("WB_PINNED_REQUESTS_LIMIT", "3"))
     request_channels_enabled: bool = _get_bool(os.getenv("REQUEST_CHANNELS"), False)
     recurring_template_poll_seconds: int = int(os.getenv("RECURRING_TEMPLATE_POLL_SECONDS", "300"))
+    feature_peer_auth_queue: bool = _get_bool(os.getenv("WB_FEATURE_PEER_AUTH_QUEUE"), False)
+    feature_self_auth: bool = _get_bool(os.getenv("WB_FEATURE_SELF_AUTH"), False)
 
 
 @lru_cache(maxsize=1)
