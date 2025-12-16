@@ -82,7 +82,10 @@
     <div class="menu-grid">
       <form class="menu-card" action="/logout" method="post">
         <div class="menu-card__body">
-          <h3>Sign out</h3>
+          <h3>
+            <span class="menu-card__icon">{% include "partials/icons/menu_sign_out.svg" %}</span>
+            Sign out
+          </h3>
           <p class="muted">End your current session and require authentication next time.</p>
         </div>
         <div class="menu-card__meta">
