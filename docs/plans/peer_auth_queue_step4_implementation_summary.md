@@ -6,8 +6,6 @@
 - Created `tools/peer_auth.py` CLI utility so operators can manually inspect the queue and verify the listing helpers before the UI exists; routed the new service through `app/services/__init__.py` for consistency.
 - Verification: Ran `python tools/peer_auth.py list` to confirm the script executes and gracefully reports when no pending sessions exist (ensuring the joins and permission helpers load without errors).
 
-(Stages 2–6 pending.)
-
 ## Stage 2 – Reviewer inbox route + template
 - Added `app/routes/ui/peer_auth.py` and registered it inside `app/routes/ui/__init__.py` so reviewers hit `/peer-auth` with the usual session/nav context while enforcing admin/reviewer permissions.
 - Built `templates/peer_auth/index.html` with a slim card-based list showing pending session metadata plus the 6-digit code (Review buttons disabled until Stage 3). Scoped fresh styles in `static/skins/base/45-peer-auth.css` and wired it into the bundle for consistent visuals.
