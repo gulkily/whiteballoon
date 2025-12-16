@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
+from datetime import datetime
 import logging
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -9,7 +10,7 @@ from sqlmodel import select
 
 from app.config import get_settings
 from app.dependencies import SessionDep, apply_session_cookie, get_current_session
-from app.models import InviteToken, User, UserSession
+from app.models import AuthenticationRequest, AuthRequestStatus, InviteToken, User, UserSession
 from app.routes.ui.helpers import templates
 from app.modules.requests import services as request_services
 from app.services import auth_service
@@ -62,6 +63,69 @@ def login_submit(
     template_response = templates.TemplateResponse("auth/login_pending.html", context)
     apply_session_cookie(template_response, session_record)
     return template_response
+
+
+@router.get("/login/status")
+def login_status(
+    db: SessionDep,
+    session_record: Annotated[Optional[UserSession], Depends(get_current_session)],
+) -> dict[str, Optional[str]]:
+    if not session_record:
+        return {
+            "state": "missing",
+            "message": "Session expired or was revoked. Please log in again.",
+            "tone": "warning",
+            "action_url": "/login",
+            "action_label": "Return to login",
+        }
+
+    if session_record.is_fully_authenticated:
+        return {"state": "authenticated", "redirect_url": "/"}
+
+    auth_request: Optional[AuthenticationRequest] = None
+    if session_record.auth_request_id:
+        auth_request = db.get(AuthenticationRequest, session_record.auth_request_id)
+
+    if not auth_request:
+        return {"state": "pending"}
+
+    if (
+        auth_request.status == AuthRequestStatus.pending
+        and auth_request.expires_at
+        and auth_request.expires_at < datetime.utcnow()
+    ):
+        auth_request.status = AuthRequestStatus.expired
+        db.add(auth_request)
+        db.commit()
+        db.refresh(auth_request)
+
+    state = auth_request.status.value
+    if auth_request.status == AuthRequestStatus.approved and session_record.is_fully_authenticated:
+        return {"state": "authenticated", "redirect_url": "/"}
+
+    message: Optional[str] = None
+    tone: Optional[str] = None
+    action_url: Optional[str] = None
+    action_label: Optional[str] = None
+
+    if auth_request.status == AuthRequestStatus.denied:
+        message = "Login request was denied. Start another login attempt."
+        tone = "error"
+        action_url = "/login"
+        action_label = "Request access again"
+    elif auth_request.status == AuthRequestStatus.expired:
+        message = "Your verification code expired. Request a new login."
+        tone = "warning"
+        action_url = "/login"
+        action_label = "Start over"
+
+    return {
+        "state": state,
+        "message": message,
+        "tone": tone,
+        "action_url": action_url,
+        "action_label": action_label,
+    }
 
 
 @router.post("/login/verify")
