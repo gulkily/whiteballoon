@@ -5,8 +5,7 @@
 {% set show_half_auth = session and (not session.is_fully_authenticated) %}
 {% set show_nav_status_tags = show_nav_status_tags if show_nav_status_tags is defined else (feature_nav_status_tags | default(True)) %}
 {% set primary_links = [
-  {"label": "Requests", "href": "/requests/channels", "icon": "partials/icons/nav_requests.svg"},
-  {"label": "Comments", "href": "/browse?tab=comments", "icon": "partials/icons/nav_comments.svg"},
+  {"label": "Members", "href": "/members", "icon": "partials/icons/nav_members.svg"},
   {"label": "Browse", "href": "/browse", "icon": "partials/icons/nav_browse.svg"},
   {"label": "Menu", "href": "/menu", "icon": "partials/icons/nav_menu.svg"},
 ] %}

@@ -722,6 +722,11 @@ def home(
         response.delete_cookie(auth_service.SESSION_COOKIE_NAME, path="/")
         return response
 
+    if session_record.is_fully_authenticated:
+        settings = config.get_settings()
+        if settings.request_channels_enabled:
+            return RedirectResponse(url="/requests/channels", status_code=status.HTTP_303_SEE_OTHER)
+
     session_role = describe_session_role(user, session_record)
     return _render_requests_page(request, db, user, session_record, session_role)
 
