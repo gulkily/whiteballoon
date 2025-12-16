@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from urllib.parse import urlencode
 
+from app.config import get_settings
 from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.routes.ui.helpers import describe_session_role, templates
 from app.services import peer_auth_ledger, peer_auth_service
@@ -21,6 +22,9 @@ def _ensure_reviewer(
     session_user: SessionUser,
 ) -> SessionUser:
     viewer = session_user.user
+    if not get_settings().feature_peer_auth_queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer authentication queue disabled")
+
     if not viewer.is_admin and not session_user.session.is_fully_authenticated:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Full membership required")
 
@@ -80,6 +84,7 @@ def peer_auth_inbox(
         "peer_auth_pending_count": pending_count,
         "peer_auth_status_message": status_message,
         "peer_auth_error_message": error_message,
+        "feature_peer_auth_queue": get_settings().feature_peer_auth_queue,
     }
     return templates.TemplateResponse("peer_auth/index.html", context)
 

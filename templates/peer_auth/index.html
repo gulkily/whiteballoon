@@ -15,6 +15,9 @@
   </header>
 
   <div class="card stack" data-section="peer-auth">
+    {% if not feature_peer_auth_queue %}
+      <div class="peer-auth-alert peer-auth-alert--error">Peer authentication queue is disabled by admins.</div>
+    {% endif %}
     {% if peer_auth_status_message %}
       <div class="peer-auth-alert peer-auth-alert--success">{{ peer_auth_status_message }}</div>
     {% elif peer_auth_error_message %}

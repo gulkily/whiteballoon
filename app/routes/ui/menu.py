@@ -4,6 +4,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
 
+from app.config import get_settings
 from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.captions import build_caption_payload, load_preferences as load_caption_preferences
 from app.routes.ui.helpers import describe_session_role, templates
@@ -29,6 +30,20 @@ def _build_link(
         "admin_only": admin_only,
         "icon": icon,
     }
+
+
+def _build_peer_ledger_link(settings):
+    if not settings.feature_peer_auth_queue:
+        return []
+    return [
+        _build_link(
+            title="Peer auth ledger",
+            description="Download the reviewer approval/denial log.",
+            href="/admin/peer-auth/ledger",
+            admin_only=True,
+            icon="partials/icons/menu_admin_panel.svg",
+        )
+    ]
 
 
 @router.get("/menu")
@@ -111,6 +126,8 @@ def site_menu(
         },
     ]
 
+    settings = get_settings()
+
     if is_admin:
         sections.append(
             {
@@ -138,25 +155,19 @@ def site_menu(
                         admin_only=True,
                         icon="partials/icons/menu_sync_control.svg",
                     ),
-                _build_link(
-                    title="Comment insights",
-                    description="Browse AI summaries/tags for request comments.",
-                    href="/admin/comment-insights",
-                    admin_only=True,
-                    icon="partials/icons/menu_comment_insights.svg",
-                ),
-                _build_link(
-                    title="Peer auth ledger",
-                    description="Download the reviewer approval/denial log.",
-                    href="/admin/peer-auth/ledger",
-                    admin_only=True,
-                    icon="partials/icons/menu_admin_panel.svg",
-                ),
-            ],
-        }
+                    _build_link(
+                        title="Comment insights",
+                        description="Browse AI summaries/tags for request comments.",
+                        href="/admin/comment-insights",
+                        admin_only=True,
+                        icon="partials/icons/menu_comment_insights.svg",
+                    ),
+                    *_build_peer_ledger_link(settings),
+                ],
+            }
         )
 
-    if is_peer_auth_reviewer:
+    if is_peer_auth_reviewer and settings.feature_peer_auth_queue:
         sections.append(
             {
                 "title": "Peer authentication",

@@ -33,6 +33,7 @@ from app.realtime import (
     update_job as update_realtime_job,
 )
 from app.routes.ui.helpers import describe_session_role, templates
+from app.config import get_settings
 from app.services import (
     comment_llm_insights_service,
     member_directory_service,
@@ -114,6 +115,7 @@ def admin_panel(
     viewer = session_user.user
     session = session_user.session
 
+    settings = get_settings()
     admin_links = [
         {
             "title": "Profile directory",
@@ -140,12 +142,15 @@ def admin_panel(
             "description": "Browse LLM-generated summaries/tags for request comments.",
             "href": "/admin/comment-insights",
         },
-        {
-            "title": "Peer auth ledger",
-            "description": "Download the ledger of approved/denied half-auth sessions.",
-            "href": "/admin/peer-auth/ledger",
-        },
     ]
+    if settings.feature_peer_auth_queue:
+        admin_links.append(
+            {
+                "title": "Peer auth ledger",
+                "description": "Download the ledger of approved/denied half-auth sessions.",
+                "href": "/admin/peer-auth/ledger",
+            }
+        )
 
     context = {
         "request": request,
