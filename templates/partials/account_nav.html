@@ -31,6 +31,17 @@
     {% if show_half_auth %}
       <span class="account-status__tag account-status__tag--half" title="Complete verification to unlock full access">Half-auth</span>
     {% endif %}
+    <div class="account-nav__peer-alert" data-peer-auth-notice hidden>
+      <a
+        class="account-status__tag account-status__tag--half account-status__tag--link"
+        href="/peer-auth"
+        data-peer-auth-link
+        title="Review pending login approvals"
+      >
+        Review logins
+      </a>
+      <span class="account-nav__peer-count" data-peer-auth-count aria-live="polite" aria-label="0 pending logins"></span>
+    </div>
     <a class="account-nav__user" href="/profile">
       <span class="account-nav__avatar" aria-hidden="true">
         {% if avatar_url %}

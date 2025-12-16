@@ -11,3 +11,7 @@
 ## Stage 3 – Half-auth notification for logged-in user
 - Changes: Promoted the existing pending-dashboard notice into a global partial (`partials/session_status_notice.html`) that renders at the top of every authenticated page (via `base.html`), refreshed the styling in `static/skins/base/20-components.css`, removed the redundant nav-specific variant, and kept `session-status.js` (now supporting multiple notices) polling `/login/status` so the alert auto-dismisses or swaps its CTA when the session state changes.
 - Verification: Pending manual UI pass — plan is to load a half-auth session, confirm the banner appears above every page’s content, then approve/deny the auth request to ensure the notice updates text/actions and disappears after full authentication.
+
+## Stage 4 – Reviewer notifications for new pending requests
+- Changes: Added `/peer-auth/notifications` so authorized reviewers can fetch pending counts plus the next requester, injected a hidden “Review logins” badge into `partials/account_nav.html` (styled in `static/skins/base/10-navigation.css`), and introduced `static/js/peer-auth-notifications.js` to poll the new endpoint and surface the badge/badge count only when there are outstanding approvals.
+- Verification: Pending — need to log in as a peer-auth reviewer, wait for a pending session to appear, confirm the nav badge becomes visible with the count and link to `/peer-auth`, then empty the queue to ensure the badge hides itself again. Also confirm non-reviewers never see the badge (endpoint responds 403/404).

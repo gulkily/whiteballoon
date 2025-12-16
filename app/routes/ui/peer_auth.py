@@ -93,6 +93,29 @@ def peer_auth_inbox(
     return templates.TemplateResponse("peer_auth/index.html", context)
 
 
+@router.get("/peer-auth/notifications")
+def peer_auth_notifications(
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    session_user = _ensure_reviewer(db, session_user)
+    pending_count = peer_auth_service.count_peer_auth_sessions(db, pending_only=True)
+    next_request = None
+    if pending_count > 0:
+        summaries = peer_auth_service.list_peer_auth_sessions(db, limit=1, pending_only=True)
+        if summaries:
+            summary = summaries[0]
+            next_request = {
+                "username": summary.username,
+                "requested_at": summary.auth_request_created_at.isoformat() if summary.auth_request_created_at else None,
+            }
+
+    return {
+        "pending_count": pending_count,
+        "next_request": next_request,
+    }
+
+
 @router.post("/peer-auth/{auth_request_id}/approve")
 def peer_auth_approve(
     request: Request,
