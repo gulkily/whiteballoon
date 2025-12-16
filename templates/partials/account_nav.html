@@ -43,3 +43,19 @@
     </a>
   </div>
 </div>
+{% if show_half_auth %}
+  <div
+    class="account-nav__notice"
+    data-session-status-notice
+    data-default-text="Verification pending. Share your 6-digit code with a trusted member."
+    data-default-action-url="/login/pending"
+    data-default-action-label="View code"
+  >
+    <div class="account-nav__notice-text" data-session-status-text>
+      Verification pending. Share your 6-digit code with a trusted member to finish logging in.
+    </div>
+    <div class="account-nav__notice-actions">
+      <a class="button button--ghost button--small" href="/login/pending" data-session-status-action>View code</a>
+    </div>
+  </div>
+{% endif %}
