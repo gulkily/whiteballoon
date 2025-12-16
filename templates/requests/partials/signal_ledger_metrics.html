@@ -1,0 +1,83 @@
+{% set hero_metrics = signal_ledger_metrics or {} %}
+{% set network_metric = hero_metrics.get('network_health', {}) %}
+{% set capital_metric = hero_metrics.get('capital_flows', {}) %}
+{% set verification_metric = hero_metrics.get('verification_chain', {}) %}
+<section class="signal-ledger-shell" aria-label="Signal Ledger investor KPIs">
+  <div class="signal-ledger-hero" role="list">
+    <article class="ledger-hero-card" data-kpi="network" role="listitem">
+      <p class="ledger-hero-card__eyebrow">Network Health</p>
+      <div class="ledger-hero-card__value">
+        <span class="ledger-hero-card__number">{{ network_metric.get('value', 0) }}</span>
+        <span class="ledger-hero-card__unit">{{ network_metric.get('unit', '%') }}</span>
+      </div>
+      <p class="ledger-hero-card__meta">{{ network_metric.get('meta', 'Stability signal unavailable') }}</p>
+      <p class="ledger-hero-card__delta" data-trend="{{ 'up' if network_metric.get('delta_positive') else 'down' }}">
+        {% set delta_value = network_metric.get('delta', 0) %}
+        <span class="ledger-hero-card__delta-value">{{ '+' if delta_value >= 0 else '' }}{{ delta_value }}</span>
+        <span class="ledger-hero-card__delta-label">resolution delta</span>
+      </p>
+      <div class="ledger-hero-card__plot" aria-hidden="true"></div>
+    </article>
+    <article class="ledger-hero-card" data-kpi="capital" role="listitem">
+      <p class="ledger-hero-card__eyebrow">Capital Flows</p>
+      <div class="ledger-hero-card__value">
+        <span class="ledger-hero-card__number">{{ capital_metric.get('value', 0) }}</span>
+        <span class="ledger-hero-card__unit">{{ capital_metric.get('unit', 'cases') }}</span>
+      </div>
+      <p class="ledger-hero-card__meta">{{ capital_metric.get('meta', 'Contact-ready requests') }}</p>
+      <p class="ledger-hero-card__delta" data-trend="{{ 'up' if capital_metric.get('delta_positive') else 'down' }}">
+        {% set capital_delta = capital_metric.get('delta', 0) %}
+        <span class="ledger-hero-card__delta-value">{{ capital_delta }}%</span>
+        <span class="ledger-hero-card__delta-label">direct handoff coverage</span>
+      </p>
+      <div class="ledger-hero-card__plot" aria-hidden="true"></div>
+    </article>
+    <article class="ledger-hero-card" data-kpi="verification" role="listitem">
+      <p class="ledger-hero-card__eyebrow">Verification Chain</p>
+      <div class="ledger-hero-card__value">
+        <span class="ledger-hero-card__number">{{ verification_metric.get('value', 0) }}</span>
+        <span class="ledger-hero-card__unit">{{ verification_metric.get('unit', '%') }}</span>
+      </div>
+      <p class="ledger-hero-card__meta">{{ verification_metric.get('meta', 'Signal scope coverage') }}</p>
+      <p class="ledger-hero-card__delta" data-trend="{{ 'up' if verification_metric.get('delta_positive') else 'down' }}">
+        {% set verification_delta = verification_metric.get('delta', 0) %}
+        <span class="ledger-hero-card__delta-value">{{ verification_delta }}</span>
+        <span class="ledger-hero-card__delta-label">requests replicated</span>
+      </p>
+      <div class="ledger-hero-card__plot" aria-hidden="true"></div>
+    </article>
+  </div>
+
+  <section class="signal-ledger-timeline" aria-label="Sync activity timeline">
+    <div class="signal-ledger-timeline__header">
+      <p class="signal-ledger-timeline__eyebrow">Sync strip</p>
+      <p class="signal-ledger-timeline__meta">
+        Tracking {{ hero_metrics.get('total_requests', 0) }} live requests · refreshed continuously
+      </p>
+    </div>
+    <ol class="signal-ledger-timeline__list">
+      {% if signal_ledger_timeline %}
+        {% for event in signal_ledger_timeline %}
+          <li class="signal-ledger-timeline__event">
+            <p class="signal-ledger-timeline__time">{{ event.updated_at | friendly_time }}</p>
+            <p class="signal-ledger-timeline__title">
+              <span class="signal-ledger-timeline__request">#{{ event.id }}</span>
+              {{ event.title }}
+            </p>
+            <div class="signal-ledger-timeline__chips">
+              <span class="signal-ledger-status signal-ledger-status--{{ event.status }}">{{ event.status | capitalize }}</span>
+              <span class="signal-ledger-chip">{{ event.sync_scope | capitalize }}</span>
+              {% if event.has_contact %}
+                <span class="signal-ledger-chip signal-ledger-chip--accent">Contact ready</span>
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      {% else %}
+        <li class="signal-ledger-timeline__event signal-ledger-timeline__event--empty">
+          <p>No timeline events yet. Publish a request to populate activity.</p>
+        </li>
+      {% endif %}
+    </ol>
+  </section>
+</section>

@@ -2,6 +2,8 @@
 
 {% block title %}Verify Login · WhiteBalloon{% endblock %}
 
+{% block main_class %} container--narrow{% endblock %}
+
 {% block content %}
 <section class="section">
   <div class="card stack">
@@ -11,14 +13,18 @@
     {% if error %}
       <div class="alert" data-tone="error">{{ error }}</div>
     {% endif %}
-    <form method="post" action="/login/verify" class="form-grid">
-      <input type="hidden" name="username" value="{{ username }}" />
-      <div class="input-group">
-        <label for="verification_code">Enter verification code</label>
-        <input id="verification_code" name="verification_code" type="text" required />
-      </div>
-      <button type="submit" class="button">Verify and continue</button>
-    </form>
+    {% if feature_self_auth %}
+      <form method="post" action="/login/verify" class="form-grid">
+        <input type="hidden" name="username" value="{{ username }}" />
+        <div class="input-group">
+          <label for="verification_code">Enter verification code</label>
+          <input id="verification_code" name="verification_code" type="text" required />
+        </div>
+        <button type="submit" class="button">Verify and continue</button>
+      </form>
+    {% else %}
+      <p class="muted">Self-authentication is disabled. Share your code with a peer reviewer or admin to finish logging in.</p>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

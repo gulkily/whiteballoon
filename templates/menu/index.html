@@ -7,11 +7,12 @@
 {% endblock %}
 
 {% block content %}
+{% import "partials/caption.html" as captions %}
 <section class="section stack" data-page="site-menu">
   <header class="stack">
     <p class="muted small-text">Quick access</p>
     <h1>All destinations</h1>
-    <p class="muted">Jump anywhere in WhiteBalloon without crowding the main navigation.</p>
+    {{ captions.render(menu_caption) }}
   </header>
 
   {% for section in menu_sections %}
@@ -27,7 +28,12 @@
           {% if is_disabled %}
             <article class="{{ classes }}" aria-disabled="true">
               <div class="menu-card__body">
-                <h3>{{ link.title }}</h3>
+                <h3>
+                  {% if link.icon %}
+                    <span class="menu-card__icon">{% include link.icon %}</span>
+                  {% endif %}
+                  {{ link.title }}
+                </h3>
                 <p class="muted">{{ link.description }}</p>
               </div>
               <div class="menu-card__meta">
@@ -45,7 +51,12 @@
           {% else %}
             <a class="{{ classes }}" href="{{ link.href }}">
               <div class="menu-card__body">
-                <h3>{{ link.title }}</h3>
+                <h3>
+                  {% if link.icon %}
+                    <span class="menu-card__icon">{% include link.icon %}</span>
+                  {% endif %}
+                  {{ link.title }}
+                </h3>
                 <p class="muted">{{ link.description }}</p>
               </div>
               <div class="menu-card__meta">
@@ -62,5 +73,26 @@
       </div>
     </div>
   {% endfor %}
+
+  <div class="card stack menu-section">
+    <header class="stack">
+      <h2>Session</h2>
+      <p class="muted">Sign out securely from this device.</p>
+    </header>
+    <div class="menu-grid">
+      <form class="menu-card" action="/logout" method="post">
+        <div class="menu-card__body">
+          <h3>
+            <span class="menu-card__icon">{% include "partials/icons/menu_sign_out.svg" %}</span>
+            Sign out
+          </h3>
+          <p class="muted">End your current session and require authentication next time.</p>
+        </div>
+        <div class="menu-card__meta">
+          <button type="submit" class="button button--ghost">Sign out</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </section>
 {% endblock %}

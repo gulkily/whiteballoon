@@ -2,15 +2,19 @@ from __future__ import annotations
 
 from typing import Annotated, Optional
 
+import logging
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
 from sqlmodel import select
 
+from app.config import get_settings
 from app.dependencies import SessionDep, apply_session_cookie, get_current_session
 from app.models import InviteToken, User, UserSession
 from app.routes.ui.helpers import templates
 from app.modules.requests import services as request_services
 from app.services import auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["ui"])
 
@@ -53,6 +57,7 @@ def login_submit(
         "verification_code": auth_request.verification_code,
         "username": user.username,
         "error": None,
+        "feature_self_auth": get_settings().feature_self_auth,
     }
     template_response = templates.TemplateResponse("auth/login_pending.html", context)
     apply_session_cookie(template_response, session_record)
@@ -67,6 +72,25 @@ def verify_login(
     username: Annotated[str, Form(...)],
     verification_code: Annotated[str, Form(...)],
 ) -> Response:
+    settings = get_settings()
+    if not settings.feature_self_auth:
+        logger.info(
+            "Self-auth verify attempt blocked for user %s",
+            username,
+        )
+        context = {
+            "request": request,
+            "username": username,
+            "verification_code": verification_code,
+            "error": "Self-authentication is disabled. Share your code with a peer reviewer.",
+            "feature_self_auth": settings.feature_self_auth,
+        }
+        return templates.TemplateResponse(
+            "auth/login_pending.html",
+            context,
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
     try:
         auth_request = auth_service.find_pending_auth_request(
             db,
@@ -79,6 +103,7 @@ def verify_login(
             "username": username,
             "verification_code": verification_code,
             "error": exc.detail,
+            "feature_self_auth": settings.feature_self_auth,
         }
         return templates.TemplateResponse("auth/login_pending.html", context, status_code=exc.status_code)
 
@@ -93,6 +118,7 @@ def verify_login(
             "username": username,
             "verification_code": auth_request.verification_code,
             "error": "Session missing. Request access again.",
+            "feature_self_auth": settings.feature_self_auth,
         }
         return templates.TemplateResponse(
             "auth/login_pending.html",

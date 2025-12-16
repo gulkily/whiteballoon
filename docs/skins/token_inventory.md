@@ -64,6 +64,7 @@ Future skins override these tokens (and may add new ones). Keeping them grouped 
 3. For experimental skins, copy `static/skins/default.css` → `static/skins/<variant>.css`, tweak token values, and add overrides beneath the import.
 
 ## Building Skin Bundles (C2)
+- Run `./wb skins list` to see all discovered `static/skins/*.css` entries without touching the build outputs.
 - Run `./wb skins build` to compile every `static/skins/*.css` (excluding `base.css`) into hashed bundles under `static/build/skins/` and emit `manifest.json`.
 - Use `./wb skins build --dry-run` to list available skins without writing files.
 - During development, `./wb skins watch` rebuilds on changes (polling every second by default). Stop with `Ctrl-C`.
@@ -83,3 +84,4 @@ Remember to restart the app after changing these values so `get_settings()` relo
 - **default** – current brand palette with gradient background.
 - **terminal** – retro green-on-black terminal aesthetic (monospace fonts, neon accents). Enable via `WB_SKINS_ALLOWED=default,terminal` and `WB_SKIN_DEFAULT=terminal` if desired.
 - **paper** – notebook-inspired cream palette with handwritten fonts and dotted-grid background. Enable via `WB_SKINS_ALLOWED=default,paper`.
+- **signal-ledger** – investor-grade deep navy theme with copper + teal accents, serif headings, KPI hero row, and horizontal timeline strip. Enable via `WB_SKINS_ALLOWED=default,terminal,paper,signal-ledger` and preview with `?skin=signal-ledger` when preview mode is on.

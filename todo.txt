@@ -17,8 +17,6 @@ better login flow:
 		sanitize user inputs
 		use user inputs as part of prompt
 
-add ability to promote a comment to a request
-
 sub-comments
 
 surface most interesting/insightful/kind comments
@@ -35,3 +33,16 @@ make sure auth required page is not just a json message
 	make some kind of systematic update
 
 when indexing chats, if a message looks like a request, spawn a new request for it
+
+Log Dedalus-powered comment indexer runs (start/finalize) so they appear in /admin/dedalus/logs.
+
+peer auth
+	hide message about self-authentication being disabled
+	auto-refresh the authentication page
+	authentication process should redirect to non-post page
+	notifications about lobby status for logged in users
+	queue page should auto-update
+
+channels page
+	the channes list should be expandable on mobile, not all the way at the bottom
+	the send textbox should be always visible

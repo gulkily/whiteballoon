@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Request Channels · WhiteBalloon{% endblock %}
+
+{% block main_class %} container--wide{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="request-channels" data-request-channels>
+  <aside class="request-channels__sidebar" aria-label="Request channels">
+    <header class="request-channels__sidebar-header">
+      <h1 class="request-channels__title">Request channels</h1>
+      <p class="muted">Each help request becomes a chat-style channel.</p>
+    </header>
+    <div class="request-channels__search">
+      <label class="sr-only" for="channel-search">Search requests</label>
+      <input
+        id="channel-search"
+        class="input"
+        type="search"
+        placeholder="Search requests"
+        autocomplete="off"
+        data-channel-search
+      />
+    </div>
+    <div class="request-channels__filters" data-channel-filters role="toolbar" aria-label="Channel filters">
+      {% set filters = [
+        {"slug": "all", "label": "All"},
+        {"slug": "open", "label": "Open"},
+        {"slug": "completed", "label": "Completed"},
+        {"slug": "pinned", "label": "Pinned"},
+      ] %}
+      {% for filter in filters %}
+        <button
+          type="button"
+          class="channel-filter"
+          data-channel-filter="{{ filter.slug }}"
+          {% if filter.slug == 'all' %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}
+        >
+          {{ filter.label }}
+        </button>
+      {% endfor %}
+    </div>
+    <div class="request-channels__notice" data-channel-filter-notice hidden>
+      <span>Active request is hidden by the current filters.</span>
+      <button type="button" class="channel-filter channel-filter--reset" data-channel-reset>
+        Clear filters
+      </button>
+    </div>
+    {% set initial_channel_count = channel_requests | length %}
+    <div class="request-channels__result-count" data-channel-result-count>
+      Showing <span data-channel-result-count-value>{{ initial_channel_count }}</span> channel(s)
+    </div>
+    <div class="sr-only" aria-live="polite" data-channel-results-announcer></div>
+    <div class="request-channels__list" data-channel-list role="listbox" aria-label="Help request channels">
+      {% if channel_requests %}
+        {% for channel in channel_requests %}
+          <button
+            type="button"
+            class="request-channel"
+            data-channel-id="{{ channel.id }}"
+            data-channel-status="{{ channel.status }}"
+            data-channel-pinned="{{ 'true' if channel.is_pinned else 'false' }}"
+            data-channel-node
+            {% if active_channel_id == channel.id %}aria-current="true"{% endif %}
+          >
+            <span class="request-channel__title">{{ channel.title }}</span>
+            <span class="request-channel__meta">
+              <span class="request-channel__status">{{ channel.status | capitalize }}</span>
+              <span class="request-channel__time" data-channel-time data-timestamp="{{ channel.updated_at }}"></span>
+              <span class="request-channel__presence" data-channel-presence hidden></span>
+            </span>
+            <span class="request-channel__preview">{{ channel.preview }}</span>
+            <div class="request-channel__badges">
+              {% if channel.is_pinned %}
+                <span class="request-channel__pin" aria-label="Pinned channel">📌</span>
+              {% endif %}
+              <span class="request-channel__badge">{{ channel.comment_count }} replies</span>
+              {% if channel.unread_count %}
+                <span class="request-channel__badge request-channel__badge--unread" data-channel-unread>{{ channel.unread_count }}</span>
+              {% endif %}
+            </div>
+          </button>
+        {% endfor %}
+      {% else %}
+        <p class="muted">No requests are available yet.</p>
+      {% endif %}
+    </div>
+  </aside>
+  <section class="request-channels__chat" aria-live="polite" data-channel-pane>
+    {% if active_chat_context %}
+      {% with chat = active_chat_context %}
+        {% include "requests/partials/channel_chat.html" %}
+      {% endwith %}
+    {% else %}
+      <div class="request-channels__chat-empty" data-channel-empty>
+        <p class="muted">Select a request on the left to open its channel.</p>
+      </div>
+    {% endif %}
+  </section>
+</section>
+{% if session and session.is_fully_authenticated %}
+<dialog class="request-comment__modal" data-comment-promote-modal>
+  <form class="stack" data-comment-promote-form>
+    <h2>Promote comment to request</h2>
+    <p class="small-text" data-comment-promote-context></p>
+    <div class="alert alert--warning" data-comment-promote-warning hidden>
+      <p data-comment-promote-warning-text></p>
+    </div>
+    <label class="stack">
+      <span>Summary</span>
+      <textarea rows="4" data-comment-promote-description required></textarea>
+    </label>
+    <label class="stack">
+      <span>Contact email (optional)</span>
+      <input type="email" data-comment-promote-contact />
+    </label>
+    <label class="stack">
+      <span>Status</span>
+      <select data-comment-promote-status>
+        <option value="open">Open</option>
+        <option value="pending">Pending</option>
+      </select>
+    </label>
+    <label class="stack" data-comment-promote-override-row hidden>
+      <span class="small-text">Create another request even though this comment was promoted before</span>
+      <div class="form-check">
+        <input type="checkbox" data-comment-promote-override />
+        <span>Allow duplicate promotion</span>
+      </div>
+    </label>
+    <div class="alert alert--error" data-comment-promote-error hidden></div>
+    <div class="request-comments__form-footer">
+      <button type="button" class="button button--ghost" data-comment-promote-cancel>Cancel</button>
+      <button type="submit" class="button" data-comment-promote-submit>Create request</button>
+    </div>
+  </form>
+</dialog>
+{% endif %}
+<script id="channel-bootstrap" type="application/json">
+  {{ {
+    "requests": channel_requests,
+    "active_channel_id": active_channel_id,
+  } | tojson }}
+</script>
+<script src="/static/js/request-channels.js" defer></script>
+{% if session and session.is_fully_authenticated %}
+<script src="/static/js/comment-promotion.js" defer></script>
+{% endif %}
+{% endblock %}

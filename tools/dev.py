@@ -850,6 +850,24 @@ def skins_watch_cli(output_dir: Path, manifest: Path | None, interval: float) ->
         raise click.ClickException(str(exc)) from exc
 
 
+@skins_group.command(name="list")
+def skins_list_cli() -> None:
+    """List discovered skins without building bundles."""
+
+    try:
+        entries = discover_skins()
+    except SkinBuildError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    click.secho(f"Discovered {len(entries)} skin(s) in {SKINS_DIR}:", fg="cyan")
+    for entry in entries:
+        try:
+            rel_path = entry.path.relative_to(PROJECT_ROOT)
+        except ValueError:
+            rel_path = entry.path
+        click.echo(f"  - {entry.name} ({rel_path})")
+
+
 @cli.command(name="create-invite")
 @click.option("--username", default=None, help="Admin username to attribute the invite to")
 @click.option("--max-uses", default=1, show_default=True, type=int, help="Maximum number of times the invite can be used")

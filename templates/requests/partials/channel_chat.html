@@ -1,0 +1,72 @@
+{% set request_meta = chat.request or {} %}
+{% set request_title = (request_meta.description or '') %}
+{% set heading = request_title.split('\n')[0] if request_title else 'Request #' ~ request_meta.id %}
+<section class="channel-chat" data-channel-chat data-channel-id="{{ request_meta.id }}">
+  <header class="request-channels__chat-header">
+    <div>
+      <p class="request-channels__chat-status">{{ request_meta.status | default('open') | capitalize }}</p>
+      <h2 class="request-channels__chat-title">{{ heading }}</h2>
+    </div>
+    <a
+      class="button button--ghost"
+      href="/requests/{{ request_meta.id }}?legacy=1"
+      target="_blank"
+      rel="noreferrer"
+    >
+      Open request page
+    </a>
+  </header>
+  <div class="channel-chat__presence" data-channel-typing hidden></div>
+  <div class="channel-chat__log" data-channel-log role="log" aria-live="polite">
+    {% if chat.comments %}
+      <ul class="channel-chat__list">
+        {% for comment in chat.comments %}
+          {% include "requests/partials/channel_message.html" %}
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="channel-chat__empty">
+        <p class="muted">No replies yet. Start the conversation below.</p>
+      </div>
+    {% endif %}
+  </div>
+  <button type="button" class="channel-chat__jump" data-channel-jump hidden>
+    New messages · Jump to latest
+  </button>
+  <div class="sr-only" aria-live="polite" data-channel-announcer></div>
+  {% if chat.can_comment %}
+    <form
+      class="channel-chat__composer"
+      method="post"
+      action="/requests/{{ request_meta.id }}/comments"
+      data-channel-composer
+      data-channel-id="{{ request_meta.id }}"
+    >
+      {% if chat.comment_form_errors %}
+        <div class="alert alert--error" data-channel-errors>
+          <ul>
+            {% for error in chat.comment_form_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <div class="alert alert--error" data-channel-errors hidden></div>
+      {% endif %}
+      <label class="sr-only" for="channel-body-{{ request_meta.id }}">Message body</label>
+      <textarea
+        id="channel-body-{{ request_meta.id }}"
+        name="body"
+        rows="3"
+        maxlength="{{ chat.comment_max_length }}"
+        placeholder="Type a reply"
+        data-channel-composer-input
+      >{{ chat.comment_form_body }}</textarea>
+      <div class="channel-chat__composer-actions">
+        <button type="submit" class="button" data-channel-send>Send</button>
+      </div>
+    </form>
+  {% else %}
+    <p class="muted small-text">You need full access to reply in this request.</p>
+  {% endif %}
+</section>

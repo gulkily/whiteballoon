@@ -3,10 +3,11 @@
 {% block title %}Send Welcome · WhiteBalloon{% endblock %}
 
 {% block content %}
+{% import "partials/caption.html" as captions %}
 <section class="section invite-page" data-invite-page>
   <header class="stack">
     <h1>Send Welcome</h1>
-    <p class="muted">Make the invite personal so your friend lands with a smile and knows how you plan to support them.</p>
+    {{ captions.render(invite_caption) }}
   </header>
 
   <form class="card stack invite-form" data-invite-form novalidate>

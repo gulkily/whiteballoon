@@ -1,0 +1,14 @@
+{% macro render(caption) %}
+  {% if caption and caption.show %}
+    <div class="helper-caption" data-caption-id="{{ caption.id }}">
+      <div class="helper-caption__text">{{ caption.text }}</div>
+      <button
+        type="button"
+        class="helper-caption__dismiss"
+        data-caption-dismiss="{{ caption.id }}"
+        aria-label="Got it"
+        title="Got it"
+      >👍</button>
+    </div>
+  {% endif %}
+{% endmacro %}

@@ -14,7 +14,14 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
-from app.models import HelpRequest, InviteToken, RequestComment, User, UserSession
+from app.models import (
+    HELP_REQUEST_STATUS_DRAFT,
+    HelpRequest,
+    InviteToken,
+    RequestComment,
+    User,
+    UserSession,
+)
 from app.routes.ui.helpers import describe_session_role, templates
 from app.security.csrf import generate_csrf_token, validate_csrf_token
 from app.sync import job_tracker
@@ -541,7 +548,11 @@ def sync_public(
     if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
-    public_requests = db.exec(select(HelpRequest).where(HelpRequest.sync_scope == "public")).all()
+    public_requests = db.exec(
+        select(HelpRequest)
+        .where(HelpRequest.sync_scope == "public")
+        .where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
+    ).all()
     public_comments = db.exec(select(RequestComment).where(RequestComment.sync_scope == "public")).all()
     public_users = db.exec(select(User).where(User.sync_scope == "public")).all()
     public_invites = db.exec(select(InviteToken).where(InviteToken.sync_scope == "public")).all()

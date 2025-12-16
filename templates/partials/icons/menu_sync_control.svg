@@ -1,0 +1,6 @@
+<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" width="16" height="16">
+  <path d="M7 9a5 5 0 0 1 8.5-2.5L17 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M15 6.5h2.5V4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M17 15a5 5 0 0 1-8.5 2.5L7 20.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M9 17.5H6.5V20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

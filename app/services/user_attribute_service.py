@@ -10,6 +10,8 @@ from app.models import UserAttribute
 INVITED_BY_USER_ID_KEY = "invited_by_user_id"
 INVITE_TOKEN_USED_KEY = "invite_token_used"
 PROFILE_PHOTO_URL_KEY = "profile_photo_url"
+UI_HIDE_CAPTIONS_KEY = "ui_hide_captions"
+UI_CAPTION_DISMISSALS_KEY = "ui_caption_dismissals"
 
 
 def get_attribute(session: Session, *, user_id: int, key: str) -> Optional[str]:

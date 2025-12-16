@@ -3,49 +3,141 @@
 {% set creator_username = item.created_by_username | default('') %}
 {% set has_creator_link = creator_username != '' %}
 {% set creator_name = creator_username if has_creator_link else 'Community member' %}
-{% set request_icon = '✨' if item.status != 'completed' else '💫' %}
+{% if item.status == 'completed' %}
+  {% set request_icon = '💫' %}
+  {% set status_display = 'Archived' %}
+  {% set status_chip_class = 'meta-chip meta-chip--status meta-chip--muted' %}
+{% elif item.status == 'draft' %}
+  {% set request_icon = '📝' %}
+  {% set status_display = 'Draft' %}
+  {% set status_chip_class = 'meta-chip meta-chip--status meta-chip--muted' %}
+{% else %}
+  {% set request_icon = '✨' %}
+  {% set status_display = 'Active' %}
+  {% set status_chip_class = 'meta-chip meta-chip--status meta-chip--success' %}
+{% endif %}
 {% set show_detail_link = show_detail_link if show_detail_link is defined else True %}
 {% set show_meta = show_meta if show_meta is defined else True %}
 {% set requester_value = request_icon ~ ' ' ~ (creator_username if has_creator_link else creator_name) %}
+{% set request_url = '/requests/' ~ item.id %}
+{% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
+{% set display_pin_badge = show_pin_badge if show_pin_badge is defined else (item.is_pinned | default(false)) %}
+{% set current_path = request.url.path if request is defined else '/' %}
+{% set menu_actions = namespace(items=[]) %}
+{% if not readonly and item.status != 'completed' and can_complete %}
+  {% set _ = menu_actions.items.append({
+    'label': 'Mark completed',
+    'href': request_url ~ '/complete',
+    'method': 'POST',
+    'form_attributes': {
+      'data-request-complete': '',
+      'data-request-id': item.id
+    }
+  }) %}
+{% endif %}
+{% set _ = menu_actions.items.append({
+  'label': 'Copy link',
+  'attributes': {
+    'data-request-copy-link': request_url,
+    'data-request-copy-label': 'Request #' ~ item.id
+  }
+}) %}
+{% if can_pin_requests %}
+  {% if item.is_pinned | default(false) %}
+    {% set _ = menu_actions.items.append({
+      'label': 'Unpin from main page',
+      'href': request_url ~ '/unpin',
+      'method': 'POST',
+      'hidden_fields': [
+        {'name': 'next', 'value': current_path}
+      ]
+    }) %}
+    {% if pinned_request_count | default(0) > 1 %}
+      {% set _ = menu_actions.items.append({
+        'label': 'Move up',
+        'href': request_url ~ '/pin/reorder',
+        'method': 'POST',
+        'hidden_fields': [
+          {'name': 'direction', 'value': 'up'},
+          {'name': 'next', 'value': current_path}
+        ]
+      }) %}
+      {% set _ = menu_actions.items.append({
+        'label': 'Move down',
+        'href': request_url ~ '/pin/reorder',
+        'method': 'POST',
+        'hidden_fields': [
+          {'name': 'direction', 'value': 'down'},
+          {'name': 'next', 'value': current_path}
+        ]
+      }) %}
+    {% endif %}
+  {% else %}
+    {% set _ = menu_actions.items.append({
+      'label': 'Pin to main page',
+      'href': request_url ~ '/pin',
+      'method': 'POST',
+      'hidden_fields': [
+        {'name': 'next', 'value': current_path}
+      ]
+    }) %}
+  {% endif %}
+{% endif %}
 <article class="request-item">
   {% if show_meta %}
     <header class="request-meta">
-      <div class="request-meta__chips">
-        <span class="meta-chip meta-chip--requester">
-          <span class="meta-chip__label">Requester</span>
-          {% if has_creator_link %}
-            <a class="meta-chip__value meta-chip__value--link" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ requester_value }}</a>
-          {% else %}
-            <span class="meta-chip__value">{{ requester_value }}</span>
+      <div class="request-meta__header">
+        <div class="request-meta__chips">
+          {% if display_pin_badge %}
+            <span class="meta-chip meta-chip--pinned">
+              <span class="meta-chip__label">Pinned</span>
+              <span class="meta-chip__value">Priority</span>
+            </span>
           {% endif %}
-        </span>
-        <span class="meta-chip meta-chip--status">
-          <span class="meta-chip__label">Status</span>
-          <span class="meta-chip__value">{{ item.status|title }}</span>
-        </span>
-        {% if show_detail_link %}
-          <a class="meta-chip meta-chip--timestamp" href="/requests/{{ item.id }}" title="View request details">
-            <span class="meta-chip__label">Updated</span>
-            <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
-          </a>
-        {% else %}
-          <span class="meta-chip meta-chip--timestamp">
-            <span class="meta-chip__label">Updated</span>
-            <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+          <span class="meta-chip meta-chip--requester">
+            <span class="meta-chip__label">Requester</span>
+            {% if has_creator_link %}
+              <a class="meta-chip__value meta-chip__value--link" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ requester_value }}</a>
+            {% else %}
+              <span class="meta-chip__value">{{ requester_value }}</span>
+            {% endif %}
           </span>
+          <span class="{{ status_chip_class }}" aria-label="Status">
+            <span class="meta-chip__value">{{ status_display }}</span>
+          </span>
+          {% if show_detail_link %}
+            <a class="meta-chip meta-chip--timestamp" href="{{ request_url }}" title="View request details">
+              <span class="meta-chip__label">Updated</span>
+              <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+            </a>
+          {% else %}
+            <span class="meta-chip meta-chip--timestamp">
+              <span class="meta-chip__label">Updated</span>
+              <time class="meta-chip__value" datetime="{{ item.created_at }}">{{ item.created_at | friendly_time }}</time>
+            </span>
+          {% endif %}
+        </div>
+        {% if menu_actions.items %}
+          <div class="request-meta__actions">
+            {% with actions = menu_actions.items, trigger_label = 'Request actions' %}
+              {% include "partials/action_menu.html" %}
+            {% endwith %}
+          </div>
         {% endif %}
       </div>
     </header>
+  {% elif menu_actions.items %}
+    <div class="request-meta__actions request-meta__actions--standalone">
+      {% with actions = menu_actions.items, trigger_label = 'Request actions' %}
+        {% include "partials/action_menu.html" %}
+      {% endwith %}
+    </div>
   {% endif %}
   <div>
     <p>{{ item.description or 'No additional details.' }}</p>
   </div>
   <footer class="actions">
-    {% if not readonly and item.status != 'completed' and can_complete %}
-      <form method='post' action='/requests/{{ item.id }}/complete' data-request-complete data-request-id='{{ item.id }}' class='inline'>
-        <button type='submit' class='button'>Mark completed</button>
-      </form>
-    {% elif item.status == 'completed' %}
+    {% if item.status == 'completed' %}
       <span class="muted"{% if item.completed_at %} title="{{ item.completed_at }}"{% endif %}>Completed {{ item.completed_at | friendly_time or 'recently' }}</span>
     {% endif %}
     {% if item.contact_email %}

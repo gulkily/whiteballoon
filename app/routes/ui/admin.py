@@ -12,11 +12,11 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
-from fastapi.responses import PlainTextResponse, RedirectResponse
+from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, get_session, require_session_user
-from app.models import HelpRequest, InviteToken, User
+from app.models import HELP_REQUEST_STATUS_DRAFT, HelpRequest, InviteToken, User
 from app import config
 from app.routes.ui.helpers import friendly_time
 from app.dedalus.logging import finalize_logged_run, start_logged_run
@@ -33,9 +33,11 @@ from app.realtime import (
     update_job as update_realtime_job,
 )
 from app.routes.ui.helpers import describe_session_role, templates
+from app.config import get_settings
 from app.services import (
     comment_llm_insights_service,
     member_directory_service,
+    peer_auth_ledger,
     request_comment_service,
     user_attribute_service,
     user_profile_highlight_service,
@@ -113,6 +115,7 @@ def admin_panel(
     viewer = session_user.user
     session = session_user.session
 
+    settings = get_settings()
     admin_links = [
         {
             "title": "Profile directory",
@@ -140,6 +143,14 @@ def admin_panel(
             "href": "/admin/comment-insights",
         },
     ]
+    if settings.feature_peer_auth_queue:
+        admin_links.append(
+            {
+                "title": "Peer auth ledger",
+                "description": "Download the ledger of approved/denied half-auth sessions.",
+                "href": "/admin/peer-auth/ledger",
+            }
+        )
 
     context = {
         "request": request,
@@ -151,6 +162,56 @@ def admin_panel(
         "admin_links": admin_links,
     }
     return templates.TemplateResponse("admin/panel.html", context)
+
+
+@router.get("/admin/peer-auth/ledger")
+def admin_peer_auth_ledger(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    if not get_settings().feature_peer_auth_queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
+    context = {
+        "request": request,
+        "user": session_user.user,
+        "session": session_user.session,
+        "session_role": describe_session_role(session_user.user, session_user.session),
+        "session_username": session_user.user.username,
+        "session_avatar_url": _get_account_avatar(db, session_user.user.id),
+        "latest_checksum": peer_auth_ledger.latest_checksum(),
+    }
+    return templates.TemplateResponse("admin/ledger.html", context)
+
+
+@router.get("/admin/peer-auth/ledger/db")
+def download_peer_auth_ledger(
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    if not get_settings().feature_peer_auth_queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
+    ledger_path = peer_auth_ledger.LEDGER_PATH
+    if not ledger_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ledger not found")
+    return FileResponse(
+        ledger_path,
+        filename="peer_auth_ledger.db",
+        media_type="application/octet-stream",
+    )
+
+
+@router.get("/admin/peer-auth/ledger/checksum")
+def peer_auth_ledger_checksum(
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    if not get_settings().feature_peer_auth_queue:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
+    checksum = peer_auth_ledger.latest_checksum()
+    text = checksum or "No entries recorded yet."
+    return PlainTextResponse(text)
 
 def _ensure_env_file() -> None:
     if ENV_PATH.exists():
@@ -534,6 +595,7 @@ def admin_profile_detail(
     request_statement = (
         select(HelpRequest)
         .where(HelpRequest.created_by_user_id == profile.id)
+        .where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
         .order_by(HelpRequest.created_at.desc())
     )
     help_requests = db.exec(request_statement).all()

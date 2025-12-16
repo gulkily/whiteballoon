@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Comment #{{ comment.id }} · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="comment-detail">
+  <header class="stack comment-detail__header">
+    <p class="muted small-text">Comment permalink</p>
+    <h1>
+      Comment #{{ comment.id }}
+      {% if request_summary %}
+        <span class="muted">on Request #{{ request_summary.id }}</span>
+      {% endif %}
+    </h1>
+    {% if request_summary %}
+      <a class="button button--ghost" href="/requests/{{ request_summary.id }}">View full request</a>
+    {% endif %}
+  </header>
+
+  <div class="comment-detail__layout">
+    <article class="card stack comment-detail__comment">
+      <h2>Comment</h2>
+      {% with comment = comment, comment_permalink_href = request.url.path %}
+        {% include "partials/comment_card.html" %}
+      {% endwith %}
+      {% if comment_insight %}
+        <section class="comment-detail__insight">
+          <header class="comment-detail__insight-header">
+            <p class="muted small-text">AI assessment</p>
+            {% if comment_insight.recorded_at %}
+              <time class="muted small-text" datetime="{{ comment_insight.recorded_at }}">
+                Captured {{ comment_insight.recorded_at | friendly_time }}
+              </time>
+            {% endif %}
+          </header>
+          {% if comment_insight.summary %}
+            <p class="comment-detail__insight-summary">{{ comment_insight.summary }}</p>
+          {% endif %}
+          <div class="comment-detail__insight-tags">
+            {% set resource_tag_colors = comment_insight.resource_tag_colors %}
+            {% if resource_tag_colors %}
+              <div class="comment-detail__insight-group">
+                <span class="muted small-text">Resource tags</span>
+                <div class="comment-detail__insight-chips">
+                  {% for tag in resource_tag_colors %}
+                    <span
+                      class="meta-chip meta-chip--small{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                      {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+                    >{{ tag.label }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            {% set request_tag_colors = comment_insight.request_tag_colors %}
+            {% if request_tag_colors %}
+              <div class="comment-detail__insight-group">
+                <span class="muted small-text">Request tags</span>
+                <div class="comment-detail__insight-chips">
+                  {% for tag in request_tag_colors %}
+                    <span
+                      class="meta-chip meta-chip--small meta-chip--ghost{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                      {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+                    >{{ tag.label }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          <dl class="comment-detail__insight-meta">
+            <div>
+              <dt>Urgency</dt>
+              <dd>{{ comment_insight.urgency | title if comment_insight.urgency else 'Not noted' }}</dd>
+            </div>
+            <div>
+              <dt>Sentiment</dt>
+              <dd>{{ comment_insight.sentiment | title if comment_insight.sentiment else 'Not noted' }}</dd>
+            </div>
+            <div>
+              <dt>Audience</dt>
+              <dd>{{ comment_insight.audience or 'Not captured' }}</dd>
+            </div>
+            <div>
+              <dt>Residency stage</dt>
+              <dd>{{ comment_insight.residency_stage or 'Not captured' }}</dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd>
+                {{ comment_insight.location or 'Not captured' }}
+                {% if comment_insight.location_precision %}
+                  <span class="muted small-text">({{ comment_insight.location_precision }})</span>
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      {% endif %}
+    </article>
+
+    {% if request_summary %}
+      <article class="card stack comment-detail__request">
+        <h2>Request summary</h2>
+        <div class="comment-detail__request-meta">
+          <div>
+            <p class="comment-detail__request-id">Request #{{ request_summary.id }}</p>
+            <p class="muted small-text">Updated {{ request_summary.updated_at | friendly_time }}</p>
+          </div>
+          <span class="meta-chip meta-chip--status">{{ request_summary.status | title }}</span>
+        </div>
+        <p>{{ request_summary.description or 'No additional details.' }}</p>
+        <div class="comment-detail__request-actions">
+          <a class="button button--ghost" href="/requests/{{ request_summary.id }}">View full request</a>
+        </div>
+      </article>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

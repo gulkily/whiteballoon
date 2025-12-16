@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Peer Auth Ledger · WhiteBalloon{% endblock %}
+
+{% block nav %} {% include "partials/account_nav.html" %} {% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="admin-ledger">
+  <div class="card stack">
+    <header class="stack">
+      <p class="muted small-text">Admin only</p>
+      <h1>Peer authentication ledger</h1>
+      <p class="muted">Download the append-only SQLite ledger and verify the latest checksum for audit trails.</p>
+    </header>
+
+    <div class="ledger-downloads">
+      <article class="ledger-download-card">
+        <h2>Ledger database</h2>
+        <p class="muted">`.db` file containing every approval/denial event for peer-auth sessions.</p>
+        <a class="button" href="/admin/peer-auth/ledger/db">Download ledger</a>
+      </article>
+      <article class="ledger-download-card">
+        <h2>Latest checksum</h2>
+        <p class="muted">SHA-256 hash for the newest entry to validate integrity downstream.</p>
+        <a class="button button--secondary" href="/admin/peer-auth/ledger/checksum">View checksum</a>
+      </article>
+    </div>
+  </div>
+</section>
+{% endblock %}

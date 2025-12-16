@@ -17,8 +17,12 @@ from sqlmodel import Session, select
 from app.config import get_settings
 from app.db import get_engine
 from app.models import RequestComment
-from app.services import comment_llm_store
-from app.services import comment_llm_insights_db
+from app.services import (
+    comment_attribute_service,
+    comment_llm_insights_db,
+    comment_llm_store,
+)
+from app.dedalus import logging as dedalus_logging
 
 
 MIN_BATCH_SIZE = 1
@@ -47,6 +51,7 @@ LOCATION_PRECISION = ["exact", "neighborhood", "city", "regional", "global", "un
 URGENCY_LEVELS = ["low", "medium", "high", "critical"]
 SENTIMENT_SCALE = ["positive", "neutral", "negative", "mixed"]
 OUTPUT_DIR = Path("storage/comment_llm_runs")
+PROMOTION_KEYWORDS = ["need", "please help", "can someone", "urgent", "request"]
 
 
 @dataclass(frozen=True)
@@ -140,6 +145,46 @@ class BatchLLMResult:
     batch_index: int
     analyses: list[CommentAnalysis]
     raw_response: str
+
+
+@dataclass(frozen=True)
+class DedalusBatchLogContext:
+    cli_run_id: str
+    snapshot_label: str
+    model: str
+    comment_ids: tuple[int, ...]
+
+    def context_hash(self) -> str | None:
+        if not self.comment_ids:
+            return None
+        return ",".join(str(comment_id) for comment_id in self.comment_ids)
+
+    def prompt_summary(self, *, batch_index: int, attempt: int) -> str:
+        attempt_note = f" attempt {attempt}" if attempt > 1 else ""
+        comment_preview = ", ".join(str(comment_id) for comment_id in self.comment_ids) or "n/a"
+        return (
+            f"Comment LLM batch #{batch_index}{attempt_note} for snapshot '{self.snapshot_label}' "
+            f"(cli run {self.cli_run_id}; {len(self.comment_ids)} comments; comment_ids={comment_preview})"
+        )
+
+    def entity_id(self, *, batch_index: int) -> str:
+        return f"{self.cli_run_id}:{batch_index:03d}"
+
+
+def _build_log_context(
+    *,
+    cli_run_id: str,
+    snapshot_label: str,
+    model: str,
+    comments: Sequence[CommentPayload],
+) -> DedalusBatchLogContext:
+    comment_ids = tuple(comment.id for comment in comments if comment.id)
+    return DedalusBatchLogContext(
+        cli_run_id=cli_run_id,
+        snapshot_label=snapshot_label,
+        model=model,
+        comment_ids=comment_ids,
+    )
 
 
 class CommentBatchPlanner:
@@ -435,12 +480,24 @@ def parse_batch_response(
 
 
 class BatchLLMClient:
-    def analyze_batch(self, *, batch_index: int, comments: Sequence[CommentPayload]) -> BatchLLMResult:  # pragma: no cover - protocol
+    def analyze_batch(
+        self,
+        *,
+        batch_index: int,
+        comments: Sequence[CommentPayload],
+        log_context: DedalusBatchLogContext | None = None,
+    ) -> BatchLLMResult:  # pragma: no cover - protocol
         raise NotImplementedError
 
 
 class MockBatchLLMClient(BatchLLMClient):
-    def analyze_batch(self, *, batch_index: int, comments: Sequence[CommentPayload]) -> BatchLLMResult:
+    def analyze_batch(
+        self,
+        *,
+        batch_index: int,
+        comments: Sequence[CommentPayload],
+        log_context: DedalusBatchLogContext | None = None,
+    ) -> BatchLLMResult:
         payload = {
             "batch_index": batch_index,
             "comments": [],
@@ -503,21 +560,53 @@ class DedalusBatchLLMClient(BatchLLMClient):
             return "\n".join(str(item) for item in outputs)
         return str(response)
 
-    def analyze_batch(self, *, batch_index: int, comments: Sequence[CommentPayload]) -> BatchLLMResult:
+    def analyze_batch(
+        self,
+        *,
+        batch_index: int,
+        comments: Sequence[CommentPayload],
+        log_context: DedalusBatchLogContext | None = None,
+    ) -> BatchLLMResult:
         expected = {comment.id: comment for comment in comments}
         prompt = build_prompt(batch_index, comments)
-        attempts = 0
+        failures = 0
         while True:
+            attempt = failures + 1
+            log_run_id: str | None = None
+            if log_context:
+                log_run_id = dedalus_logging.start_logged_run(
+                    user_id="cli",
+                    entity_type="comment_llm_batch",
+                    entity_id=log_context.entity_id(batch_index=batch_index),
+                    model=log_context.model,
+                    prompt=log_context.prompt_summary(batch_index=batch_index, attempt=attempt),
+                    context_hash=log_context.context_hash(),
+                )
             try:
                 raw = asyncio.run(self._run_async(prompt))
-                return parse_batch_response(raw, batch_index=batch_index, expected_comments=expected)
+                parsed = parse_batch_response(raw, batch_index=batch_index, expected_comments=expected)
+                if log_run_id:
+                    dedalus_logging.finalize_logged_run(
+                        run_id=log_run_id,
+                        response=raw,
+                        status="success",
+                    )
+                return parsed
             except Exception as exc:  # pragma: no cover - external dependency
-                attempts += 1
-                if attempts > self._max_retries:
+                if log_run_id:
+                    dedalus_logging.finalize_logged_run(
+                        run_id=log_run_id,
+                        response=None,
+                        status="error",
+                        error=str(exc),
+                    )
+                failures += 1
+                if failures > self._max_retries:
                     raise
-                delay = self._retry_wait * attempts
+                delay = self._retry_wait * failures
                 print(
-                    f"[batch {batch_index:03d}] Dedalus call failed ({exc}); retrying in {delay:.1f}s...")
+                    f"[batch {batch_index:03d}] Dedalus call failed ({exc}); retrying in {delay:.1f}s..."
+                )
                 time.sleep(delay)
 
 
@@ -576,6 +665,56 @@ def persist_execution_results(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(json.dumps(payload, indent=2))
     return output_path
+
+
+def _analysis_is_request_candidate(analysis: CommentAnalysis) -> tuple[bool, str | None, dict[str, object]]:
+    metadata = {
+        "resource_tags": analysis.resource_tags,
+        "request_tags": analysis.request_tags,
+        "audience": analysis.audience,
+        "residency_stage": analysis.residency_stage,
+        "location": analysis.location,
+        "location_precision": analysis.location_precision,
+        "urgency": analysis.urgency,
+        "sentiment": analysis.sentiment,
+        "tags": analysis.tags,
+        "summary": analysis.summary,
+    }
+    if analysis.request_tags:
+        return True, f"request_tags:{','.join(analysis.request_tags)}", metadata
+    summary = (analysis.summary or "").lower()
+    for keyword in PROMOTION_KEYWORDS:
+        if keyword in summary:
+            return True, f"keyword:{keyword}", metadata
+    return False, None, metadata
+
+
+def _queue_promotion_candidates(
+    engine,
+    results: Sequence[BatchLLMResult],
+    run_id: str,
+) -> None:
+    if not results:
+        return
+    analyses = [analysis for result in results for analysis in result.analyses]
+    if not analyses:
+        return
+    queued = 0
+    with Session(engine) as session:
+        for analysis in analyses:
+            should_queue, reason, metadata = _analysis_is_request_candidate(analysis)
+            if not should_queue or not reason:
+                continue
+            comment_attribute_service.queue_promotion_candidate(
+                session,
+                comment_id=analysis.comment_id,
+                reason=reason,
+                run_id=run_id,
+                metadata=metadata,
+            )
+            queued += 1
+    if queued:
+        print(f"Queued {queued} request-like comments for promotion.")
 
 
 def _rows_for_insights_db(analyses: Sequence[CommentAnalysis], run_id: str, recorded_at: str) -> list[tuple]:
@@ -889,67 +1028,83 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
 
-        for idx, batch_comments in enumerate(batch_payloads, start=1):
-            if rate_interval and next_allowed_time is not None:
-                now = time.monotonic()
-                if now < next_allowed_time:
-                    delay = next_allowed_time - now
+        try:
+            for idx, batch_comments in enumerate(batch_payloads, start=1):
+                if rate_interval and next_allowed_time is not None:
+                    now = time.monotonic()
+                    if now < next_allowed_time:
+                        delay = next_allowed_time - now
+                        print(
+                            f"[batch {idx:03d}] Pausing {delay:.2f}s to honor {batches_per_minute:.1f} batches/min rate."
+                        )
+                        time.sleep(delay)
+                    next_allowed_time = time.monotonic() + rate_interval
+                estimate = summary.batches[idx - 1] if idx - 1 < len(summary.batches) else None
+                est_input = estimate.estimated_input_tokens if estimate else 0
+                est_output = estimate.estimated_output_tokens if estimate else 0
+                est_cost = (
+                    estimate_cost_amount(est_input, est_output, config) if estimate else 0.0
+                )
+                projected_cost = cumulative_estimated_cost + est_cost
+                if max_spend is not None and projected_cost > max_spend + 1e-9:
                     print(
-                        f"[batch {idx:03d}] Pausing {delay:.2f}s to honor {batches_per_minute:.1f} batches/min rate."
+                        f"[batch {idx:03d}] Stopping before execution: projected spend ${projected_cost:.4f} would exceed max ${max_spend:.4f}."
                     )
-                    time.sleep(delay)
-                next_allowed_time = time.monotonic() + rate_interval
-            estimate = summary.batches[idx - 1] if idx - 1 < len(summary.batches) else None
-            est_input = estimate.estimated_input_tokens if estimate else 0
-            est_output = estimate.estimated_output_tokens if estimate else 0
-            est_cost = (
-                estimate_cost_amount(est_input, est_output, config) if estimate else 0.0
-            )
-            projected_cost = cumulative_estimated_cost + est_cost
-            if max_spend is not None and projected_cost > max_spend + 1e-9:
+                    break
+                cumulative_estimated_cost = projected_cost
                 print(
-                    f"[batch {idx:03d}] Stopping before execution: projected spend ${projected_cost:.4f} would exceed max ${max_spend:.4f}."
+                    f"[batch {idx:03d}] Sending {len(batch_comments)} comments "
+                    f"(~{est_input} in / ~{est_output} out tokens, est cost ${est_cost:.4f})"
                 )
-                break
-            cumulative_estimated_cost = projected_cost
-            print(
-                f"[batch {idx:03d}] Sending {len(batch_comments)} comments "
-                f"(~{est_input} in / ~{est_output} out tokens, est cost ${est_cost:.4f})"
-            )
-            result = client.analyze_batch(batch_index=idx, comments=batch_comments)
-            print(
-                f"[batch {idx:03d}] Received {len(result.analyses)} analyses; cumulative est cost ${cumulative_estimated_cost:.4f}"
-            )
-            stats = comment_llm_store.save_comment_analyses(
-                analyses=result.analyses,
-                snapshot_label=summary.snapshot_label,
-                provider=ns.provider,
-                model=ns.model,
-                run_id=run_id,
-                batch_index=idx,
-                overwrite=ns.include_processed,
-            )
-            if stats.written or stats.skipped:
+                log_context = None
+                if ns.provider == "dedalus":
+                    log_context = _build_log_context(
+                        cli_run_id=run_id,
+                        snapshot_label=summary.snapshot_label,
+                        model=ns.model,
+                        comments=batch_comments,
+                    )
+                result = client.analyze_batch(
+                    batch_index=idx,
+                    comments=batch_comments,
+                    log_context=log_context,
+                )
                 print(
-                    f"[batch {idx:03d}] Stored {stats.written} analyses ({stats.skipped} skipped)."
+                    f"[batch {idx:03d}] Received {len(result.analyses)} analyses; cumulative est cost ${cumulative_estimated_cost:.4f}"
                 )
-            recorded_at = datetime.utcnow().isoformat()
-            rows = _rows_for_insights_db(result.analyses, run_id, recorded_at)
-            if rows:
-                comment_llm_insights_db.insert_analyses(db_conn, rows)
-            execution_results.append(result)
-            comment_llm_insights_db.insert_run(
-                db_conn,
-                comment_llm_insights_db.RunRecord(
-                    run_id=run_id,
+                stats = comment_llm_store.save_comment_analyses(
+                    analyses=result.analyses,
                     snapshot_label=summary.snapshot_label,
                     provider=ns.provider,
                     model=ns.model,
-                    started_at=run_started_at.isoformat(),
-                    completed_batches=len(execution_results),
-                    total_batches=total_batches,
-                ),
-            )
+                    run_id=run_id,
+                    batch_index=idx,
+                    overwrite=ns.include_processed,
+                )
+                if stats.written or stats.skipped:
+                    print(
+                        f"[batch {idx:03d}] Stored {stats.written} analyses ({stats.skipped} skipped)."
+                    )
+                recorded_at = datetime.utcnow().isoformat()
+                rows = _rows_for_insights_db(result.analyses, run_id, recorded_at)
+                if rows:
+                    comment_llm_insights_db.insert_analyses(db_conn, rows)
+                execution_results.append(result)
+                comment_llm_insights_db.insert_run(
+                    db_conn,
+                    comment_llm_insights_db.RunRecord(
+                        run_id=run_id,
+                        snapshot_label=summary.snapshot_label,
+                        provider=ns.provider,
+                        model=ns.model,
+                        started_at=run_started_at.isoformat(),
+                        completed_batches=len(execution_results),
+                        total_batches=total_batches,
+                    ),
+                )
+        except KeyboardInterrupt:
+            print("\nInterrupted; stopping batch execution early.")
+            # fall through to persist whatever results we have
 
         output_path = (
             Path(ns.output_path)
@@ -979,6 +1134,7 @@ def main(argv: list[str] | None = None) -> int:
                 total_batches=total_batches,
             ),
         )
+    _queue_promotion_candidates(engine, execution_results, run_id)
     return 0
 
 

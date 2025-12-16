@@ -1,0 +1,7 @@
+<svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" width="16" height="16">
+  <rect x="4" y="6" width="16" height="13" rx="2.5" stroke="currentColor" stroke-width="1.5" />
+  <path d="M9 4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M15 4v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M9 14h3l-1.5-1.8m1.5 1.8L10.5 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M15 17h-3l1.5 1.8M13 17l1.5-1.8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

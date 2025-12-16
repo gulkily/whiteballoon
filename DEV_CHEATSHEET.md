@@ -26,7 +26,11 @@ cp .env.example .env                # Copy defaults and adjust as needed
 # CSS skins
 ./wb skins build               # Rebuild hashed bundles after editing static/skins
 ./wb skins watch               # Rebuild on change during frontend work
+./wb skins list                # Show discovered skins without rebuilding
 ```
+
+## UI Components
+- `templates/partials/action_menu.html` renders the shared overflow-menu (⋯ trigger) used on request and comment cards. Pass `actions=[{label, href?, method?, type?, attributes?, form_attributes?, hidden_fields?}]` and the helper will emit links, buttons, or forms inside the dropdown. The companion script `static/js/action-menu.js` handles open/close state, focus management, and outside-click dismissal automatically.
 
 ## Feature Development Process
 For every new feature or module, follow the four-step process in `FEATURE_DEVELOPMENT_PROCESS.md`:
@@ -34,6 +38,8 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 2. **Feature Description** – Define problem, user stories, core requirements, flow, success criteria.
 3. **Development Plan** – Break work into atomic stages (<2 hours), outline testing and risks.
 4. **Implementation** – Create a feature branch, ship each stage with tests, and document the outcome.
+   - Commit after every stage with a short verification note (e.g., curl/TestClient output) so we can revert to the last good hop if a later change stalls.
+   - Keep verification loops tiny: prove the data model works via `./wb init-db`, prove new endpoints with curl/TestClient, then move on to UI. Do not couple multiple stages into one big change.
 
 ## Core Architecture Reminders
 - `app/main.py` – App factory, middleware, and router registration
@@ -51,6 +57,13 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - When a Python handler needs to return HTML, render a template via `Jinja2Templates` instead of building strings inline.
 - If you introduce new views (CLI output, hub pages, etc.), create the template at the same time so we never accumulate inline HTML debt again.
 - **Dynamic updates**: When a page needs partial refreshes, use vanilla JavaScript (`fetch`) to call dedicated endpoints that return HTML or JSON snippets (see `static/js/comment-insights.js` for the pattern). Do not add HTMX/Stimulus or other frontend dependencies.
+- **Progressive enhancement path**: Build the JSON/redirect flow first, then layer optional JS snippets. Avoid inventing fragment/HTMX-style responses unless a requirement explicitly calls for them.
+
+## Implementation Discipline
+- Stage work per the planning doc and get each stage “green” (migration verified, endpoint callable, UI renders) before touching the next.
+- When writing temporary setup/cleanup utilities (tests, scripts), rely on SQLModel/ORM helpers or wrap raw SQL in `sqlalchemy.text()` so failures don’t mask real regressions.
+- Don’t let uncommitted work pile up—if you’re about to explore a risky change, commit what works first so you can recover quickly.
+- Capture verification evidence in `docs/plans/<feature>_step4_implementation_summary.md` immediately after testing each stage.
 
 ## Environment Variables
 ```bash
@@ -62,6 +75,7 @@ COOKIE_SECURE=false                 # Set true in production
 # Optional features
 ENABLE_CONTACT_EMAIL=true           # Allow users to store a contact email
 COMMENT_INSIGHTS_INDICATOR=false    # Show LLM insight badges inline (admin-only, default off)
+WB_PINNED_REQUESTS_LIMIT=3          # Max number of pinned requests shown above the feed
 ```
 
 ## Module Playbook (High-Level)

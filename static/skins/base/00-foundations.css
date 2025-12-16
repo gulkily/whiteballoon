@@ -69,8 +69,21 @@ dd + dd {
 }
 
 .container {
-  width: min(960px, 100% - 2rem);
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
+  padding-inline: clamp(1rem, 5vw, 3.5rem);
+}
+
+.container--wide {
+  padding-inline: clamp(0.75rem, 4vw, 2.5rem);
+}
+
+.container--narrow {
+  width: min(960px, 100%);
+  max-width: 960px;
+  margin: 0 auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
 }
 
 .stack {
@@ -174,8 +187,10 @@ form.inline {
     --space-card-gap: 1.25rem;
   }
 
-  .container {
-    width: min(100%, 100% - 1.25rem);
+  .container,
+  .container--wide,
+  .container--narrow {
+    padding-inline: 1rem;
   }
 }
 

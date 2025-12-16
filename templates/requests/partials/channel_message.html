@@ -1,0 +1,36 @@
+{% set display_name = comment.display_name or chat.comment_display_names.get(comment.user_id) or '@' ~ comment.username %}
+{% set promotion_entries = chat.comment_promotions.get(comment.id) if chat.comment_promotions else [] %}
+{% set latest_promotion = promotion_entries[-1] if promotion_entries else none %}
+{% set profile_href = '/people/' ~ comment.username %}
+<li
+  class="channel-message"
+  data-comment-id="{{ comment.id }}"
+  data-comment-username="{{ comment.username }}"
+  data-comment-display-name="{{ display_name }}"
+  {% if latest_promotion %}data-comment-promoted-request="{{ latest_promotion.request_id }}"{% endif %}
+>
+  <a class="channel-message__avatar" href="{{ profile_href }}" title="View {{ display_name }}'s profile">
+    {{ (display_name | trim)[:2] | upper }}
+  </a>
+  <div class="channel-message__content">
+    <div class="channel-message__meta">
+      <a class="channel-message__author" href="{{ profile_href }}" title="View {{ display_name }}'s profile">{{ display_name }}</a>
+      <a class="channel-message__time" href="/comments/{{ comment.id }}" title="View comment permalink">
+        <time datetime="{{ comment.created_at_iso or comment.created_at }}">{{ comment.created_at | friendly_time }}</time>
+      </a>
+    </div>
+    <div class="channel-message__text" data-comment-body-text>{{ comment.body | e | replace('\n', '<br />') | safe }}</div>
+    {% if chat.can_promote_comments %}
+      <div class="channel-message__footer">
+        <button
+          type="button"
+          class="button button--ghost button--small channel-message__action"
+          data-comment-promote
+          data-comment-promote-id="{{ comment.id }}"
+        >
+          Promote
+        </button>
+      </div>
+    {% endif %}
+  </div>
+</li>

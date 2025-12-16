@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block title %}Recurring Requests · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-recurring-requests>
+  <div class="card stack">
+    <h1>Recurring request templates</h1>
+    <p class="muted">Use templates to recreate chores, meetings, or reminders on a fixed cadence. Draft mode keeps the request private for review; publish mode posts directly to the feed.</p>
+    <form method="post" action="/requests/recurring" class="form-grid" data-recurring-form>
+      <div class="input-group">
+        <label for="template-title">Title <span class="muted">(optional)</span></label>
+        <input id="template-title" name="title" type="text" maxlength="200" />
+      </div>
+      <div class="input-group">
+        <label for="template-description">Description</label>
+        <textarea id="template-description" name="description" rows="4" required placeholder="Describe the recurring need"></textarea>
+      </div>
+      <div class="input-group">
+        <label for="template-contact">Contact email override <span class="muted">(optional)</span></label>
+        <input id="template-contact" name="contact_email_override" type="email" />
+      </div>
+      <div class="input-group">
+        <label for="template-interval-preset">Repeat cadence</label>
+        <select id="template-interval-preset" name="interval_preset" data-interval-preset>
+          <option value="">Custom interval</option>
+          {% for option in interval_options %}
+            <option value="{{ option.value }}">{{ option.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="input-group">
+        <label>Custom interval</label>
+        <div class="stack stack--row stack--gap-md">
+          <input name="custom_interval_value" type="number" min="1" value="1" data-custom-value />
+          <select name="custom_interval_unit" data-custom-unit>
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+            <option value="days" selected>Days</option>
+            <option value="weeks">Weeks</option>
+          </select>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="template-next-run">Next run <span class="muted">(optional)</span></label>
+        <input id="template-next-run" name="next_run_at" type="datetime-local" />
+      </div>
+      <div class="input-group">
+        <label for="template-mode">Delivery mode</label>
+        <select id="template-mode" name="delivery_mode">
+          {% for mode in delivery_modes %}
+            <option value="{{ mode.value }}">{{ mode.value|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="actions">
+        <button type="submit" class="button">Create template</button>
+      </div>
+    </form>
+  </div>
+
+  {% if templates %}
+    {% for entry in templates %}
+      {% set template = entry.record %}
+      <article class="card stack" data-recurring-template>
+        <header class="stack stack--row stack--center">
+          <div class="stack">
+            <h2 class="stack--no-margin">{{ template.title or 'Untitled template' }}</h2>
+            <p class="muted">Mode: {{ template.delivery_mode.value|capitalize }} · Interval: {{ template.interval_minutes }} min{% if template.paused %} · <strong>Paused</strong>{% endif %}</p>
+          </div>
+          <form method="post" action="/requests/recurring/{{ template.id }}/action">
+            <input type="hidden" name="action" value="{{ 'resume' if template.paused else 'pause' }}" />
+            <button type="submit" class="button button--ghost">{{ 'Resume' if template.paused else 'Pause' }}</button>
+          </form>
+          <form method="post" action="/requests/recurring/{{ template.id }}/action" onsubmit="return confirm('Delete this template?');">
+            <input type="hidden" name="action" value="delete" />
+            <button type="submit" class="button button--danger">Delete</button>
+          </form>
+        </header>
+
+        <p>{{ template.description }}</p>
+        <dl class="meta-grid">
+          <div>
+            <dt>Next run</dt>
+            <dd>{{ template.next_run_at or 'Not scheduled' }}</dd>
+          </div>
+          <div>
+            <dt>Last run</dt>
+            <dd>{{ template.last_run_at or '—' }}</dd>
+          </div>
+          <div>
+            <dt>Contact email</dt>
+            <dd>{{ template.contact_email_override or 'Uses profile email' }}</dd>
+          </div>
+          <div>
+            <dt>Last error</dt>
+            <dd>{{ template.last_error or 'None' }}</dd>
+          </div>
+        </dl>
+
+        <details>
+          <summary>Edit template</summary>
+          <form method="post" action="/requests/recurring/{{ template.id }}/action" class="form-grid" data-recurring-form>
+            <input type="hidden" name="action" value="edit" />
+            <div class="input-group">
+              <label>Title</label>
+              <input name="title" type="text" maxlength="200" value="{{ template.title or '' }}" />
+            </div>
+            <div class="input-group">
+              <label>Description</label>
+              <textarea name="description" rows="3">{{ template.description }}</textarea>
+            </div>
+            <div class="input-group">
+              <label>Contact email override</label>
+              <input name="contact_email_override" type="email" value="{{ template.contact_email_override or '' }}" />
+            </div>
+            <div class="input-group">
+              <label>Repeat cadence</label>
+              <select name="interval_preset" data-interval-preset>
+                <option value="">Custom interval</option>
+                {% for option in interval_options %}
+                  <option value="{{ option.value }}"{% if entry.interval_preset == option.value %} selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Custom interval</label>
+              <div class="stack stack--row stack--gap-md">
+                <input name="custom_interval_value" type="number" min="1" value="{{ entry.custom_interval_value }}" data-custom-value />
+                <select name="custom_interval_unit" data-custom-unit>
+                  <option value="minutes"{% if entry.custom_interval_unit == 'minutes' %} selected{% endif %}>Minutes</option>
+                  <option value="hours"{% if entry.custom_interval_unit == 'hours' %} selected{% endif %}>Hours</option>
+                  <option value="days"{% if entry.custom_interval_unit == 'days' %} selected{% endif %}>Days</option>
+                  <option value="weeks"{% if entry.custom_interval_unit == 'weeks' %} selected{% endif %}>Weeks</option>
+            </select>
+          </div>
+        </div>
+            <div class="input-group">
+              <label>Next run</label>
+              <input name="next_run_at" type="datetime-local" value="{{ template.next_run_at.strftime('%Y-%m-%dT%H:%M') if template.next_run_at else '' }}" />
+            </div>
+            <div class="input-group">
+              <label>Delivery mode</label>
+              <select name="delivery_mode">
+                {% for mode in delivery_modes %}
+                  <option value="{{ mode.value }}"{% if mode == template.delivery_mode %} selected{% endif %}>{{ mode.value|capitalize }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="actions">
+              <button type="submit" class="button">Save changes</button>
+            </div>
+          </form>
+        </details>
+      </article>
+    {% endfor %}
+  {% else %}
+    <div class="card">
+      <p class="muted">No recurring templates yet. Use the form above to create your first one.</p>
+    </div>
+  {% endif %}
+</section>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-recurring-form]').forEach((form) => {
+      const presetField = form.querySelector('[data-interval-preset]');
+      const valueField = form.querySelector('[data-custom-value]');
+      const unitField = form.querySelector('[data-custom-unit]');
+      if (!presetField || !valueField || !unitField) {
+        return;
+      }
+      presetField.addEventListener('change', () => {
+        if (!presetField.value) {
+          return;
+        }
+        unitField.value = 'minutes';
+        valueField.value = presetField.value;
+      });
+      const clearPreset = () => {
+        if (presetField.value) {
+          presetField.value = '';
+        }
+      };
+      valueField.addEventListener('input', clearPreset);
+      unitField.addEventListener('change', clearPreset);
+    });
+  });
+</script>
+{% endblock %}

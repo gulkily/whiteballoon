@@ -1,0 +1,63 @@
+{% macro render_attributes(attrs) -%}
+  {%- if attrs -%}
+    {%- for key, value in attrs.items() if value is not none -%}
+      {{ ' ' ~ key }}="{{ value }}"
+    {%- endfor -%}
+  {%- endif -%}
+{%- endmacro %}
+{% set actions = actions or [] %}
+{% if actions %}
+  {% set trigger_label = trigger_label or 'Actions' %}
+  {% set trigger_icon = trigger_icon or '⋯' %}
+  <div class="action-menu" data-action-menu>
+    <button
+      type="button"
+      class="action-menu__trigger"
+      data-action-menu-trigger
+      aria-haspopup="true"
+      aria-expanded="false"
+      aria-label="{{ trigger_label }}"
+    >
+      <span class="action-menu__trigger-icon" aria-hidden="true">{{ trigger_icon }}</span>
+      <span class="sr-only">{{ trigger_label }}</span>
+    </button>
+    <div class="action-menu__list" role="menu" data-action-menu-panel>
+      {% for item in actions %}
+        {% set label = item.label or 'Action' %}
+        {% set icon = item.icon or none %}
+        {% set method = (item.method or 'GET') | upper %}
+        {% set attrs = item.attributes or {} %}
+        {% if item.href and method == 'GET' %}
+          <a
+            href="{{ item.href }}"
+            class="action-menu__item"
+            role="menuitem"
+            {% if item.target %}target="{{ item.target }}"{% endif %}
+            {% if item.rel %}rel="{{ item.rel }}"{% endif %}
+            {{ render_attributes(attrs) }}
+          >
+            {% if icon %}<span class="action-menu__icon" aria-hidden="true">{{ icon }}</span>{% endif %}
+            <span class="action-menu__label">{{ label }}</span>
+          </a>
+        {% elif item.href %}
+          {% set form_attrs = item.form_attributes or {} %}
+          {% set hidden_fields = item.hidden_fields or [] %}
+          <form method="{{ method | lower }}" action="{{ item.href }}" class="action-menu__form" {{ render_attributes(form_attrs) }}>
+            {% for field in hidden_fields %}
+              <input type="hidden" name="{{ field.name | e }}" value="{{ field.value | e }}" />
+            {% endfor %}
+            <button type="submit" class="action-menu__item" role="menuitem" {{ render_attributes(attrs) }}>
+              {% if icon %}<span class="action-menu__icon" aria-hidden="true">{{ icon }}</span>{% endif %}
+              <span class="action-menu__label">{{ label }}</span>
+            </button>
+          </form>
+        {% else %}
+          <button type="button" class="action-menu__item" role="menuitem" {{ render_attributes(attrs) }}>
+            {% if icon %}<span class="action-menu__icon" aria-hidden="true">{{ icon }}</span>{% endif %}
+            <span class="action-menu__label">{{ label }}</span>
+          </button>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+{% endif %}

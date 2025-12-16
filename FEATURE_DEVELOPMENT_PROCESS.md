@@ -75,7 +75,10 @@ Each step MUST be a separate file in `docs/plans/`:
 - **Step 3**: `{feature_name}_step3_development_plan.md`
 - **Step 4**: `{feature_name}_step4_implementation_summary.md`
 
+**Directory structure**: When a feature has four or more planning artifacts (e.g., all Step 1–4 docs and auxiliary stage files), place them inside `docs/plans/{feature_name}/`. Keep smaller single-file efforts at the root until they grow, and update `docs/plans/README.md` with any new folder so others can navigate the directory.
+
 **Commit Discipline**: Keep each stage’s document uncommitted until the user reviews it. Commit only after approval and immediately before starting the next stage to keep IDE “dirty file” views meaningful.
+**Plan Review**: Do not commit Step 1–3 plan files until the user explicitly reviews and approves them. Deliver the drafts for feedback, wait for “Approved Step N”, then commit before beginning development.
 
 ## Key Rules
 
@@ -89,6 +92,7 @@ Each step MUST be a separate file in `docs/plans/`:
 - Flag scope creep and return to the appropriate planning step when needed
 - If the projected work exceeds roughly a day of effort or would require more than about eight Step 3 stages, recommend breaking the effort into multiple features before proceeding.
 - **AVOID database schema changes when possible** – prefer using existing models and fields
+- To help us stay on track, reprint the instructions for each step before proceeding with it.
 
 **User**:
 - Review and approve explicitly at each step

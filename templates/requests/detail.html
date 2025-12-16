@@ -67,19 +67,191 @@
     {% set item = request_item %}
     {% set show_detail_link = False %}
     {% set show_meta = False %}
+    {% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
     <div class="request-detail">
       {% include "requests/partials/item.html" %}
     </div>
   </div>
 </section>
 
+{% if comment_insights_summary %}
+<section class="section comment-insights-section">
+  <article class="card stack comment-insights-card">
+    <header class="stack">
+      <p class="muted small-text">Comment insights</p>
+      <h2>AI tags across this thread</h2>
+      <div class="comment-insights-card__actions">
+        <span class="muted small-text" data-insight-counter>
+          {% if insight_filters_active %}
+            Showing {{ comment_visible_count }} of {{ comment_total_count }}
+          {% endif %}
+        </span>
+        <a class="button button--ghost button--small" href="{{ insight_reset_url }}">Reset</a>
+      </div>
+    </header>
+    <div class="comment-insights-card__groups">
+      {% if comment_insights_summary.resource_tags %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Resource tags</p>
+          <div class="comment-insights-card__chips">
+            {% for tag in comment_insights_summary.resource_tags %}
+              {% set tag_value = tag.slug %}
+              {% set resource_href = request.url.remove_query_params('insight_resource').include_query_params(insight_resource=tag_value) %}
+              <a
+                class="meta-chip meta-chip--small{% if tag_value in insight_filters.resource %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                href="{{ resource_href }}"
+                data-insight-chip="resource"
+                data-insight-value="{{ tag_value }}"
+                {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+              >
+                {{ tag.label }}{% if tag.count > 1 %} <span class="comment-insights-card__count">{{ tag.count }}</span>{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if comment_insights_summary.request_tags %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Request tags</p>
+          <div class="comment-insights-card__chips">
+            {% for tag in comment_insights_summary.request_tags %}
+              {% set tag_value = tag.slug %}
+              {% set request_href = request.url.remove_query_params('insight_request').include_query_params(insight_request=tag_value) %}
+              <a
+                class="meta-chip meta-chip--small meta-chip--ghost{% if tag_value in insight_filters.request %} is-active{% endif %}{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                href="{{ request_href }}"
+                data-insight-chip="request"
+                data-insight-value="{{ tag_value }}"
+                {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+              >
+                {{ tag.label }}{% if tag.count > 1 %} <span class="comment-insights-card__count">{{ tag.count }}</span>{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if comment_insights_summary.urgency %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Urgency</p>
+          <div class="comment-insights-card__chips">
+            {% for item in comment_insights_summary.urgency %}
+              {% set tag_value = item.label | lower %}
+              {% set urgency_href = request.url.remove_query_params('insight_urgency').include_query_params(insight_urgency=tag_value) %}
+              <a
+                class="meta-chip meta-chip--status{% if tag_value in insight_filters.urgency %} is-active{% endif %}"
+                href="{{ urgency_href }}"
+                data-insight-chip="urgency"
+                data-insight-value="{{ tag_value }}"
+              >
+                {{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      {% if comment_insights_summary.sentiment %}
+        <div class="comment-insights-card__group">
+          <p class="muted small-text">Sentiment</p>
+          <div class="comment-insights-card__chips">
+            {% for item in comment_insights_summary.sentiment %}
+              {% set tag_value = item.label | lower %}
+              {% set sentiment_href = request.url.remove_query_params('insight_sentiment').include_query_params(insight_sentiment=tag_value) %}
+              <a
+                class="meta-chip{% if tag_value in insight_filters.sentiment %} is-active{% endif %}"
+                href="{{ sentiment_href }}"
+                data-insight-chip="sentiment"
+                data-insight-value="{{ tag_value }}"
+              >
+                {{ item.label }}{% if item.count > 1 %} ×{{ item.count }}{% endif %}
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </article>
+</section>
+{% endif %}
+
+{% if promoted_comment_context %}
+<section class="section promoted-comment-section">
+  <article class="card stack promoted-comment-card">
+    <header class="stack promoted-comment-card__header">
+      <div>
+        <p class="muted small-text">Derived from comment</p>
+        <h2>Original comment #{{ promoted_comment_context.comment.id }}</h2>
+      </div>
+      <a class="button button--ghost" href="/comments/{{ promoted_comment_context.comment.id }}">View comment</a>
+    </header>
+    <div class="promoted-comment-card__body">
+      <p class="muted small-text">
+        Posted by @{{ promoted_comment_context.comment.username }} ·
+        <time datetime="{{ promoted_comment_context.comment.created_at_iso }}">{{ promoted_comment_context.comment.created_at | friendly_time }}</time>
+      </p>
+      <p>{{ promoted_comment_context.comment.body }}</p>
+    </div>
+    {% if promoted_comment_context.insight %}
+      <div class="promoted-comment-card__insight">
+        {% if promoted_comment_context.insight.summary %}
+          <p class="promoted-comment-card__summary">{{ promoted_comment_context.insight.summary }}</p>
+        {% endif %}
+        <div class="promoted-comment-card__tags">
+          {% set promoted_resource_tags = promoted_comment_context.insight.resource_tag_colors %}
+          {% if promoted_resource_tags %}
+            <div class="promoted-comment-card__tag-group">
+              <span class="muted small-text">Resource tags</span>
+              <div class="promoted-comment-card__chips">
+                {% for tag in promoted_resource_tags %}
+                  <span class="meta-chip meta-chip--small{% if tag.hue is not none %} meta-chip--tagged{% endif %}" {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}>{{ tag.label }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+          {% set promoted_request_tags = promoted_comment_context.insight.request_tag_colors %}
+          {% if promoted_request_tags %}
+            <div class="promoted-comment-card__tag-group">
+              <span class="muted small-text">Request tags</span>
+              <div class="promoted-comment-card__chips">
+                {% for tag in promoted_request_tags %}
+                  <span
+                    class="meta-chip meta-chip--small meta-chip--ghost{% if tag.hue is not none %} meta-chip--tagged{% endif %}"
+                    {% if tag.hue is not none %}style="--tag-hue: {{ tag.hue }}deg"{% endif %}
+                  >{{ tag.label }}</span>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+          {% if promoted_comment_context.insight.urgency %}
+            <span class="meta-chip meta-chip--status">Urgency · {{ promoted_comment_context.insight.urgency | title }}</span>
+          {% endif %}
+          {% if promoted_comment_context.insight.sentiment %}
+            <span class="meta-chip">Sentiment · {{ promoted_comment_context.insight.sentiment | title }}</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </article>
+</section>
+{% endif %}
+
 <section class="section request-comments-section">
   <div class="card stack request-comments" data-comment-section>
+    {% if show_chat_search_panel %}
     <div class="request-chat-search" data-chat-search data-request-id="{{ request_id }}">
       <div class="request-chat-search__header stack">
-        <h2 class="h5">Search chat</h2>
+        <div class="request-chat-search__header-row">
+          <h2 class="h5">Search chat</h2>
+          <button
+            type="button"
+            class="button button--ghost button--small"
+            data-chat-search-toggle
+            aria-expanded="false"
+            aria-controls="chat-search-panel"
+          >Show</button>
+        </div>
         <p class="muted small-text">Find specific promises, contacts, or logistics inside this chat.</p>
       </div>
+      <div class="request-chat-search__body" id="chat-search-panel" data-chat-search-panel hidden>
       <form class="request-chat-search__form" method="get" action="{{ request.url.path }}" data-chat-search-form>
         <input type="hidden" name="page" value="{{ pagination.current_page }}" />
         <label class="request-chat-search__label">
@@ -109,7 +281,7 @@
               'display_name': match.display_name or comment_display_names.get(match.user_id),
               'created_at': match.created_at,
               'created_at_iso': match.created_at,
-              'body_html': match.body,
+              'body': match.body,
               'topics': match.topics,
               'ai_topics': match.ai_topics,
               'comment_anchor': match.anchor
@@ -160,14 +332,20 @@
           </ul>
         </div>
       {% endif %}
+      </div>
     </div>
+    {% endif %}
     {% if comments %}
-      <ul class="request-comments__list" data-comment-list>
+      <ul class="request-comments__list" data-comment-list data-visible-count="{{ comment_visible_count }}" data-total-count="{{ comments | length }}">
         {% for comment in comments %}
           {% include "requests/partials/comment.html" %}
         {% endfor %}
       </ul>
-      {% if pagination.total_pages > 1 %}
+      {% if insight_filters_active %}
+        <div class="request-comments__pagination">
+          <p class="muted small-text">Showing {{ comment_visible_count }} comment{{ 's' if comment_visible_count != 1 else '' }} matching the selected filters.</p>
+        </div>
+      {% elif pagination.total_pages > 1 %}
         <div class="request-comments__pagination">
           <p class="muted small-text">Showing page {{ pagination.current_page }} of {{ pagination.total_pages }} · {{ pagination.total_comments }} total comment{{ 's' if pagination.total_comments != 1 else '' }}</p>
           <div class="request-comments__pagination-actions">
@@ -185,6 +363,11 @@
         </div>
       {% endif %}
     {% else %}
+      {% if insight_filters_active %}
+        <div class="card">
+          <p class="muted">No comments match the selected insight filters.</p>
+        </div>
+      {% endif %}
       <ul class="request-comments__list" data-comment-list hidden></ul>
     {% endif %}
 
@@ -219,6 +402,44 @@
     {% endif %}
   </div>
 </section>
+{% if can_promote_comments %}
+  <dialog class="request-comment__modal" data-comment-promote-modal>
+    <form class="stack" data-comment-promote-form>
+      <h2>Promote comment to request</h2>
+      <p class="small-text" data-comment-promote-context></p>
+      <div class="alert alert--warning" data-comment-promote-warning hidden>
+        <p data-comment-promote-warning-text></p>
+      </div>
+      <label class="stack">
+        <span>Summary</span>
+        <textarea rows="4" data-comment-promote-description required></textarea>
+      </label>
+      <label class="stack">
+        <span>Contact email (optional)</span>
+        <input type="email" data-comment-promote-contact />
+      </label>
+      <label class="stack">
+        <span>Status</span>
+        <select data-comment-promote-status>
+          <option value="open">Open</option>
+          <option value="pending">Pending</option>
+        </select>
+      </label>
+      <label class="stack" data-comment-promote-override-row hidden>
+        <span class="small-text">Create another request even though this comment was promoted before</span>
+        <div class="form-check">
+          <input type="checkbox" data-comment-promote-override />
+          <span>Allow duplicate promotion</span>
+        </div>
+      </label>
+      <div class="alert alert--error" data-comment-promote-error hidden></div>
+      <div class="request-comments__form-footer">
+        <button type="button" class="button button--ghost" data-comment-promote-cancel>Cancel</button>
+        <button type="submit" class="button" data-comment-promote-submit>Create request</button>
+      </div>
+  </form>
+</dialog>
+{% endif %}
 <template id="chat-search-result-template">
   <li class="request-chat-search__result" data-comment-id>
     <div class="request-chat-search__identity">
@@ -235,4 +456,7 @@
 <script src="/static/js/request-comments.js" defer></script>
 <script src="/static/js/request-chat-search.js" defer></script>
 <script src="/static/js/comment-insight-badges.js" defer></script>
+{% if can_promote_comments %}
+<script src="/static/js/comment-promotion.js" defer></script>
+{% endif %}
 {% endblock %}

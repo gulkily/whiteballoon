@@ -7,9 +7,21 @@
 {% endblock %}
 
 {% block content %}
+{% import "partials/caption.html" as captions %}
+{% set draft_requests = draft_requests if draft_requests is defined else [] %}
+{% set has_drafts = draft_requests|length > 0 %}
 {% set readonly = readonly if readonly is defined else False %}
 {% set session = session if session is defined else None %}
-<section class="section">
+{% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
+{% set signal_ledger_active = skin_active_name(request) == 'signal-ledger' %}
+<section class="section request-list-layout">
+  <div class="request-list__filter">
+    {% include "requests/partials/filter_bar.html" %}
+  </div>
+  <div class="request-list__content">
+  {% if signal_ledger_active %}
+    {% include "requests/partials/signal_ledger_metrics.html" %}
+  {% endif %}
   <div
     class="card stack requests-hero is-collapsed"
     id="request-form-card"
@@ -25,10 +37,14 @@
         <a class="button button--secondary" href="/invite/new">Send Welcome</a>
         <button type="button" class="button" data-request-action="show-form">Share a request</button>
       </header>
-      <p class="muted">View the latest needs below or add a new one.</p>
+      {{ captions.render(requests_caption) }}
     </div>
 
     <form method="post" action="/requests" class="form-grid" data-request-form hidden>
+      <input type="hidden" name="draft_id" value="" data-request-draft-id />
+      <p class="muted" data-request-draft-indicator hidden>
+        Editing draft <span data-request-draft-label></span>
+      </p>
       <div class="input-group">
         <label for="description">How can we help?</label>
         <textarea id="description" name="description" placeholder="Share the need" required></textarea>
@@ -38,7 +54,9 @@
         <input id="contact_email" name="contact_email" type="email" value="{{ user.contact_email or '' }}" />
       </div>
       <div class="actions">
-        <button type="submit" class="button">Post request</button>
+        <button type="submit" class="button">Publish request</button>
+        <button type="button" class="button button--secondary" data-request-action="save-draft">Save draft</button>
+        <button type="button" class="button button--ghost" data-request-action="reset-draft">Discard draft</button>
         <button type="button" class="button button--ghost" data-request-action="cancel-form">Cancel</button>
       </div>
       <div class="muted" data-request-status role="status"></div>
@@ -62,8 +80,82 @@
     </noscript>
   </div>
 
-  <div id="request-list" data-request-list data-readonly="{{ 'true' if readonly else 'false' }}">
+  <section
+    class="card stack request-drafts"
+    data-request-drafts
+    data-has-drafts="{{ 'true' if has_drafts else 'false' }}"
+    {% if not has_drafts %}hidden style="display:none;"{% endif %}>
+    <header class="stack stack--row stack--center">
+      <h2 class="grow">Drafts</h2>
+      <p class="muted" data-request-draft-count>{{ draft_requests|length }} in progress</p>
+    </header>
+    <div class="stack" data-request-draft-list>
+      {% for draft in draft_requests %}
+        <article class="request-draft"
+                 data-request-draft
+                 data-draft-id="{{ draft.id }}"
+                 data-draft-description="{{ draft.description | default('', true) | e }}"
+                 data-draft-contact="{{ draft.contact_email | default('', true) | e }}">
+        <header class="request-draft__meta">
+          <span class="meta-chip meta-chip--status meta-chip--muted">
+            <span class="meta-chip__label">Status</span>
+            <span class="meta-chip__value">Draft</span>
+          </span>
+          {% if draft.recurring_template_title %}
+            <span class="meta-chip">
+              <span class="meta-chip__label">Template</span>
+              <span class="meta-chip__value">{{ draft.recurring_template_title }}</span>
+            </span>
+          {% endif %}
+          <time class="meta-chip meta-chip--timestamp" datetime="{{ draft.updated_at }}">
+            <span class="meta-chip__label">Updated</span>
+            <span class="meta-chip__value">{{ draft.updated_at | friendly_time }}</span>
+          </time>
+        </header>
+          <p class="request-draft__summary">{{ draft.description or 'No additional details yet.' }}</p>
+          <div class="actions">
+            {% if draft.contact_email %}
+              <span class="muted">Contact: {{ draft.contact_email }}</span>
+            {% endif %}
+            <div>
+              <button type="button" class="button button--ghost"
+                      data-draft-action="edit"
+                      data-draft-id="{{ draft.id }}">
+                Edit
+              </button>
+              <button type="button" class="button"
+                      data-draft-action="publish"
+                      data-draft-id="{{ draft.id }}">
+                Publish
+              </button>
+              <button type="button" class="button button--ghost"
+                      data-draft-action="delete"
+                      data-draft-id="{{ draft.id }}">
+                Delete
+              </button>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+    <p class="muted" data-request-draft-empty {% if has_drafts %}hidden{% endif %}>Saved drafts will appear here.</p>
+  </section>
+
+  {% if pinned_requests %}
+    <section class="card pinned-requests" aria-label="Pinned requests">
+      <div class="pinned-requests__grid">
+        {% for pinned in pinned_requests %}
+          {% with show_pin_badge = True, item = pinned %}
+            {% include "requests/partials/item.html" %}
+          {% endwith %}
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <div id="request-list" data-request-list data-readonly="{{ 'true' if readonly else 'false' }}" data-can-pin="{{ 'true' if can_pin_requests else 'false' }}">
     {% include "requests/partials/list.html" %}
+  </div>
   </div>
 </section>
 {% endblock %}

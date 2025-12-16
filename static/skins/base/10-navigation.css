@@ -212,7 +212,58 @@
 .account-nav {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+}
+
+.account-nav__primary {
+  display: inline-flex;
+  gap: 0.35rem;
+  flex-wrap: nowrap;
+}
+
+.account-nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+}
+
+.account-nav__link-icon svg {
+  display: block;
+}
+
+.account-nav__link-label {
+  line-height: 1;
+}
+
+.account-nav__link {
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  color: inherit;
+  transition: background 0.2s ease, border 0.2s ease, color 0.2s ease;
+}
+
+.account-nav__link:hover,
+.account-nav__link:focus-visible {
+  border-color: rgba(148, 163, 184, 0.4);
+  background: rgba(148, 163, 184, 0.1);
+}
+
+[data-theme="dark"] .account-nav__link:hover,
+[data-theme="dark"] .account-nav__link:focus-visible {
+  border-color: rgba(226, 232, 240, 0.35);
+  background: rgba(226, 232, 240, 0.08);
+}
+
+.account-nav__utility {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
 }
 
 .account-nav__user {
@@ -256,6 +307,10 @@
 .account-nav__name {
   font-size: var(--font-size-base);
   font-weight: 600;
+}
+
+.account-nav__signout .button {
+  padding: 0.35rem 0.8rem;
 }
 
 .theme-toggle-wrapper {
@@ -352,7 +407,20 @@
   .nav-mobile-panel .account-nav {
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.75rem;
+    gap: 1rem;
+  }
+
+  .nav-mobile-panel .account-nav__primary,
+  .nav-mobile-panel .account-nav__utility {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .nav-mobile-panel .account-nav__link,
+  .nav-mobile-panel .account-nav__signout .button {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
   }
 
   .nav-mobile-panel .account-status {

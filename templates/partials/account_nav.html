@@ -3,38 +3,43 @@
 {% set avatar_url = session_avatar_url if session_avatar_url is defined else None %}
 {% set show_admin = user.is_admin %}
 {% set show_half_auth = session and (not session.is_fully_authenticated) %}
+{% set primary_links = [
+  {"label": "Requests", "href": "/requests/channels", "icon": "partials/icons/nav_requests.svg"},
+  {"label": "Comments", "href": "/browse?tab=comments", "icon": "partials/icons/nav_comments.svg"},
+  {"label": "Browse", "href": "/browse", "icon": "partials/icons/nav_browse.svg"},
+  {"label": "Menu", "href": "/menu", "icon": "partials/icons/nav_menu.svg"},
+] %}
 <div class="account-nav">
-  <a class="button button--ghost" href="/menu">Menu</a>
-  {% if session_role %}
-    {% if show_admin %}
-      <a class="account-status__tag account-status__tag--role account-status__tag--link" href="/admin" data-session-role>
-        {{ session_role.label }}
+  <nav class="account-nav__primary" aria-label="Primary">
+    {% for link in primary_links %}
+      <a class="account-nav__link" href="{{ link.href }}">
+        <span class="account-nav__link-icon">{% include link.icon %}</span>
+        <span class="account-nav__link-label">{{ link.label }}</span>
       </a>
-    {% else %}
-      <span class="account-status__tag account-status__tag--role" data-session-role>{{ session_role.label }}</span>
-    {% endif %}
-  {% endif %}
-  <a class="account-nav__user" href="/profile">
-    <span class="account-nav__avatar" aria-hidden="true">
-      {% if avatar_url %}
-        <img src="{{ avatar_url }}" alt="" />
+    {% endfor %}
+  </nav>
+  <div class="account-nav__utility">
+    {% if session_role %}
+      {% if show_admin %}
+        <a class="account-status__tag account-status__tag--role account-status__tag--link" href="/admin" data-session-role>
+          Admin
+        </a>
       {% else %}
-        <span class="account-nav__avatar-initials">{{ user.username[:2] | upper }}</span>
+        <span class="account-status__tag account-status__tag--role" data-session-role>{{ session_role.label }}</span>
       {% endif %}
-    </span>
-    <span class="account-nav__name">@{{ user.username }}</span>
-    {% if show_admin or show_half_auth %}
-      <span class="account-status" aria-label="Account status">
-        {% if show_admin %}
-          <span class="account-status__tag account-status__tag--admin" title="Administrator access">Admin</span>
-        {% endif %}
-        {% if show_half_auth %}
-          <span class="account-status__tag account-status__tag--half" title="Complete verification to unlock full access">Half-auth</span>
+    {% endif %}
+    {% if show_half_auth %}
+      <span class="account-status__tag account-status__tag--half" title="Complete verification to unlock full access">Half-auth</span>
+    {% endif %}
+    <a class="account-nav__user" href="/profile">
+      <span class="account-nav__avatar" aria-hidden="true">
+        {% if avatar_url %}
+          <img src="{{ avatar_url }}" alt="" />
+        {% else %}
+          <span class="account-nav__avatar-initials">{{ user.username[:2] | upper }}</span>
         {% endif %}
       </span>
-    {% endif %}
-  </a>
-  <form action="/logout" method="post" class="inline">
-    <button type="submit" class="button button--ghost">Sign out</button>
-  </form>
+      <span class="account-nav__name">@{{ user.username }}</span>
+    </a>
+  </div>
 </div>

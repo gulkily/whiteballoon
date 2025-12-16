@@ -62,7 +62,7 @@ The endpoint simply logs the event/category, viewer ID, subject ID, and metadata
   ./wb signal-profile freshness --all
   ```
 
-> Note: `./wb comment-llm --snapshot-label ...` is part of the comment insights labeling workflow. It does **not** create Signal profile bios. Always run the three `signal-profile` subcommands above when you need member profiles to update.
+> Note: `./wb chat llm --snapshot-label ...` (legacy alias `./wb comment-llm`) is part of the comment insights labeling workflow. It does **not** create Signal profile bios. Always run the three `signal-profile` subcommands above when you need member profiles to update.
 
 ### One-touch pipeline
 Use the orchestration command to run comment analyses and glazing together:
@@ -73,11 +73,11 @@ Use the orchestration command to run comment analyses and glazing together:
 
 Options:
 - `--username` / `--user-id` / `--all` – choose who to process (repeatable).
-- `--comment-provider` / `--comment-model` / `--comment-batch-size` / `--comment-max-spend-usd` – forwarded to the comment insights LLM runner (defaults match `wb comment-llm`).
+- `--comment-provider` / `--comment-model` / `--comment-batch-size` / `--comment-max-spend-usd` – forwarded to the comment insights LLM runner (defaults match `wb chat llm`).
 - `--glaze-model` and `--group-slug` – passed to the glazing step.
 - `--dry-run` – plan comment batches only; skip LLM execution and glaze writes.
 
-Under the hood the command calls `wb comment-llm` with `--user-id` filters (added for this workflow) so only the specified member’s comments are labeled before their snapshot + glaze run.
+Under the hood the command calls `wb chat llm` with `--user-id` filters (added for this workflow) so only the specified member’s comments are labeled before their snapshot + glaze run.
 
 ## Failure Handling & Runbook
 - Guardrail violations or LLM errors automatically fall back to deterministic bios while recording the issue list inside each JSON output.

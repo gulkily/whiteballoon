@@ -41,7 +41,12 @@ class HelpRequest(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: Optional[str] = Field(default=None, max_length=200)
     description: str = Field(default="", max_length=4000)
-    status: str = Field(default="open", index=True, nullable=False)
+    status: str = Field(
+        default="open",
+        index=True,
+        nullable=False,
+        description="Valid statuses: draft, pending, open, completed.",
+    )
     contact_email: Optional[str] = Field(default=None, max_length=255)
     created_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
@@ -49,6 +54,48 @@ class HelpRequest(SQLModel, table=True):
     completed_at: Optional[datetime] = Field(default=None)
     sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
+
+HELP_REQUEST_STATUS_DRAFT = "draft"
+HELP_REQUEST_STATUS_PENDING = "pending"
+HELP_REQUEST_STATUS_OPEN = "open"
+HELP_REQUEST_STATUS_COMPLETED = "completed"
+
+
+class RecurringRequestDeliveryMode(str, Enum):
+    draft = "draft"
+    publish = "publish"
+
+
+class RecurringRequestTemplate(SQLModel, table=True):
+    __tablename__ = "recurring_request_templates"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    created_by_user_id: int = Field(foreign_key="users.id", nullable=False, index=True)
+    title: Optional[str] = Field(default=None, max_length=200)
+    description: str = Field(default="", sa_column=Column(Text, nullable=False))
+    contact_email_override: Optional[str] = Field(default=None, max_length=255)
+    delivery_mode: RecurringRequestDeliveryMode = Field(
+        default=RecurringRequestDeliveryMode.draft,
+        sa_column=Column(SAEnum(RecurringRequestDeliveryMode), nullable=False),
+    )
+    interval_minutes: int = Field(default=0, nullable=False)
+    next_run_at: Optional[datetime] = Field(default=None, index=True)
+    last_run_at: Optional[datetime] = Field(default=None)
+    paused: bool = Field(default=False, nullable=False)
+    last_error: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
+class RecurringRequestRun(SQLModel, table=True):
+    __tablename__ = "recurring_request_runs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    template_id: int = Field(foreign_key="recurring_request_templates.id", nullable=False, index=True)
+    request_id: Optional[int] = Field(default=None, foreign_key="help_requests.id")
+    status: str = Field(default="success", max_length=32, nullable=False)
+    error_message: Optional[str] = Field(default=None, sa_column=Column(Text, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 
 class RequestComment(SQLModel, table=True):
@@ -62,6 +109,43 @@ class RequestComment(SQLModel, table=True):
     deleted_at: Optional[datetime] = Field(default=None)
     sync_scope: str = Field(default="private", sa_column=Column(String, nullable=False, default="private"))
 
+
+class CommentPromotion(SQLModel, table=True):
+    __tablename__ = "comment_promotions"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    comment_id: int = Field(foreign_key="request_comments.id", nullable=False, index=True)
+    request_id: int = Field(foreign_key="help_requests.id", nullable=False, index=True)
+    created_by_user_id: int = Field(foreign_key="users.id", nullable=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+
+
+class CommentAttribute(SQLModel, table=True):
+    __tablename__ = "comment_attributes"
+    __table_args__ = (UniqueConstraint("comment_id", "key", name="ux_comment_attributes_comment_key"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    comment_id: int = Field(foreign_key="request_comments.id", nullable=False, index=True)
+    key: str = Field(sa_column=Column(String, nullable=False))
+    value: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    updated_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+
+
+class RequestAttribute(SQLModel, table=True):
+    __tablename__ = "request_attributes"
+    __table_args__ = (UniqueConstraint("request_id", "key", name="ux_request_attributes_request_key"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    request_id: int = Field(foreign_key="help_requests.id", nullable=False, index=True)
+    key: str = Field(sa_column=Column(String, nullable=False))
+    value: Optional[str] = Field(default=None, sa_column=Column(String, nullable=True))
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    updated_by_user_id: Optional[int] = Field(default=None, foreign_key="users.id")
 
 
 def _generate_invite_token() -> str:

@@ -2,6 +2,8 @@
 
 {% block title %}Account Settings · WhiteBalloon{% endblock %}
 
+{% block main_class %} container--narrow{% endblock %}
+
 {% block nav %}
   {% include "partials/account_nav.html" %}
 {% endblock %}
@@ -41,6 +43,21 @@
       </label>
       <p class="muted small-text">
         We use this to send replies to your requests. Leave blank if you prefer not to share it.
+      </p>
+    </div>
+
+    <div class="stack helper-toggle">
+      <label class="checkbox">
+        <input
+          type="checkbox"
+          name="hide_helper_captions"
+          value="1"
+          {% if form_values.hide_helper_captions %}checked{% endif %}
+        />
+        Hide helper captions
+      </label>
+      <p class="muted small-text">
+        Turn off onboarding captions once you’re comfortable navigating WhiteBalloon.
       </p>
     </div>
 

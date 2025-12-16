@@ -6,7 +6,7 @@ from typing import Iterable
 
 from sqlmodel import Session, select
 
-from app.models import HelpRequest
+from app.models import HELP_REQUEST_STATUS_DRAFT, HelpRequest
 from . import request_chat_embeddings, request_chat_search_service
 
 CACHE_DIR = request_chat_search_service.CACHE_DIR
@@ -85,7 +85,10 @@ def suggest_related_requests(
     scores.sort(key=lambda item: item[1], reverse=True)
     related: list[dict[str, object]] = []
     for other_id, _score, payload in scores[:limit]:
-        payload["request"] = _serialize_request(session, other_id)
+        request_payload = _serialize_request(session, other_id)
+        if not request_payload:
+            continue
+        payload["request"] = request_payload
         related.append(payload)
     return related
 
@@ -147,6 +150,8 @@ def _top_snippet(
 def _serialize_request(session: Session, request_id: int) -> dict[str, object] | None:
     request = session.get(HelpRequest, request_id)
     if not request:
+        return None
+    if request.status == HELP_REQUEST_STATUS_DRAFT:
         return None
     return {
         "id": request.id,
