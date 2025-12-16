@@ -6,15 +6,21 @@
 
 {% block content %}
 <section class="section">
-  <div class="card stack">
+  <div class="card stack" data-auth-status-root>
     <h2>Approval requested</h2>
-    <p class="muted">Share this verification code with an administrator or trusted device to complete login.</p>
-    <div class="alert">Verification code: <strong>{{ verification_code }}</strong></div>
-    {% if error %}
-      <div class="alert" data-tone="error">{{ error }}</div>
-    {% endif %}
+    <p class="muted" data-auth-status-instructions>
+      Share this verification code with an administrator or trusted device to complete login.
+    </p>
+    <div class="alert" data-auth-status-code>
+      Verification code: <strong>{{ verification_code }}</strong>
+    </div>
+    <div data-auth-status-messages>
+      {% if error %}
+        <div class="alert" data-tone="error">{{ error }}</div>
+      {% endif %}
+    </div>
     {% if feature_self_auth %}
-      <form method="post" action="/login/verify" class="form-grid">
+      <form method="post" action="/login/verify" class="form-grid" data-auth-self-form>
         <input type="hidden" name="username" value="{{ username }}" />
         <div class="input-group">
           <label for="verification_code">Enter verification code</label>
@@ -22,8 +28,6 @@
         </div>
         <button type="submit" class="button">Verify and continue</button>
       </form>
-    {% else %}
-      <p class="muted">Self-authentication is disabled. Share your code with a peer reviewer or admin to finish logging in.</p>
     {% endif %}
   </div>
 </section>
