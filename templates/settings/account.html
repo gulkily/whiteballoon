@@ -46,6 +46,21 @@
       </p>
     </div>
 
+    <div class="stack helper-toggle">
+      <label class="checkbox">
+        <input
+          type="checkbox"
+          name="hide_helper_captions"
+          value="1"
+          {% if form_values.hide_helper_captions %}checked{% endif %}
+        />
+        Hide helper captions
+      </label>
+      <p class="muted small-text">
+        Turn off onboarding captions once you’re comfortable navigating WhiteBalloon.
+      </p>
+    </div>
+
     <fieldset class="stack settings-fieldset">
       <legend>Profile photo</legend>
       <div class="settings-avatar">

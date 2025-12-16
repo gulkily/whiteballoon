@@ -51,6 +51,7 @@ from app.modules.requests import services as request_services
 from app.modules.requests.routes import RequestResponse, calculate_can_complete
 from app.services import (
     auth_service,
+    caption_preference_service,
     comment_llm_insights_service,
     comment_request_promotion_service,
     invite_graph_service,
@@ -1641,9 +1642,11 @@ def _build_account_settings_context(
     session_avatar_url = _get_account_avatar(db, user.id)
     session_role = describe_session_role(user, session_record)
 
+    hide_captions = caption_preference_service.get_global_hidden(db, user.id)
     if form_values is None:
         form_values = {
             "contact_email": user.contact_email or "",
+            "hide_helper_captions": "1" if hide_captions else "",
         }
 
     return {
@@ -1658,6 +1661,7 @@ def _build_account_settings_context(
         "form_status": form_status,
         "form_errors": form_errors or [],
         "current_avatar_url": session_avatar_url,
+        "hide_helper_captions": hide_captions,
     }
 
 
@@ -2051,6 +2055,7 @@ async def account_settings_submit(
     contact_email: Annotated[Optional[str], Form()] = None,
     profile_photo: Annotated[Optional[UploadFile], File()] = None,
     remove_photo: Annotated[Optional[str], Form()] = None,
+    hide_helper_captions: Annotated[Optional[str], Form()] = None,
 ) -> Response:
     normalized_email = (contact_email or "").strip()
     form_values = {"contact_email": normalized_email}
@@ -2085,6 +2090,13 @@ async def account_settings_submit(
     user.contact_email = normalized_email or None
     db.add(user)
 
+    caption_preference_service.set_global_hidden(
+        db,
+        user_id=user.id,
+        hidden=bool(hide_helper_captions),
+        actor_user_id=user.id,
+    )
+
     if remove_photo_requested:
         user_attribute_service.delete_attribute(
             db,
@@ -2103,11 +2115,15 @@ async def account_settings_submit(
     db.commit()
     db.refresh(user)
 
+    form_values = {
+        "contact_email": user.contact_email or "",
+        "hide_helper_captions": "1" if caption_preference_service.get_global_hidden(db, user.id) else "",
+    }
     context = _build_account_settings_context(
         request,
         db,
         session_user,
-        form_values={"contact_email": user.contact_email or ""},
+        form_values=form_values,
         form_message="Account details updated.",
         form_status="success",
     )
