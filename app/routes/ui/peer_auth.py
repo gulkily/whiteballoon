@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
 from app.routes.ui.helpers import describe_session_role, templates
-from app.services import peer_auth_service
+from app.services import peer_auth_ledger, peer_auth_service
 
 router = APIRouter(tags=["peer-auth"])
 
@@ -92,7 +92,7 @@ def peer_auth_approve(
     session_user = _ensure_reviewer(db, session_user)
     viewer = session_user.user
     try:
-        peer_auth_service.approve_peer_auth_request(
+        decision = peer_auth_service.approve_peer_auth_request(
             db,
             auth_request_id=auth_request_id,
             reviewer=viewer,
@@ -106,6 +106,15 @@ def peer_auth_approve(
                 auth_request_id=auth_request_id,
             )
         raise
+
+    peer_auth_ledger.append_decision(
+        auth_request_id=decision.auth_request_id,
+        session_id=decision.session_id,
+        requester_user_id=decision.requester_user_id,
+        reviewer_user_id=decision.reviewer_user_id,
+        decision=decision.decision,
+        note=decision.note,
+    )
 
     return _redirect_to_inbox(
         request,
@@ -125,7 +134,7 @@ def peer_auth_deny(
     session_user = _ensure_reviewer(db, session_user)
     viewer = session_user.user
     try:
-        peer_auth_service.deny_peer_auth_request(
+        decision = peer_auth_service.deny_peer_auth_request(
             db,
             auth_request_id=auth_request_id,
             reviewer=viewer,
@@ -139,6 +148,15 @@ def peer_auth_deny(
                 auth_request_id=auth_request_id,
             )
         raise
+
+    peer_auth_ledger.append_decision(
+        auth_request_id=decision.auth_request_id,
+        session_id=decision.session_id,
+        requester_user_id=decision.requester_user_id,
+        reviewer_user_id=decision.reviewer_user_id,
+        decision=decision.decision,
+        note=decision.note,
+    )
 
     return _redirect_to_inbox(
         request,

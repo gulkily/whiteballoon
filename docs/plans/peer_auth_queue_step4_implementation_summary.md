@@ -19,3 +19,8 @@
 - Upgraded the inbox route to show success/error alerts, added POST endpoints for approve/deny actions, and redirected back to `/peer-auth` with friendly messages when reviewers submit attestation notes.
 - Enhanced `templates/peer_auth/index.html` to include expandable “Review session” panels per request featuring note fields and approve/deny forms, with new scoped styles in `static/skins/base/45-peer-auth.css` for alerts, accordions, and form blocks.
 - Verification: Imported the updated router to confirm FastAPI wiring still succeeds; exercised the new forms manually against seeded data to ensure pending entries disappear after approval/denial and alerts reflect the outcome.
+
+## Stage 4 – Append-only SQLite ledger writer
+- Added `app/services/peer_auth_ledger.py` to manage `storage/peer_auth_ledger.db`, handling schema creation, WAL-safe writes, checksum generation, and iteration helpers for future exports.
+- Wired the approve/deny endpoints to call the ledger append function after each decision so every action persists reviewer IDs, notes, timestamps, and checksums immediately.
+- Verification: Wrote/cleared sample entries using the ledger service APIs to confirm rows append, checksum values compute, and the file is created within `storage/`; confirmed the CLI listing still runs afterward.
