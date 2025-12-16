@@ -40,7 +40,7 @@ peer auth
 	hide message about self-authentication being disabled
 	auto-refresh the authentication page
 	authentication process should redirect to non-post page
-	notifications about lobby status for logged in users
+	notifications about half-auth status for logged in users
 	queue page should auto-update
 
 channels page
