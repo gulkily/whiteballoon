@@ -1,6 +1,7 @@
 """Service layer packages for WhiteBalloon."""
 
 from . import (
+    caption_preference_service,
     auth_service,
     comment_llm_insights_db,
     comment_attribute_service,
@@ -25,6 +26,7 @@ from . import (
 )
 
 __all__ = [
+    "caption_preference_service",
     "auth_service",
     "comment_llm_insights_db",
     "comment_attribute_service",
