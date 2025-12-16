@@ -34,7 +34,6 @@ def login_form(
 def login_submit(
     request: Request,
     db: SessionDep,
-    response: Response,
     *,
     username: Annotated[str, Form(...)],
 ) -> Response:
@@ -51,7 +50,33 @@ def login_submit(
         user_agent=request.headers.get("user-agent"),
     )
 
-    apply_session_cookie(response, session_record)
+    redirect = RedirectResponse(url="/login/pending", status_code=status.HTTP_303_SEE_OTHER)
+    apply_session_cookie(redirect, session_record)
+    return redirect
+
+
+@router.get("/login/pending")
+def login_pending_page(
+    request: Request,
+    db: SessionDep,
+    session_record: Annotated[Optional[UserSession], Depends(get_current_session)],
+) -> Response:
+    if not session_record:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    if session_record.is_fully_authenticated:
+        return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
+
+    if not session_record.auth_request_id:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    auth_request = db.get(AuthenticationRequest, session_record.auth_request_id)
+    if not auth_request:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
+
+    user = db.get(User, session_record.user_id)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_303_SEE_OTHER)
 
     context = {
         "request": request,
