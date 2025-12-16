@@ -15,3 +15,7 @@
 ## Stage 4 – Reviewer notifications for new pending requests
 - Changes: Added `/peer-auth/notifications` so authorized reviewers can fetch pending counts plus the next requester, injected a hidden “Review logins” badge into `partials/account_nav.html` (styled in `static/skins/base/10-navigation.css`), and introduced `static/js/peer-auth-notifications.js` to poll the new endpoint and surface the badge/badge count only when there are outstanding approvals.
 - Verification: Pending — need to log in as a peer-auth reviewer, wait for a pending session to appear, confirm the nav badge becomes visible with the count and link to `/peer-auth`, then empty the queue to ensure the badge hides itself again. Also confirm non-reviewers never see the badge (endpoint responds 403/404).
+
+## Stage 5 – Peer-auth queue auto-update
+- Changes: Split the queue markup into `peer_auth/partials/list.html`, added `/peer-auth/refresh` to return rendered HTML + metadata, and created `static/js/peer-auth-queue.js` so the `/peer-auth` page polls every ~15 seconds, replaces the list without layout thrash, and updates the “Awaiting review” counter in place.
+- Verification: Pending — need to open `/peer-auth`, trigger new login requests/approvals from another session, and confirm the list + counter update automatically without manual reloads, then ensure unauthorized users hitting the page don’t trigger polling (refresh endpoint returns 403/404).

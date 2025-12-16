@@ -93,6 +93,20 @@ def peer_auth_inbox(
     return templates.TemplateResponse("peer_auth/index.html", context)
 
 
+def _serialize_summary(summary):
+    return {
+        "auth_request_id": summary.auth_request_id,
+        "session_id": summary.session_id,
+        "username": summary.username,
+        "status": summary.status.value,
+        "verification_code": summary.verification_code,
+        "session_last_seen_at": summary.session_last_seen_at.isoformat() if summary.session_last_seen_at else None,
+        "auth_request_created_at": summary.auth_request_created_at.isoformat() if summary.auth_request_created_at else None,
+        "ip_address": summary.ip_address,
+        "device_info": summary.device_info,
+    }
+
+
 @router.get("/peer-auth/notifications")
 def peer_auth_notifications(
     db: SessionDep,
@@ -113,6 +127,29 @@ def peer_auth_notifications(
     return {
         "pending_count": pending_count,
         "next_request": next_request,
+    }
+
+
+@router.get("/peer-auth/refresh")
+def peer_auth_refresh(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+):
+    session_user = _ensure_reviewer(db, session_user)
+    summaries = peer_auth_service.list_peer_auth_sessions(db, limit=25, pending_only=True)
+    pending_count = peer_auth_service.count_peer_auth_sessions(db, pending_only=True)
+    template = templates.get_template("peer_auth/partials/list.html")
+    html = template.render(
+        {
+            "request": request,
+            "peer_auth_sessions": summaries,
+        }
+    )
+    return {
+        "pending_count": pending_count,
+        "html": html,
+        "sessions": [_serialize_summary(summary) for summary in summaries],
     }
 
 
