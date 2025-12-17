@@ -770,11 +770,17 @@ def admin_profile_permissions_action(
     viewer = session_user.user
 
     def _redirect(message: str, severity: str) -> RedirectResponse:
-        default_target = URL(request.url_for("admin_profile_directory"))
+        default_target = URL(str(request.url_for("admin_profile_directory")))
         next_target = default_target
-        if next_url and isinstance(next_url, str) and next_url.startswith("/"):
+        raw_next: Optional[str] = None
+        if next_url:
+            if isinstance(next_url, URL):
+                raw_next = str(next_url)
+            elif isinstance(next_url, str):
+                raw_next = next_url
+        if raw_next and raw_next.startswith("/"):
             try:
-                next_target = URL(next_url)
+                next_target = URL(raw_next)
             except ValueError:
                 next_target = default_target
         target_with_message = next_target.include_query_params(message=message, severity=severity)
