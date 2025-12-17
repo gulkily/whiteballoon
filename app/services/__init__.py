@@ -26,6 +26,7 @@ from . import (
     user_attribute_service,
     user_profile_highlight_service,
     vouch_service,
+    rss_feed_token_service,
 )
 
 __all__ = [
@@ -54,4 +55,5 @@ __all__ = [
     "user_attribute_service",
     "user_profile_highlight_service",
     "vouch_service",
+    "rss_feed_token_service",
 ]
