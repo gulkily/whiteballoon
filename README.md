@@ -35,6 +35,10 @@ WhiteBalloon ships self-hosted variable fonts to keep typography distinctive wit
 
 Both WOFF2 files live under `static/fonts/` and load via `@font-face` in `static/css/app.css`. When updating fonts, download the latest releases from the upstream projects, convert to WOFF2 if needed, and replace the existing files with the same filenames so the CSS continues to resolve them. Keep the font-weight axis between 400–700 to match the existing usage.
 
+## Feature Development Process
+
+All new feature work follows the four-step process outlined in `FEATURE_DEVELOPMENT_PROCESS.md`. That file now serves as the entry point to a chained set of step-specific instructions in `docs/dev/feature_process/step{N}_*.md`. Only open the file for the step you’re currently on, deliver the artifact in `docs/plans/`, and wait for an “Approved Step N” reply before moving to the next document. This keeps later-step guidance in the context window when you need it instead of up front.
+
 ## Quick start
 
 Requires Python 3.10+.
@@ -194,7 +198,7 @@ wb / wb.bat             # Thin wrappers for Linux/macOS and Windows
 1. Create a package under `app/modules/<module_name>/` with `services.py` and optional routers.
 2. Register the module in `app/modules/__init__.py` so `register_modules()` wires it into the app.
 3. Provide templates and static assets under `templates/<module_name>/` and `static/` as needed.
-4. Document the feature using the four-step planning process in `docs/plans/`.
+4. Document the feature using the four-step planning process in `docs/plans/` (see `FEATURE_DEVELOPMENT_PROCESS.md` for the chained instructions).
 5. Add CLI helpers or UI routes when the module requires interactive workflows.
 
 ## Deployment notes
