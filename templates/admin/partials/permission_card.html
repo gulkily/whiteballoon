@@ -43,7 +43,20 @@
         </div>
       </dl>
       <div class="permission-card__actions" data-permission-actions>
-        <!-- Stage 3 inline actions render here -->
+        <form method="post" action="/admin/profiles/{{ profile.id }}/permissions" class="permission-card__form">
+          <input type="hidden" name="next" value="{{ current_url }}" />
+          <input type="hidden" name="action" value="{{ 'revoke_admin' if permission_summary.is_admin else 'grant_admin' }}" />
+          <button type="submit" class="button button--secondary button--small">
+            {{ 'Remove admin access' if permission_summary.is_admin else 'Grant admin access' }}
+          </button>
+        </form>
+        <form method="post" action="/admin/profiles/{{ profile.id }}/permissions" class="permission-card__form">
+          <input type="hidden" name="next" value="{{ current_url }}" />
+          <input type="hidden" name="action" value="{{ 'peer_auth_disable' if permission_summary.peer_auth_reviewer else 'peer_auth_enable' }}" />
+          <button type="submit" class="button button--ghost button--small">
+            {{ 'Disable peer reviewer' if permission_summary.peer_auth_reviewer else 'Enable peer reviewer' }}
+          </button>
+        </form>
       </div>
     </div>
   </div>

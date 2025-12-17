@@ -15,6 +15,11 @@
   </header>
 
   <div class="card stack" data-section="profiles-directory" data-permissions-root data-permissions-visible="false">
+    {% if flash_message %}
+      <div class="alert {{ 'alert--error' if flash_severity == 'error' else 'alert--success' if flash_severity == 'success' else 'alert--info' }}">
+        {{ flash_message }}
+      </div>
+    {% endif %}
     <form method="get" class="profiles-filter">
       <input type="hidden" name="page" value="1" />
       <label class="stack" for="profiles-username">

@@ -906,6 +906,10 @@ textarea::placeholder {
   gap: 0.5rem;
 }
 
+.permission-card__form {
+  margin: 0;
+}
+
 .table-scroll {
   overflow-x: auto;
 }
