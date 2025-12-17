@@ -754,6 +754,8 @@ def _render_requests_page(
 ) -> Response:
     session_avatar_url = _get_account_avatar(db, user.id)
     caption_prefs = load_caption_preferences(db, user.id)
+    rss_feed_entries = _load_rss_feed_entries(request, db, user)
+    rss_feed_links = _build_rss_link_metadata(rss_feed_entries)
 
     if not session_record.is_fully_authenticated:
         auth_request = None
@@ -787,6 +789,7 @@ def _render_requests_page(
                 caption_id="requests_hero_intro",
                 text="View the latest needs below or add a new one.",
             ),
+            "rss_feed_links": rss_feed_links,
         }
         return templates.TemplateResponse("requests/pending.html", context)
 
@@ -921,6 +924,7 @@ def _render_requests_page(
             "signal_ledger_metrics": signal_ledger_metrics,
             "signal_ledger_timeline": signal_ledger_timeline,
             "draft_requests": draft_requests,
+            "rss_feed_links": rss_feed_links,
         },
     )
 
@@ -985,6 +989,9 @@ def request_channels_workspace(
             comment_count=comment_counts.get(active_channel_id, 0),
         )
 
+    rss_feed_entries = _load_rss_feed_entries(request, db, viewer)
+    rss_feed_links = _build_rss_link_metadata(rss_feed_entries)
+
     context = {
         "request": request,
         "user": viewer,
@@ -998,6 +1005,7 @@ def request_channels_workspace(
         "active_channel_request": active_request_payload,
         "active_channel_id": active_channel_id,
         "active_chat_context": active_chat_context,
+        "rss_feed_links": rss_feed_links,
     }
     return templates.TemplateResponse("requests/channels.html", context)
 
@@ -1701,6 +1709,48 @@ def _build_rss_feed_url(request: Request, token_value: str, category_slug: str) 
     return f"{base}/feeds/{token_value}/{category_slug}.xml"
 
 
+def _load_rss_feed_entries(
+    request: Request,
+    db: Session,
+    user: User,
+    *,
+    allowed_slugs: Optional[Sequence[str]] = None,
+) -> list[dict[str, object]]:
+    variants = rss_feed_catalog.list_variants_for_user(user)
+    allowed = set(allowed_slugs or [])
+    entries: list[dict[str, object]] = []
+    for variant in variants:
+        if allowed and variant.slug not in allowed:
+            continue
+        token = rss_feed_token_service.get_or_create_token(
+            db,
+            user_id=user.id,
+            category=variant.slug,
+        )
+        entries.append(
+            {
+                "variant": variant,
+                "token": token,
+                "url": _build_rss_feed_url(request, token.token, variant.slug),
+            }
+        )
+    return entries
+
+
+def _build_rss_link_metadata(entries: list[dict[str, object]]) -> list[dict[str, str]]:
+    links: list[dict[str, str]] = []
+    for entry in entries:
+        variant = entry["variant"]
+        url = entry["url"]
+        links.append(
+            {
+                "title": f"WhiteBalloon – {variant.label}",
+                "href": url,
+            }
+        )
+    return links
+
+
 def _build_rss_settings_context(
     request: Request,
     db: Session,
@@ -1713,21 +1763,7 @@ def _build_rss_settings_context(
     session_record = session_user.session
     session_role = describe_session_role(user, session_record)
     session_avatar_url = _get_account_avatar(db, user.id)
-    feed_entries = []
-    variants = rss_feed_catalog.list_variants_for_user(user)
-    for variant in variants:
-        token = rss_feed_token_service.get_or_create_token(
-            db,
-            user_id=user.id,
-            category=variant.slug,
-        )
-        feed_entries.append(
-            {
-                "variant": variant,
-                "token": token,
-                "url": _build_rss_feed_url(request, token.token, variant.slug),
-            }
-        )
+    feed_entries = _load_rss_feed_entries(request, db, user)
     return {
         "request": request,
         "user": user,
@@ -1736,6 +1772,7 @@ def _build_rss_settings_context(
         "session_username": user.username,
         "session_avatar_url": session_avatar_url,
         "rss_feeds": feed_entries,
+        "rss_feed_links": _build_rss_link_metadata(feed_entries),
         "form_message": form_message,
         "form_status": form_status,
     }
