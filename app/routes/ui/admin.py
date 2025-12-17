@@ -198,6 +198,7 @@ def admin_peer_auth_ledger(
         "session_username": session_user.user.username,
         "session_avatar_url": _get_account_avatar(db, session_user.user.id),
         "latest_checksum": peer_auth_ledger.latest_checksum(),
+        "ledger_entries": peer_auth_ledger.read_entries(limit=200),
     }
     return templates.TemplateResponse("admin/ledger.html", context)
 

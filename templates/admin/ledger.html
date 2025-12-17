@@ -26,5 +26,58 @@
       </article>
     </div>
   </div>
+
+  <div class="card stack">
+    <header class="stack">
+      <h2>Recent entries</h2>
+      <p class="muted small-text">Showing up to 200 most recent peer-auth decisions.</p>
+    </header>
+    {% if ledger_entries %}
+      <div class="table-scroll">
+        <table class="profiles-table ledger-table">
+          <thead>
+            <tr>
+              <th scope="col">Timestamp</th>
+              <th scope="col">Decision</th>
+              <th scope="col">Requester</th>
+              <th scope="col">Reviewer</th>
+              <th scope="col">Auth request</th>
+              <th scope="col">Note</th>
+              <th scope="col">Checksum</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in ledger_entries %}
+              <tr>
+                <td data-label="Timestamp">
+                  <time datetime="{{ entry.created_at }}">{{ entry.created_at | friendly_time }}</time>
+                </td>
+                <td data-label="Decision">
+                  <span class="meta-chip meta-chip--status meta-chip--{{ 'success' if entry.decision == 'approved' else 'muted' }}">
+                    {{ entry.decision|title }}
+                  </span>
+                </td>
+                <td data-label="Requester">#{{ entry.requester_user_id }}</td>
+                <td data-label="Reviewer">#{{ entry.reviewer_user_id }}</td>
+                <td data-label="Auth request"><code>{{ entry.auth_request_id }}</code></td>
+                <td data-label="Note">
+                  {% if entry.note %}
+                    {{ entry.note }}
+                  {% else %}
+                    <span class="muted">—</span>
+                  {% endif %}
+                </td>
+                <td data-label="Checksum" class="ledger-checksum">
+                  <code>{{ entry.checksum }}</code>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted">No ledger entries recorded yet.</p>
+    {% endif %}
+  </div>
 </section>
 {% endblock %}
