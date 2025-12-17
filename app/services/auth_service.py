@@ -20,7 +20,7 @@ from app.models import (
     UserSession,
 )
 from app.modules.requests import services as request_services
-from app.services import user_attribute_service
+from app.services import peer_auth_service, user_attribute_service
 
 SESSION_COOKIE_NAME = "wb_session_id"
 logger = logging.getLogger(__name__)
@@ -98,6 +98,11 @@ def create_user_with_invite(
 
     session.add(new_user)
     session.flush()
+    peer_auth_service.grant_peer_auth_reviewer(
+        session,
+        user=new_user,
+        actor_user_id=token_record.created_by_user_id if token_record else None,
+    )
 
     auto_approved = False
     session_record: Optional[UserSession] = None
