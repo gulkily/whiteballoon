@@ -395,7 +395,11 @@ def cmd_chat_index(args: list[str]) -> int:
 
     cmd = [str(vpy), "-m", CHAT_INDEX_MODULE, *passthrough]
     info("Reindexing request chat caches")
-    return _run_process(cmd)
+    return _run_process(
+        cmd,
+        graceful_interrupt=True,
+        interrupt_message="Chat index rebuild interrupted",
+    )
 
 
 def cmd_chat_embed(args: list[str]) -> int:

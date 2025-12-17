@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 from collections import defaultdict
 from typing import Callable, Iterable
 
@@ -13,6 +14,8 @@ from app.db import get_engine
 from app.models import HelpRequest, RequestComment
 from app.dedalus import logging as dedalus_logging
 from app.services import request_chat_search_service
+
+logger = logging.getLogger(__name__)
 
 
 class LLMTopicClassifier:
@@ -229,31 +232,35 @@ def main(argv: list[str] | None = None) -> int:
             parser.error(str(exc))
 
     engine = get_engine()
-    with Session(engine) as session:
-        request_ids = _resolve_request_ids(session, ns.request_ids, ns.all)
-        if not request_ids:
-            parser.error("No matching requests found")
+    try:
+        with Session(engine) as session:
+            request_ids = _resolve_request_ids(session, ns.request_ids, ns.all)
+            if not request_ids:
+                parser.error("No matching requests found")
 
-        explicit_map = _map_explicit_comment_ids(session, ns.llm_comments)
+            explicit_map = _map_explicit_comment_ids(session, ns.llm_comments)
 
-        for request_id in request_ids:
-            allowed_ids = set(explicit_map.get(request_id, set()))
-            allowed_ids.update(_latest_comment_ids(session, request_id, ns.llm_latest))
-            classifier = _build_classifier(
-                adapter,
-                allow_all=bool(ns.llm_all),
-                allowed_comment_ids=allowed_ids,
-                request_id=request_id,
-            )
-            index = request_chat_search_service.refresh_chat_index(
-                session,
-                request_id,
-                extra_classifier=classifier,
-            )
-            scope = "llm+rule" if classifier else "rule-only"
-            print(
-                f"[chat-index] Request {request_id}: {index.entry_count} comments indexed ({scope} topics)"
-            )
+            for request_id in request_ids:
+                allowed_ids = set(explicit_map.get(request_id, set()))
+                allowed_ids.update(_latest_comment_ids(session, request_id, ns.llm_latest))
+                classifier = _build_classifier(
+                    adapter,
+                    allow_all=bool(ns.llm_all),
+                    allowed_comment_ids=allowed_ids,
+                    request_id=request_id,
+                )
+                index = request_chat_search_service.refresh_chat_index(
+                    session,
+                    request_id,
+                    extra_classifier=classifier,
+                )
+                scope = "llm+rule" if classifier else "rule-only"
+                print(
+                    f"[chat-index] Request {request_id}: {index.entry_count} comments indexed ({scope} topics)"
+                )
+    except KeyboardInterrupt:
+        logger.warning("Chat index rebuild interrupted by operator.")
+        return 0
 
     return 0
 
