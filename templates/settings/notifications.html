@@ -8,6 +8,17 @@
   {% include "partials/account_nav.html" %}
 {% endblock %}
 
+{% block head_extras %}
+  {% for feed in rss_feeds %}
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title="WhiteBalloon – {{ feed.variant.label }}"
+      href="{{ feed.url }}"
+    />
+  {% endfor %}
+{% endblock %}
+
 {% block content %}
 <section class="section stack account-settings">
   <header class="stack">

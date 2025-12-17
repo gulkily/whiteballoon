@@ -39,6 +39,7 @@
     <link rel="stylesheet" href="{{ skin_bundle_href(request) }}" />
     <link rel="icon" type="image/png" href="/static/img/logo-icon-256.png" sizes="256x256" />
     <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico" />
+    {% block head_extras %}{% endblock %}
   </head>
   <body class="page">
     <div class="background-gradient" aria-hidden="true"></div>

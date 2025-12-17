@@ -26,6 +26,6 @@
 - Notes: Entries include status + author metadata; unauthenticated/invalid tokens receive 404 responses to avoid leaking feed existence.
 
 ## Stage 6 – Auditing + docs
-- Changes: Surfaced “Last read” metadata in the notifications page, updated README with a dedicated RSS section + feature bullet, and documented how to copy/regenerate feeds. Added scripts that exercise feed hits to ensure `last_used_at` updates behind the scenes.
+- Changes: Surfaced “Last read” metadata in the notifications page, added `<link rel="alternate">` tags so RSS readers can auto-discover each feed, updated README with a dedicated RSS section + feature bullet, and documented how to copy/regenerate feeds. Added scripts that exercise feed hits to ensure `last_used_at` updates behind the scenes.
 - Verification: Ran a context-building script before/after calling the RSS endpoint to confirm `last_used_at` flips from `None` to a timestamp, then manually reviewed the README changes.
 - Notes: Future enhancements (token revocation, additional feed slices) just extend the catalog/service that already ship here.
