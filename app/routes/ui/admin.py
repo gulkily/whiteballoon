@@ -190,6 +190,17 @@ def admin_peer_auth_ledger(
     _require_admin(session_user)
     if not get_settings().feature_peer_auth_queue:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
+    entries = peer_auth_ledger.read_entries(limit=200)
+    user_ids: set[int] = set()
+    for entry in entries:
+        user_ids.add(entry.requester_user_id)
+        user_ids.add(entry.reviewer_user_id)
+    user_map: dict[int, User] = {}
+    if user_ids:
+        rows = db.exec(select(User).where(User.id.in_(list(user_ids)))).all()
+        for user in rows:
+            if user.id is not None:
+                user_map[user.id] = user
     context = {
         "request": request,
         "user": session_user.user,
@@ -198,7 +209,8 @@ def admin_peer_auth_ledger(
         "session_username": session_user.user.username,
         "session_avatar_url": _get_account_avatar(db, session_user.user.id),
         "latest_checksum": peer_auth_ledger.latest_checksum(),
-        "ledger_entries": peer_auth_ledger.read_entries(limit=200),
+        "ledger_entries": entries,
+        "ledger_user_map": user_map,
     }
     return templates.TemplateResponse("admin/ledger.html", context)
 

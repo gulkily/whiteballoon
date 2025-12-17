@@ -48,6 +48,8 @@
           </thead>
           <tbody>
             {% for entry in ledger_entries %}
+              {% set requester = ledger_user_map.get(entry.requester_user_id) %}
+              {% set reviewer = ledger_user_map.get(entry.reviewer_user_id) %}
               <tr>
                 <td data-label="Timestamp">
                   <time datetime="{{ entry.created_at }}">{{ entry.created_at | friendly_time }}</time>
@@ -57,8 +59,20 @@
                     {{ entry.decision|title }}
                   </span>
                 </td>
-                <td data-label="Requester">#{{ entry.requester_user_id }}</td>
-                <td data-label="Reviewer">#{{ entry.reviewer_user_id }}</td>
+                <td data-label="Requester">
+                  {% if requester %}
+                    <a href="/admin/profiles/{{ requester.id }}" class="profile-name-link">@{{ requester.username }}</a>
+                  {% else %}
+                    <span class="muted">User #{{ entry.requester_user_id }}</span>
+                  {% endif %}
+                </td>
+                <td data-label="Reviewer">
+                  {% if reviewer %}
+                    <a href="/admin/profiles/{{ reviewer.id }}" class="profile-name-link">@{{ reviewer.username }}</a>
+                  {% else %}
+                    <span class="muted">User #{{ entry.reviewer_user_id }}</span>
+                  {% endif %}
+                </td>
                 <td data-label="Auth request"><code>{{ entry.auth_request_id }}</code></td>
                 <td data-label="Note">
                   {% if entry.note %}
@@ -68,7 +82,10 @@
                   {% endif %}
                 </td>
                 <td data-label="Checksum" class="ledger-checksum">
-                  <code>{{ entry.checksum }}</code>
+                  <details>
+                    <summary>Show</summary>
+                    <code>{{ entry.checksum }}</code>
+                  </details>
                 </td>
               </tr>
             {% endfor %}
