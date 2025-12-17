@@ -663,6 +663,9 @@ def admin_profile_detail(
     flash_message = request.query_params.get("message")
     flash_severity = request.query_params.get("severity", "info")
 
+    permission_summary_map = user_permission_service.load_permission_summaries(db, [profile])
+    profile_permission_summary = permission_summary_map.get(profile.id) if profile.id else None
+
     context = {
         "request": request,
         "user": viewer,
@@ -681,6 +684,8 @@ def admin_profile_detail(
         "highlight": highlight,
         "flash_message": flash_message,
         "flash_severity": flash_severity,
+        "profile_permission_summary": profile_permission_summary,
+        "current_url": str(request.url),
     }
     return templates.TemplateResponse("admin/profile_detail.html", context)
 

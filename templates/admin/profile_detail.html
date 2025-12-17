@@ -72,6 +72,16 @@
 
   <section class="card stack">
     <header class="stack">
+      <h2>Permissions</h2>
+      <p class="muted small-text">Grant or revoke elevated access for this account.</p>
+    </header>
+    {% with permission_summary = profile_permission_summary %}
+      {% include "admin/partials/permission_card.html" %}
+    {% endwith %}
+  </section>
+
+  <section class="card stack">
+    <header class="stack">
       <h2>Signal profile highlight</h2>
       {% if highlight %}
         <p class="muted small-text">
