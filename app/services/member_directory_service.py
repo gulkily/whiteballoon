@@ -4,11 +4,11 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Optional
 
-from sqlalchemy import func, or_
+from sqlalchemy import exists, func, or_
 from sqlmodel import Session, select
 
-from app.models import User
-from app.services import user_attribute_service
+from app.models import User, UserAttribute
+from app.services import peer_auth_service, user_attribute_service
 
 DEFAULT_PAGE_SIZE = 25
 
@@ -17,6 +17,8 @@ DEFAULT_PAGE_SIZE = 25
 class MemberDirectoryFilters:
     username: Optional[str] = None
     contact: Optional[str] = None
+    role: Optional[str] = None
+    peer_auth_reviewer: Optional[bool] = None
 
 
 @dataclass(slots=True)
@@ -84,6 +86,8 @@ def _normalize_filters(filters: Optional[MemberDirectoryFilters]) -> MemberDirec
     return MemberDirectoryFilters(
         username=_normalize_value(filters.username),
         contact=_normalize_value(filters.contact),
+        role=_normalize_role(filters.role),
+        peer_auth_reviewer=_normalize_peer_auth(filters.peer_auth_reviewer),
     )
 
 
@@ -94,6 +98,28 @@ def _normalize_value(value: Optional[str]) -> Optional[str]:
     return trimmed or None
 
 
+def _normalize_role(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    lowered = value.strip().lower()
+    if lowered in {"admin", "member"}:
+        return lowered
+    return None
+
+
+def _normalize_peer_auth(value: Optional[bool | str]) -> Optional[bool]:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return value
+    lowered = value.strip().lower()
+    if lowered in {"1", "true", "yes", "on"}:
+        return True
+    if lowered in {"0", "false", "no", "off"}:
+        return False
+    return None
+
+
 def _apply_filters(statement, filters: MemberDirectoryFilters):
     if filters.username:
         lowered = filters.username.lower()
@@ -101,6 +127,22 @@ def _apply_filters(statement, filters: MemberDirectoryFilters):
     if filters.contact:
         lowered = filters.contact.lower()
         statement = statement.where(func.lower(User.contact_email).like(f"%{lowered}%"))
+    if filters.role == "admin":
+        statement = statement.where(User.is_admin.is_(True))
+    elif filters.role == "member":
+        statement = statement.where(User.is_admin.is_(False))
+    if filters.peer_auth_reviewer is not None:
+        truthy_values = [value.lower() for value in peer_auth_service.PEER_AUTH_TRUTHY_VALUES]
+        peer_auth_query = (
+            select(UserAttribute.id)
+            .where(UserAttribute.user_id == User.id)
+            .where(UserAttribute.key == peer_auth_service.PEER_AUTH_REVIEWER_ATTRIBUTE_KEY)
+            .where(func.lower(UserAttribute.value).in_(truthy_values))
+        )
+        if filters.peer_auth_reviewer:
+            statement = statement.where(exists(peer_auth_query))
+        else:
+            statement = statement.where(~exists(peer_auth_query))
     return statement
 
 

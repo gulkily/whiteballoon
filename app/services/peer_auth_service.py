@@ -20,7 +20,7 @@ from . import auth_service, user_attribute_service
 PEER_AUTH_REVIEWER_ATTRIBUTE_KEY = "peer_auth_reviewer"
 DEFAULT_PAGE_LIMIT = 25
 MAX_PAGE_LIMIT = 100
-_TRUTHY_VALUES = {"1", "true", "yes", "on", "approved", "enabled"}
+PEER_AUTH_TRUTHY_VALUES = {"1", "true", "yes", "on", "approved", "enabled"}
 
 
 @dataclass(slots=True)
@@ -216,7 +216,7 @@ def user_is_peer_auth_reviewer(session: Session, *, user: User) -> bool:
     if not flag:
         return False
     normalized = flag.strip().lower()
-    return normalized in _TRUTHY_VALUES
+    return normalized in PEER_AUTH_TRUTHY_VALUES
 
 
 def require_peer_auth_reviewer(session: Session, *, user: User) -> None:

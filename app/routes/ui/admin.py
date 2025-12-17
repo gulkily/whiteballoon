@@ -40,6 +40,7 @@ from app.services import (
     peer_auth_ledger,
     request_comment_service,
     user_attribute_service,
+    user_permission_service,
     user_profile_highlight_service,
 )
 from starlette.datastructures import URL
@@ -103,6 +104,12 @@ def _get_account_avatar(db: SessionDep, user_id: int) -> Optional[str]:
         user_id=user_id,
         key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
     )
+
+
+def _serialize_peer_filter(value: Optional[bool]) -> str:
+    if value is None:
+        return ""
+    return "1" if value else "0"
 
 
 @router.get("/admin")
@@ -523,6 +530,8 @@ def admin_profile_directory(
     page: int = Query(1, ge=1),
     q: Optional[str] = Query(None, alias="username"),
     contact: Optional[str] = None,
+    role: Optional[str] = Query(None),
+    peer: Optional[str] = Query(None),
 ):
     _require_admin(session_user)
     viewer = session_user.user
@@ -531,6 +540,8 @@ def admin_profile_directory(
     filters = member_directory_service.MemberDirectoryFilters(
         username=q,
         contact=contact,
+        role=role,
+        peer_auth_reviewer=peer,
     )
 
     directory_page = member_directory_service.list_members(
@@ -555,6 +566,17 @@ def admin_profile_directory(
         else None,
     }
 
+    permission_summaries = user_permission_service.load_permission_summaries(db, users)
+
+    filters_active = any(
+        [
+            bool(directory_page.filters.username),
+            bool(directory_page.filters.contact),
+            bool(directory_page.filters.role),
+            directory_page.filters.peer_auth_reviewer is not None,
+        ]
+    )
+
     context = {
         "request": request,
         "user": viewer,
@@ -569,10 +591,13 @@ def admin_profile_directory(
         "page_size": directory_page.page_size,
         "username_query": directory_page.filters.username or "",
         "contact_query": directory_page.filters.contact or "",
+        "role_query": directory_page.filters.role or "",
+        "peer_query": _serialize_peer_filter(directory_page.filters.peer_auth_reviewer),
         "pagination": pagination,
-        "filters_active": bool(directory_page.filters.username or directory_page.filters.contact),
+        "filters_active": filters_active,
         "clear_filters_url": request.url.path,
         "current_url": str(request.url),
+        "permission_summaries": permission_summaries,
     }
     return templates.TemplateResponse("admin/profiles.html", context)
 
