@@ -24,18 +24,13 @@ class UserPermissionSummary:
     is_admin: bool
     peer_auth_reviewer: bool
     peer_auth_attribute: Optional[UserAttribute]
+    peer_auth_updated_by_user: Optional[User] = None
 
     @property
     def peer_auth_updated_at(self):
         if not self.peer_auth_attribute:
             return None
         return self.peer_auth_attribute.updated_at
-
-    @property
-    def peer_auth_updated_by(self):
-        if not self.peer_auth_attribute:
-            return None
-        return self.peer_auth_attribute.updated_by_user_id
 
 
 def load_permission_summaries(
@@ -52,20 +47,34 @@ def load_permission_summaries(
         .where(UserAttribute.key == PEER_AUTH_REVIEWER_ATTRIBUTE_KEY)
     ).all()
     attribute_map: dict[int, UserAttribute] = {}
+    updater_ids: set[int] = set()
     for row in rows:
         if row.user_id is None:
             continue
         attribute_map[row.user_id] = row
+        if row.updated_by_user_id:
+            updater_ids.add(row.updated_by_user_id)
+
+    updater_map: dict[int, User] = {}
+    if updater_ids:
+        updater_rows = session.exec(select(User).where(User.id.in_(list(updater_ids)))).all()
+        for updater in updater_rows:
+            if updater.id is not None:
+                updater_map[updater.id] = updater
 
     summaries: dict[int, UserPermissionSummary] = {}
     for user in users:
         if user.id is None:
             continue
         attribute = attribute_map.get(user.id)
+        updated_by: Optional[User] = None
+        if attribute and attribute.updated_by_user_id:
+            updated_by = updater_map.get(attribute.updated_by_user_id)
         summaries[user.id] = UserPermissionSummary(
             user_id=user.id,
             is_admin=user.is_admin,
             peer_auth_reviewer=_is_truthy(attribute.value if attribute else None),
             peer_auth_attribute=attribute,
+            peer_auth_updated_by_user=updated_by,
         )
     return summaries

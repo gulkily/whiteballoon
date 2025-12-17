@@ -14,7 +14,7 @@
     <p class="muted">Review everyone on this instance at a glance.</p>
   </header>
 
-  <div class="card stack" data-section="profiles-directory">
+  <div class="card stack" data-section="profiles-directory" data-permissions-root data-permissions-visible="false">
     <form method="get" class="profiles-filter">
       <input type="hidden" name="page" value="1" />
       <label class="stack" for="profiles-username">
@@ -37,6 +37,24 @@
           placeholder="name@example.org"
         />
       </label>
+      <div class="profiles-filter__grid">
+        <label class="stack" for="profiles-role">
+          <span>Role</span>
+          <select id="profiles-role" name="role">
+            <option value="" {{ 'selected' if not role_query else '' }}>Any</option>
+            <option value="admin" {{ 'selected' if role_query == 'admin' else '' }}>Admins only</option>
+            <option value="member" {{ 'selected' if role_query == 'member' else '' }}>Members only</option>
+          </select>
+        </label>
+        <label class="stack" for="profiles-peer">
+          <span>Peer-auth reviewers</span>
+          <select id="profiles-peer" name="peer">
+            <option value="" {{ 'selected' if not peer_query else '' }}>Any</option>
+            <option value="1" {{ 'selected' if peer_query == '1' else '' }}>Only reviewers</option>
+            <option value="0" {{ 'selected' if peer_query == '0' else '' }}>Not reviewers</option>
+          </select>
+        </label>
+      </div>
       <div class="profiles-filter__actions">
         <button type="submit" class="button button--secondary">Apply filters</button>
         {% if filters_active %}
@@ -46,6 +64,12 @@
     </form>
 
     {% if profiles %}
+      <div class="profiles-permission-toggle">
+        <button type="button" class="button button--ghost" data-permission-toggle aria-pressed="false">
+          Show permission panels
+        </button>
+        <p class="muted small-text">Toggle to reveal per-user permission summaries.</p>
+      </div>
       <div class="table-scroll">
         <table class="profiles-table">
           <thead>
@@ -99,6 +123,12 @@
                   </form>
                 </td>
               </tr>
+              <tr class="profiles-permission-row">
+                <td colspan="4">
+                  {% set permission_summary = permission_summaries.get(profile.id) %}
+                  {% include "admin/partials/permission_card.html" %}
+                </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
@@ -123,4 +153,42 @@
     {% endif %}
   </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    (function () {
+      const root = document.querySelector("[data-permissions-root]");
+      const toggle = document.querySelector("[data-permission-toggle]");
+      if (!root || !toggle) {
+        return;
+      }
+      const storageKey = "admin.permissions.visible";
+      const applyState = (visible) => {
+        root.setAttribute("data-permissions-visible", visible ? "true" : "false");
+        toggle.setAttribute("aria-pressed", visible ? "true" : "false");
+        toggle.textContent = visible ? "Hide permission panels" : "Show permission panels";
+      };
+      let current = root.getAttribute("data-permissions-visible") === "true";
+      try {
+        const stored = window.localStorage.getItem(storageKey);
+        if (stored !== null) {
+          current = stored === "1";
+        }
+      } catch (err) {
+        // Ignore storage errors (private browsing, etc.)
+      }
+      applyState(current);
+      toggle.addEventListener("click", () => {
+        current = !current;
+        applyState(current);
+        try {
+          window.localStorage.setItem(storageKey, current ? "1" : "0");
+        } catch (err) {
+          // Ignore storage errors
+        }
+      });
+    })();
+  </script>
 {% endblock %}

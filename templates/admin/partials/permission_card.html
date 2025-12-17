@@ -1,0 +1,50 @@
+{% if not permission_summary %}
+  <div class="permission-card permission-card--empty">
+    <p class="muted small-text">Permission data unavailable.</p>
+  </div>
+{% else %}
+  {% set peer_attr = permission_summary.peer_auth_attribute %}
+  {% set updated_by = permission_summary.peer_auth_updated_by_user %}
+  <div class="permission-card stack" data-permission-card>
+    <header class="permission-card__header">
+      <span class="muted small-text">Permission summary</span>
+      <div class="permission-card__chips">
+        <span class="permission-chip permission-chip--{{ 'admin' if permission_summary.is_admin else 'member' }}">
+          {{ 'Admin' if permission_summary.is_admin else 'Member' }}
+        </span>
+        <span class="permission-chip permission-chip--{{ 'active' if permission_summary.peer_auth_reviewer else 'muted' }}">
+          {{ 'Peer reviewer' if permission_summary.peer_auth_reviewer else 'Not reviewer' }}
+        </span>
+      </div>
+    </header>
+    <div class="permission-card__body">
+      <dl class="permission-card__list">
+        <div class="permission-card__row">
+          <dt>Role</dt>
+          <dd>{{ 'Administrator' if permission_summary.is_admin else 'Member' }}</dd>
+        </div>
+        <div class="permission-card__row">
+          <dt>Peer-auth reviewer</dt>
+          <dd>
+            {{ 'Enabled' if permission_summary.peer_auth_reviewer else 'Disabled' }}
+            {% if peer_attr and peer_attr.updated_at %}
+              <span class="muted small-text">
+                Updated {{ peer_attr.updated_at | friendly_time }}
+                {% if updated_by %}
+                  by @{{ updated_by.username }}
+                {% elif peer_attr.updated_by_user_id %}
+                  by user #{{ peer_attr.updated_by_user_id }}
+                {% endif %}
+              </span>
+            {% else %}
+              <span class="muted small-text">No reviewer history recorded.</span>
+            {% endif %}
+          </dd>
+        </div>
+      </dl>
+      <div class="permission-card__actions" data-permission-actions>
+        <!-- Stage 3 inline actions render here -->
+      </div>
+    </div>
+  </div>
+{% endif %}
