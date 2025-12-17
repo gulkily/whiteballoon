@@ -139,10 +139,22 @@ def _apply_filters(statement, filters: MemberDirectoryFilters):
             .where(UserAttribute.key == peer_auth_service.PEER_AUTH_REVIEWER_ATTRIBUTE_KEY)
             .where(func.lower(UserAttribute.value).in_(truthy_values))
         )
+        peer_auth_exists = exists(peer_auth_query)
         if filters.peer_auth_reviewer:
-            statement = statement.where(exists(peer_auth_query))
+            statement = statement.where(
+                or_(
+                    User.is_admin.is_(True),
+                    peer_auth_exists,
+                )
+            )
         else:
-            statement = statement.where(~exists(peer_auth_query))
+            statement = statement.where(
+                or_(
+                    User.is_admin.is_(False),
+                    User.is_admin.is_(None),
+                )
+            )
+            statement = statement.where(~peer_auth_exists)
     return statement
 
 

@@ -23,6 +23,7 @@ class UserPermissionSummary:
     user_id: int
     is_admin: bool
     peer_auth_reviewer: bool
+    peer_auth_reviewer_via_admin: bool
     peer_auth_attribute: Optional[UserAttribute]
     peer_auth_updated_by_user: Optional[User] = None
 
@@ -70,10 +71,13 @@ def load_permission_summaries(
         updated_by: Optional[User] = None
         if attribute and attribute.updated_by_user_id:
             updated_by = updater_map.get(attribute.updated_by_user_id)
+        attribute_enabled = _is_truthy(attribute.value if attribute else None)
+        via_admin = bool(user.is_admin)
         summaries[user.id] = UserPermissionSummary(
             user_id=user.id,
             is_admin=user.is_admin,
-            peer_auth_reviewer=_is_truthy(attribute.value if attribute else None),
+            peer_auth_reviewer=attribute_enabled or via_admin,
+            peer_auth_reviewer_via_admin=via_admin,
             peer_auth_attribute=attribute,
             peer_auth_updated_by_user=updated_by,
         )

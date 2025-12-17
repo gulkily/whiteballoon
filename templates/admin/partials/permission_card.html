@@ -27,7 +27,9 @@
           <dt>Peer-auth reviewer</dt>
           <dd>
             {{ 'Enabled' if permission_summary.peer_auth_reviewer else 'Disabled' }}
-            {% if peer_attr and peer_attr.updated_at %}
+            {% if permission_summary.peer_auth_reviewer_via_admin %}
+              <span class="muted small-text">Admins inherit peer review access automatically.</span>
+            {% elif peer_attr and peer_attr.updated_at %}
               <span class="muted small-text">
                 Updated {{ peer_attr.updated_at | friendly_time }}
                 {% if updated_by %}
@@ -50,13 +52,17 @@
             {{ 'Remove admin access' if permission_summary.is_admin else 'Grant admin access' }}
           </button>
         </form>
-        <form method="post" action="/admin/profiles/{{ profile.id }}/permissions" class="permission-card__form">
-          <input type="hidden" name="next" value="{{ current_url }}" />
-          <input type="hidden" name="action" value="{{ 'peer_auth_disable' if permission_summary.peer_auth_reviewer else 'peer_auth_enable' }}" />
-          <button type="submit" class="button button--ghost button--small">
-            {{ 'Disable peer reviewer' if permission_summary.peer_auth_reviewer else 'Enable peer reviewer' }}
-          </button>
-        </form>
+        {% if permission_summary.peer_auth_reviewer_via_admin %}
+          <p class="muted small-text">Remove admin access to revoke peer review privileges.</p>
+        {% else %}
+          <form method="post" action="/admin/profiles/{{ profile.id }}/permissions" class="permission-card__form">
+            <input type="hidden" name="next" value="{{ current_url }}" />
+            <input type="hidden" name="action" value="{{ 'peer_auth_disable' if permission_summary.peer_auth_reviewer else 'peer_auth_enable' }}" />
+            <button type="submit" class="button button--ghost button--small">
+              {{ 'Disable peer reviewer' if permission_summary.peer_auth_reviewer else 'Enable peer reviewer' }}
+            </button>
+          </form>
+        {% endif %}
       </div>
     </div>
   </div>
