@@ -17,6 +17,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Admin-only profile directory ( `/admin/profiles` ) with per-account drill-downs to review contact info, sharing scope, requests, and invite history
 - Members directory (`/members`) for fully authenticated members to browse public profiles plus their invitees with filters and scope-aware contact visibility
 - Admin control panel (`/admin`) that centralizes links to the directory, sync dashboard, and future operator tools
+- Private RSS feeds (`/settings/notifications`) so members/admins can subscribe to all-open, invite-circle, completed, or admin-pending request slices with tokenized URLs
 - Per-request detail pages with shareable URLs and consistent permissions
 - Comment threads on request detail pages with progressive enhancement (vanilla JS) for instant posting
 - Manual sync bundles (`*.sync.txt`) use email-style headers plus plain-text bodies so exports are Git-friendly
@@ -145,6 +146,11 @@ Administrators can now operate sync workflows entirely from the browser:
 3. Use the “Push now” / “Pull now” buttons to queue jobs. Status chips update on refresh, and a rolling activity log records who ran what and whether it succeeded.
 
 Jobs reuse the same signing and verification pipeline as the CLI. You can queue a push, continue browsing, and refresh to see the completion state once the background task finishes.
+
+## RSS feeds
+- Visit `/settings/notifications` from the Menu → Account section to grab private RSS URLs for each request slice: all open items you can see, your invite circle, recently completed requests, and (for admins) pending verifications.
+- Each URL is tokenized (`/feeds/<token>/<category>.xml`). Paste it into any reader to stay current without logging in—the backend enforces the same permissions the web feed already uses.
+- Use the “Regenerate link” button beside a feed to rotate its token immediately; the settings page also shows when each feed was last accessed so you can spot stale or suspicious clients at a glance.
 
 ## Send Welcome page
 - While signed in, use the “Send Welcome” button (header menu) to generate an invite instantly.

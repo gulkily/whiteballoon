@@ -122,6 +122,12 @@ def site_menu(
                     href="/settings/account",
                     icon="partials/icons/menu_settings.svg",
                 ),
+                _build_link(
+                    title="Notifications & RSS",
+                    description="Copy private feed URLs or rotate them when needed.",
+                    href="/settings/notifications",
+                    icon="partials/icons/menu_settings.svg",
+                ),
             ],
         },
     ]

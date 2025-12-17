@@ -74,9 +74,11 @@ from app.services import (
     user_attribute_service,
     user_profile_highlight_service,
     vouch_service,
+    rss_feed_token_service,
+    rss_feed_catalog,
 )
 from app import config
-from app.url_utils import build_invite_link, generate_qr_code_data_url
+from app.url_utils import build_invite_link, generate_qr_code_data_url, get_base_url
 from .helpers import describe_session_role, templates
 
 router = APIRouter(tags=["ui"])
@@ -1694,6 +1696,51 @@ def _build_account_settings_context(
     }
 
 
+def _build_rss_feed_url(request: Request, token_value: str, category_slug: str) -> str:
+    base = get_base_url(request)
+    return f"{base}/feeds/{token_value}/{category_slug}.xml"
+
+
+def _build_rss_settings_context(
+    request: Request,
+    db: Session,
+    session_user: SessionUser,
+    *,
+    form_message: Optional[str] = None,
+    form_status: Optional[str] = None,
+) -> dict[str, object]:
+    user = session_user.user
+    session_record = session_user.session
+    session_role = describe_session_role(user, session_record)
+    session_avatar_url = _get_account_avatar(db, user.id)
+    feed_entries = []
+    variants = rss_feed_catalog.list_variants_for_user(user)
+    for variant in variants:
+        token = rss_feed_token_service.get_or_create_token(
+            db,
+            user_id=user.id,
+            category=variant.slug,
+        )
+        feed_entries.append(
+            {
+                "variant": variant,
+                "token": token,
+                "url": _build_rss_feed_url(request, token.token, variant.slug),
+            }
+        )
+    return {
+        "request": request,
+        "user": user,
+        "session": session_record,
+        "session_role": session_role,
+        "session_username": user.username,
+        "session_avatar_url": session_avatar_url,
+        "rss_feeds": feed_entries,
+        "form_message": form_message,
+        "form_status": form_status,
+    }
+
+
 def _build_request_detail_context(
     request: Request,
     db: Session,
@@ -2064,6 +2111,43 @@ async def _store_profile_photo(upload: UploadFile) -> str:
     destination = PROFILE_PHOTO_DIR / filename
     destination.write_bytes(contents)
     return f"/static/uploads/profile_photos/{filename}"
+
+
+@router.get("/settings/notifications")
+def settings_notifications(
+    request: Request,
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    context = _build_rss_settings_context(request, db, session_user)
+    return templates.TemplateResponse("settings/notifications.html", context)
+
+
+@router.post("/settings/notifications/rotate")
+def settings_notifications_rotate(
+    request: Request,
+    category: Annotated[str, Form()],
+    db: SessionDep,
+    session_user: SessionUser = Depends(require_session_user),
+) -> Response:
+    variant = rss_feed_catalog.get_variant(category)
+    if not variant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feed not found")
+    if variant.require_admin and not session_user.user.is_admin:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Feed not found")
+    rss_feed_token_service.rotate_token(
+        db,
+        user_id=session_user.user.id,
+        category=variant.slug,
+    )
+    context = _build_rss_settings_context(
+        request,
+        db,
+        session_user,
+        form_message=f"{variant.label} feed URL regenerated.",
+        form_status="success",
+    )
+    return templates.TemplateResponse("settings/notifications.html", context)
 
 
 @router.get("/settings/account")
