@@ -771,13 +771,12 @@ def admin_profile_permissions_action(
 
     def _redirect(message: str, severity: str) -> RedirectResponse:
         default_target = URL(request.url_for("admin_profile_directory"))
-        if next_url and next_url.startswith("/"):
+        next_target = default_target
+        if next_url and isinstance(next_url, str) and next_url.startswith("/"):
             try:
-                next_target = URL(str(next_url))
+                next_target = URL(next_url)
             except ValueError:
                 next_target = default_target
-        else:
-            next_target = default_target
         target_with_message = next_target.include_query_params(message=message, severity=severity)
         return RedirectResponse(str(target_with_message), status_code=status.HTTP_303_SEE_OTHER)
 
