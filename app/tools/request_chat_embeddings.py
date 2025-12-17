@@ -183,54 +183,58 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(exc))
 
     engine = get_engine()
-    with Session(engine) as session:
-        request_ids = _resolve_request_ids(session, ns.request_ids, ns.all)
-        if not request_ids:
-            parser.error("No matching requests found")
+    try:
+        with Session(engine) as session:
+            request_ids = _resolve_request_ids(session, ns.request_ids, ns.all)
+            if not request_ids:
+                parser.error("No matching requests found")
 
-        for request_id in request_ids:
-            existing_index = request_chat_embeddings.load_index(request_id)
-            if existing_index and not ns.force:
-                print(f"[chat-embed] Request {request_id}: cache exists (use --force to rebuild)")
-                continue
-            index = request_chat_search_service.ensure_chat_index(session, request_id)
-            entries = _select_entries(index, max_comments=max(0, ns.max_comments))
-            tasks: list[tuple[int, str]] = []
-            for entry in entries:
-                body = (entry.body or "").strip()
-                if body:
-                    tasks.append((entry.comment_id, body))
-            if not tasks:
-                print(f"[chat-embed] Request {request_id}: no comment text to embed")
-                continue
-            vectors: list[tuple[int, list[float]]] = []
-            batch_size = max(1, ns.batch_size)
-            for batch in _chunked(tasks, batch_size):
-                batch_ids = [comment_id for comment_id, _ in batch]
-                batch_texts = [text for _, text in batch]
-                embeddings = adapter.embed(batch_texts)
-                if len(embeddings) != len(batch_ids):
-                    raise RuntimeError("Embedding provider returned mismatched batch size")
-                for comment_id, vector in zip(batch_ids, embeddings):
-                    vectors.append((comment_id, vector))
-            embedding_index = request_chat_embeddings.build_index(
-                request_id=request_id,
-                model=adapter.label,
-                comment_vectors=vectors,
-                source_count=len(entries),
-            )
-            if not embedding_index.vector_count:
-                print(f"[chat-embed] Request {request_id}: embedding generation returned zero vectors")
-                continue
-            request_chat_embeddings.write_index(embedding_index)
-            print(
-                "[chat-embed] Request {request} stored {count} vectors via {label} (source comments: {source})".format(
-                    request=request_id,
-                    count=embedding_index.vector_count,
-                    label=adapter.label,
-                    source=embedding_index.source_comment_count,
+            for request_id in request_ids:
+                existing_index = request_chat_embeddings.load_index(request_id)
+                if existing_index and not ns.force:
+                    print(f"[chat-embed] Request {request_id}: cache exists (use --force to rebuild)")
+                    continue
+                index = request_chat_search_service.ensure_chat_index(session, request_id)
+                entries = _select_entries(index, max_comments=max(0, ns.max_comments))
+                tasks: list[tuple[int, str]] = []
+                for entry in entries:
+                    body = (entry.body or "").strip()
+                    if body:
+                        tasks.append((entry.comment_id, body))
+                if not tasks:
+                    print(f"[chat-embed] Request {request_id}: no comment text to embed")
+                    continue
+                vectors: list[tuple[int, list[float]]] = []
+                batch_size = max(1, ns.batch_size)
+                for batch in _chunked(tasks, batch_size):
+                    batch_ids = [comment_id for comment_id, _ in batch]
+                    batch_texts = [text for _, text in batch]
+                    embeddings = adapter.embed(batch_texts)
+                    if len(embeddings) != len(batch_ids):
+                        raise RuntimeError("Embedding provider returned mismatched batch size")
+                    for comment_id, vector in zip(batch_ids, embeddings):
+                        vectors.append((comment_id, vector))
+                embedding_index = request_chat_embeddings.build_index(
+                    request_id=request_id,
+                    model=adapter.label,
+                    comment_vectors=vectors,
+                    source_count=len(entries),
                 )
-            )
+                if not embedding_index.vector_count:
+                    print(f"[chat-embed] Request {request_id}: embedding generation returned zero vectors")
+                    continue
+                request_chat_embeddings.write_index(embedding_index)
+                print(
+                    "[chat-embed] Request {request} stored {count} vectors via {label} (source comments: {source})".format(
+                        request=request_id,
+                        count=embedding_index.vector_count,
+                        label=adapter.label,
+                        source=embedding_index.source_comment_count,
+                    )
+                )
+    except KeyboardInterrupt:
+        print("\n[chat-embed] Interrupted; stopping embedding generation.")
+        return 0
 
     return 0
 

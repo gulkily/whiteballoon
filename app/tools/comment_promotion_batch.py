@@ -162,15 +162,19 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     engine = get_engine()
 
-    if args.command == "run":
-        _process_pending(engine, limit=args.limit, force=args.force)
-        return 0
-    if args.command == "list":
-        status = args.status
-        _list_queue(engine, status=status, limit=args.limit)
-        return 0
-    if args.command == "retry":
-        _reset_entry(engine, attribute_id=args.attribute_id)
+    try:
+        if args.command == "run":
+            _process_pending(engine, limit=args.limit, force=args.force)
+            return 0
+        if args.command == "list":
+            status = args.status
+            _list_queue(engine, status=status, limit=args.limit)
+            return 0
+        if args.command == "retry":
+            _reset_entry(engine, attribute_id=args.attribute_id)
+            return 0
+    except KeyboardInterrupt:
+        print("\n[promote-comment-batch] Interrupted; stopping.")
         return 0
     return 1
 
