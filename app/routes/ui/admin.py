@@ -114,6 +114,14 @@ def _serialize_peer_filter(value: Optional[bool]) -> str:
     return "1" if value else "0"
 
 
+def _relative_url(url: URL) -> str:
+    query = url.query
+    base = url.path or "/"
+    if query:
+        return f"{base}?{query}"
+    return base
+
+
 @router.get("/admin")
 def admin_panel(
     request: Request,
@@ -601,7 +609,7 @@ def admin_profile_directory(
         "pagination": pagination,
         "filters_active": filters_active,
         "clear_filters_url": request.url.path,
-        "current_url": str(request.url),
+        "current_url": _relative_url(request.url),
         "permission_summaries": permission_summaries,
         "flash_message": flash_message,
         "flash_severity": flash_severity,
@@ -685,7 +693,7 @@ def admin_profile_detail(
         "flash_message": flash_message,
         "flash_severity": flash_severity,
         "profile_permission_summary": profile_permission_summary,
-        "current_url": str(request.url),
+        "current_url": _relative_url(request.url),
     }
     return templates.TemplateResponse("admin/profile_detail.html", context)
 
@@ -765,7 +773,7 @@ def admin_profile_permissions_action(
         default_target = URL(request.url_for("admin_profile_directory"))
         if next_url and next_url.startswith("/"):
             try:
-                next_target = URL(next_url)
+                next_target = URL(str(next_url))
             except ValueError:
                 next_target = default_target
         else:
