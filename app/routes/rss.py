@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import html
 from email.utils import format_datetime
 from xml.etree import ElementTree as ET
 
@@ -53,17 +54,24 @@ def _request_title(payload: RequestResponse) -> str:
 
 def _normalize_description(payload: RequestResponse) -> str:
     summary = (payload.description or "").strip()
-    if payload.created_by_username:
-        author = payload.created_by_username
-    else:
-        author = "Anonymous"
+    author = payload.created_by_username or "Anonymous"
     lines = [
         f"Status: {payload.status}",
         f"Author: @{author}",
-        "",
-        summary,
     ]
-    return "\n".join(line for line in lines if line is not None)
+    if summary:
+        lines.extend(["", summary])
+    body = "\n".join(line for line in lines if line is not None)
+    escaped = html.escape(body).replace("\n", "<br />\n")
+    return f"<div>{escaped}</div>"
+
+
+def _set_cdata(element: ET.Element, content: str) -> None:
+    cdata = getattr(ET, "CDATA", None)
+    if cdata:
+        element.text = cdata(content)
+    else:
+        element.text = content
 
 
 def _build_feed_document(
@@ -86,7 +94,8 @@ def _build_feed_document(
         ET.SubElement(entry, "link").text = f"{link}/requests/{item.id}"
         ET.SubElement(entry, "guid", isPermaLink="false").text = f"request-{item.id}"
         ET.SubElement(entry, "pubDate").text = _format_rfc2822(item.updated_at)
-        ET.SubElement(entry, "description").text = _normalize_description(item)
+        description = ET.SubElement(entry, "description")
+        _set_cdata(description, _normalize_description(item))
         if item.status:
             category = ET.SubElement(entry, "category")
             category.text = item.status
