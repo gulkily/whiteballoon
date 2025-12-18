@@ -93,7 +93,15 @@
                   <tr>
                     <td><a href="/requests/{{ item.id }}">#{{ item.id }}</a></td>
                     <td>{{ item.status | title }}</td>
-                    <td>@{{ item.created_by_username or 'unknown' }}</td>
+                    <td>
+                      {% include "partials/display_name.html" with
+                        username=item.created_by_username,
+                        display_name=item.created_by_display_name,
+                        href=item.created_by_username and '/people/' ~ item.created_by_username,
+                        class_name='link-inline',
+                        fallback_label='Unknown'
+                      %}
+                    </td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
                         <input type="hidden" name="entity_type" value="request" />
@@ -142,7 +150,15 @@
                       </a>
                     </td>
                     <td>#{{ comment.help_request_id }}</td>
-                    <td>@{{ comment.created_by_username or 'unknown' }}</td>
+                    <td>
+                      {% include "partials/display_name.html" with
+                        username=comment.created_by_username,
+                        display_name=comment.display_name,
+                        href=comment.created_by_username and '/people/' ~ comment.created_by_username,
+                        class_name='link-inline',
+                        fallback_label='Unknown'
+                      %}
+                    </td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
                         <input type="hidden" name="entity_type" value="comment" />
@@ -184,7 +200,14 @@
                 {% for u in public_users %}
                   {% set user_public = u.sync_scope == 'public' %}
                   <tr>
-                    <td><a href="/people/{{ u.username }}">@{{ u.username }}</a></td>
+                    <td>
+                      {% include "partials/display_name.html" with
+                        username=u.username,
+                        display_name=u.display_name,
+                        href='/people/' ~ u.username,
+                        class_name='link-inline'
+                      %}
+                    </td>
                     <td><time datetime="{{ u.created_at }}">{{ u.created_at | friendly_time }}</time></td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>

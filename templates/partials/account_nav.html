@@ -50,7 +50,13 @@
           <span class="account-nav__avatar-initials">{{ user.username[:2] | upper }}</span>
         {% endif %}
       </span>
-      <span class="account-nav__name">@{{ user.username }}</span>
+      <span class="account-nav__name">
+        {% include "partials/display_name.html" with
+          username=user.username,
+          display_name=user.display_name,
+          class_name='link-inline'
+        %}
+      </span>
     </a>
   </div>
 </div>

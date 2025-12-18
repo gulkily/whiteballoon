@@ -33,7 +33,13 @@
               <span class="muted small-text">
                 Updated {{ peer_attr.updated_at | friendly_time }}
                 {% if updated_by %}
-                  by @{{ updated_by.username }}
+                  by
+                  {% include "partials/display_name.html" with
+                    username=updated_by.username,
+                    display_name=updated_by.display_name,
+                    href='/admin/profiles/' ~ updated_by.id,
+                    class_name='profile-name-link'
+                  %}
                 {% elif peer_attr.updated_by_user_id %}
                   by user #{{ peer_attr.updated_by_user_id }}
                 {% endif %}

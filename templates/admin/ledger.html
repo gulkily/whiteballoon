@@ -61,14 +61,24 @@
                 </td>
                 <td data-label="Requester">
                   {% if requester %}
-                    <a href="/admin/profiles/{{ requester.id }}" class="profile-name-link">@{{ requester.username }}</a>
+                    {% include "partials/display_name.html" with
+                      username=requester.username,
+                      display_name=requester.display_name,
+                      href='/admin/profiles/' ~ requester.id,
+                      class_name='profile-name-link'
+                    %}
                   {% else %}
                     <span class="muted">User #{{ entry.requester_user_id }}</span>
                   {% endif %}
                 </td>
                 <td data-label="Reviewer">
                   {% if reviewer %}
-                    <a href="/admin/profiles/{{ reviewer.id }}" class="profile-name-link">@{{ reviewer.username }}</a>
+                    {% include "partials/display_name.html" with
+                      username=reviewer.username,
+                      display_name=reviewer.display_name,
+                      href='/admin/profiles/' ~ reviewer.id,
+                      class_name='profile-name-link'
+                    %}
                   {% else %}
                     <span class="muted">User #{{ entry.reviewer_user_id }}</span>
                   {% endif %}

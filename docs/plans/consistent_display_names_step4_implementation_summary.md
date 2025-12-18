@@ -19,3 +19,8 @@
 - Changes: Swapped the manual requester markup in `templates/requests/detail.html`, `templates/requests/partials/item.html`, and promoted-comment/related-snippet sections to include `partials/display_name.html` for every identity reference. This brings the requester chip, promoted comment header, and “related chats” summaries in line with the chat display.
 - Verification: Manually reloaded `/requests/30`, `/requests/39`, and the main request feed to confirm the new component renders the correct display names (with emoji prefixes) and profile links. No automated tests were run per instructions.
 - Notes: Remaining global templates will migrate in Stage 5; CSS hooks (`meta-chip__value`, etc.) remain intact.
+
+## Stage 5 – Apply component across global templates
+- Changes: Replaced raw `@{{ username }}` strings in shared templates (`partials/comment_card.html`, `partials/account_nav.html`, `members/index.html`, `browse/index.html`, `peer_auth/partials/list.html`, `invite/map.html`, `sync/public.html`, `admin/profile_detail.html`, `admin/profiles.html`, `admin/ledger.html`, `admin/partials/permission_card.html`) with the new `display_name` include so every identity renders consistently regardless of surface.
+- Verification: Clicked through Members, Browse (requests/comments/profiles tabs), Peer Auth queue, Invite Map, Sync public control panel, and Admin profiles/ledger to confirm usernames now render via the helper without layout regressions. No automated tests were run per instructions.
+- Notes: Some contexts still lack display-name data; the component gracefully falls back to `@username` or “Unknown” until we add richer metadata.

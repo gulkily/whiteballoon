@@ -105,7 +105,14 @@
                           {% endif %}
                         </span>
                         <div>
-                          <p class="browse-card__username">@{{ entry.user.username }}</p>
+                          <p class="browse-card__username">
+                            {% include "partials/display_name.html" with
+                              username=entry.user.username,
+                              display_name=entry.user.display_name,
+                              href='/people/' ~ entry.user.username,
+                              class_name='link-inline'
+                            %}
+                          </p>
                           <p class="muted small-text">Joined {{ entry.user.created_at | friendly_time }}</p>
                         </div>
                       </div>
@@ -115,7 +122,14 @@
                     {% if entry.kind == 'request' %}
                       <span class="meta-chip meta-chip--status">{{ entry.data.status | title }}</span>
                       {% if entry.data.created_by_username %}
-                        <span class="meta-chip">@{{ entry.data.created_by_username }}</span>
+                        <span class="meta-chip">
+                          {% include "partials/display_name.html" with
+                            username=entry.data.created_by_username,
+                            display_name=entry.data.created_by_display_name,
+                            href='/people/' ~ entry.data.created_by_username,
+                            class_name='link-inline'
+                          %}
+                        </span>
                       {% endif %}
                       {% if entry.topics %}
                         <div class="browse-card__tags">
@@ -128,7 +142,13 @@
                       <a class="button button--ghost" href="{{ entry.href }}">View request</a>
                     {% elif entry.kind == 'comment' %}
                       <p class="muted small-text">
-                        @{{ entry.data.username }} on Request #{{ entry.request.id }}
+                        {% include "partials/display_name.html" with
+                          username=entry.data.username,
+                          display_name=entry.data.display_name,
+                          href='/people/' ~ entry.data.username,
+                          class_name='link-inline'
+                        %}
+                        on Request #{{ entry.request.id }}
                       </p>
                       <a class="button button--ghost" href="{{ entry.href }}">Open conversation</a>
                     {% else %}
@@ -208,7 +228,14 @@
                         {% endif %}
                       </span>
                       <div class="member-card__identity-text">
-                        <p class="member-card__username">@{{ profile.username }}</p>
+                        <p class="member-card__username">
+                          {% include "partials/display_name.html" with
+                            username=profile.username,
+                            display_name=profile.display_name,
+                            href=profile_href,
+                            class_name='link-inline'
+                          %}
+                        </p>
                         <p class="muted small-text">Joined {{ profile.created_at | friendly_time }}</p>
                       </div>
                     </div>
