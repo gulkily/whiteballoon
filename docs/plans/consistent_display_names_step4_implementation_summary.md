@@ -9,3 +9,8 @@
 - Changes: Added `templates/partials/display_name.html`, a reusable include that formats display names or falls back to `@username`/community text and optionally hyperlinks to `/people/<username>`. Documented usage rules inside `DEV_CHEATSHEET.md` under UI components so future templates rely on the helper.
 - Verification: Rendered the component within a scratch template (manual `Jinja2` render) to confirm both `<a>` and `<span>` paths behave; viewed `/requests/30` locally using the include in a test slot. No automated tests were run per instructions.
 - Notes: Component accepts `username`, `display_name`, `href`, `class_name`, `fallback_label`, and `prefix_icon`; downstream templates will migrate in later stages.
+
+## Stage 3 – Expose request-level display names
+- Changes: Added `_map_request_creator_display_names` to `app/routes/ui/__init__.py` so request feeds, APIs, and detail views receive `created_by_display_name` alongside `created_by_username`. Updated `_serialize_requests` (feeds, channels, RSS) and `_build_request_detail_context` to populate the field via the shared helper.
+- Verification: Loaded `/requests`, `/requests/30`, and `/requests/39` locally to confirm serialized request dictionaries now include `created_by_display_name` where available without affecting non-Signal entries. No automated tests were run per instructions.
+- Notes: APIs still omit display names unless the caller renders our templates; no extra JSON fields were introduced beyond `RequestResponse.created_by_display_name`.

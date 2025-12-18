@@ -404,6 +404,7 @@ def _serialize_requests(
             pinned_only=pinned_only,
         )
     creator_usernames = request_services.load_creator_usernames(db, items)
+    creator_display_names = _map_request_creator_display_names(db, items)
     request_ids = [item.id for item in items if item.id]
     template_metadata = recurring_template_service.load_template_metadata(db, request_ids)
     serialized = []
@@ -415,6 +416,7 @@ def _serialize_requests(
             RequestResponse.from_model(
                 item,
                 created_by_username=creator_usernames.get(item.created_by_user_id),
+                created_by_display_name=creator_display_names.get(item.id),
                 can_complete=can_complete,
                 is_pinned=pin_metadata is not None,
                 pin_rank=pin_metadata.rank if pin_metadata else None,
@@ -423,6 +425,31 @@ def _serialize_requests(
             ).model_dump()
         )
     return serialized
+
+
+def _map_request_creator_display_names(db: Session, requests: Sequence[HelpRequest]) -> dict[int, str]:
+    grouped: dict[str, set[int]] = {}
+    for req in requests:
+        if not req or not req.created_by_user_id:
+            continue
+        attr_key = _signal_display_attr_key(req)
+        if not attr_key:
+            continue
+        grouped.setdefault(attr_key, set()).add(req.created_by_user_id)
+    resolved: dict[str, dict[int, str]] = {}
+    for attr_key, user_ids in grouped.items():
+        resolved[attr_key] = _load_signal_display_names_for_user_ids(db, user_ids, attr_key)
+    mapping: dict[int, str] = {}
+    for req in requests:
+        if not req or not req.id or not req.created_by_user_id:
+            continue
+        attr_key = _signal_display_attr_key(req)
+        if not attr_key:
+            continue
+        display_name = resolved.get(attr_key, {}).get(req.created_by_user_id)
+        if display_name:
+            mapping[req.id] = display_name
+    return mapping
 
 
 def _build_request_channel_rows(
@@ -1811,15 +1838,7 @@ def _build_request_detail_context(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
     creator_usernames = request_services.load_creator_usernames(db, [help_request])
-    attr_key = _signal_display_attr_key(help_request)
-    creator_display_name = None
-    if help_request.created_by_user_id:
-        name_map = _load_signal_display_names_for_user_ids(
-            db,
-            {help_request.created_by_user_id},
-            attr_key,
-        )
-        creator_display_name = name_map.get(help_request.created_by_user_id)
+    creator_display_name = _map_request_creator_display_names(db, [help_request]).get(help_request.id)
     pin_map = request_pin_service.get_pin_map(db)
     pin_meta = pin_map.get(help_request.id)
     serialized = RequestResponse.from_model(
