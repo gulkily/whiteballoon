@@ -57,6 +57,7 @@ from app.captions import load_preferences as load_caption_preferences
 from app.services import (
     auth_service,
     caption_preference_service,
+    chat_reaction_parser,
     comment_llm_insights_service,
     comment_request_promotion_service,
     invite_graph_service,
@@ -1911,6 +1912,12 @@ def _build_request_detail_context(
             author,
             display_name=display_names.get(author.id),
         )
+        body_text = serialized_comment.get("body") or ""
+        clean_body, reactions = chat_reaction_parser.strip_reactions(body_text)
+        serialized_comment["body"] = clean_body
+        serialized_comment["reaction_summary"] = [
+            {"emoji": reaction.emoji, "count": reaction.count} for reaction in reactions
+        ]
         metadata = insights_lookup.get(comment.id, {})
         serialized_comment["insight_metadata"] = metadata
         matches_filters = not filters_active or _matches_insight_filters(

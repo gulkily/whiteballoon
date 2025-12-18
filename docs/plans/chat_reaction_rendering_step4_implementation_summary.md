@@ -9,3 +9,8 @@
 - Changes: Added `app/services/chat_reaction_parser.py` with a `strip_reactions` helper that detects the `(Reactions: …)` suffix, removes it from the body, and returns a sorted list of `{emoji, count}` records (ignoring malformed entries). Exported a lightweight `ChatReaction` dataclass for downstream use.
 - Verification: Exercised the helper in a Python shell with real snippets copied from `/requests/30` to ensure the cleaned body and counts matched expectations. No automated tests run.
 - Notes: Parser intentionally ignores name-level granularity for now per Option B; it simply tallies emojis so we can render compact summaries.
+
+## Stage 3 – Surface parsed data in chat context
+- Changes: Updated `_build_request_detail_context` to call `chat_reaction_parser.strip_reactions` for every serialized comment, replacing the stored `body` with the cleaned text and adding a `reaction_summary` list (`[{emoji, count}]`). This flows through to channel panes, detail pages, and any template that uses the comment payload.
+- Verification: Loaded `/requests/30` and `/requests/channels?channel=30` locally to confirm comments now include `reaction_summary` (checked via browser devtools) and that the body text no longer shows the `(Reactions: …)` suffix. No automated tests run.
+- Notes: Search/index payloads still contain the raw text; Stage 4 will handle rendering/summary output.
