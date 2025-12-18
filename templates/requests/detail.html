@@ -15,21 +15,22 @@
     <div class="request-detail-header">
       <div class="request-detail-header__title">
         <div class="request-detail-meta">
-          {% if request_item.created_by_username %}
-            <span class="meta-chip meta-chip--requester">
-              <a
-                class="meta-chip__value meta-chip__value--link"
-                href="/people/{{ request_item.created_by_username }}"
-                title="@{{ request_item.created_by_username }}"
-              >
-                {{ request_item.created_by_display_name or '@' ~ request_item.created_by_username }}
-              </a>
-            </span>
-          {% else %}
-            <span class="meta-chip">
-              <span class="meta-chip__value">Community member</span>
-            </span>
-          {% endif %}
+          <span class="meta-chip meta-chip--requester">
+            {% if request_item.created_by_username %}
+              {% include "partials/display_name.html" with
+                username=request_item.created_by_username,
+                display_name=request_item.created_by_display_name,
+                href='/people/' ~ request_item.created_by_username,
+                class_name='meta-chip__value meta-chip__value--link'
+              %}
+            {% else %}
+              {% include "partials/display_name.html" with
+                username=None,
+                display_name=None,
+                class_name='meta-chip__value'
+              %}
+            {% endif %}
+          </span>
           <span class="meta-chip meta-chip--status">
             <span class="meta-chip__label">Status</span>
             <span class="meta-chip__value">{{ request_item.status | title }}</span>
@@ -189,7 +190,14 @@
     </header>
     <div class="promoted-comment-card__body">
       <p class="muted small-text">
-        Posted by @{{ promoted_comment_context.comment.username }} ·
+        Posted by
+        {% include "partials/display_name.html" with
+          username=promoted_comment_context.comment.username,
+          display_name=promoted_comment_context.comment.display_name,
+          href='/people/' ~ promoted_comment_context.comment.username,
+          class_name='link-inline'
+        %}
+        ·
         <time datetime="{{ promoted_comment_context.comment.created_at_iso }}">{{ promoted_comment_context.comment.created_at | friendly_time }}</time>
       </p>
       <p>{{ promoted_comment_context.comment.body | render_multiline }}</p>
@@ -327,7 +335,13 @@
                 </p>
                 {% if suggestion.snippet %}
                   <blockquote class="request-chat-suggestions__snippet">
-                    “{{ suggestion.snippet.body }}” — @{{ suggestion.snippet.username }}
+                    “{{ suggestion.snippet.body }}” —
+                    {% include "partials/display_name.html" with
+                      username=suggestion.snippet.username,
+                      display_name=suggestion.snippet.display_name,
+                      href='/people/' ~ suggestion.snippet.username,
+                      class_name='link-inline'
+                    %}
                     <a href="/requests/{{ suggestion.request_id }}#{{ suggestion.snippet.anchor }}" class="small-text">Jump to chat</a>
                   </blockquote>
                 {% endif %}
