@@ -29,3 +29,8 @@
 - Changes: Confirmed the new helper is referenced in `DEV_CHEATSHEET.md` (Stage 2) and ran `rg -n '@{{' templates` to ensure no stray raw-username markup remains; captured the final inventory in this summary.
 - Verification: Manual search plus spot-check of a handful of templates to ensure the component inclusion renders as expected; no automated tests were run per instructions.
 - Notes: Future templates should reference `partials/display_name.html`; the doc update calls this out explicitly.
+
+## Stage 7 – Normalize channel previews/chat text
+- Changes: Applied the existing `render_multiline` filter to request channel previews (`templates/requests/channels.html`) and chat message bodies (`templates/requests/partials/channel_message.html`) so imported `<br />` tags render as actual line breaks instead of escaped text in both the sidebar and chat pane.
+- Verification: Manually reloaded `/requests/channels?channel=39` and confirmed both the channel list preview and chat log no longer show literal `<br />`. No automated tests were run per instructions.
+- Notes: `render_multiline` already strips stray `<br>` tags elsewhere; extending it here keeps the experience consistent.

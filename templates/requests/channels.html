@@ -73,7 +73,7 @@
               <span class="request-channel__time" data-channel-time data-timestamp="{{ channel.updated_at }}"></span>
               <span class="request-channel__presence" data-channel-presence hidden></span>
             </span>
-            <span class="request-channel__preview">{{ channel.preview }}</span>
+            <span class="request-channel__preview">{{ channel.preview | render_multiline }}</span>
             <div class="request-channel__badges">
               {% if channel.is_pinned %}
                 <span class="request-channel__pin" aria-label="Pinned channel">📌</span>
