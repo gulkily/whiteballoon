@@ -733,6 +733,18 @@ def home(
     return _render_requests_page(request, db, user, session_record, session_role)
 
 
+@router.get("/brand/logo", include_in_schema=False)
+def logo_capture(request: Request) -> Response:
+    """Render a padded, standalone logo for easy screenshots."""
+    return templates.TemplateResponse("branding/logo_capture.html", {"request": request})
+
+
+@router.get("/brand/logo/flat", include_in_schema=False)
+def logo_capture_flat(request: Request) -> Response:
+    """Render a flat, rectangular logo layout for screenshots."""
+    return templates.TemplateResponse("branding/logo_capture_flat.html", {"request": request})
+
+
 @router.get("/requests")
 def requests_feed(
     request: Request,

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WhiteBalloon Logo</title>
+    <script>document.documentElement.classList.add('js');</script>
+    <script>
+      (function () {
+        try {
+          var storageKey = 'wb-theme';
+          var stored = localStorage.getItem(storageKey);
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved;
+
+          if (stored === 'dark' || stored === 'light') {
+            resolved = stored;
+          } else {
+            resolved = prefersDark ? 'dark' : 'light';
+            if (stored === null) {
+              localStorage.setItem(storageKey, 'auto');
+            }
+          }
+
+          document.documentElement.setAttribute('data-theme', resolved);
+          document.documentElement.setAttribute('data-theme-preference', stored || 'auto');
+        } catch (err) {
+          var matchesDark = false;
+          if (window.matchMedia) {
+            try {
+              matchesDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            } catch (ignored) {}
+          }
+          document.documentElement.setAttribute('data-theme', matchesDark ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme-preference', 'auto');
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ skin_bundle_href(request) }}" />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      body.logo-capture {
+        margin: 0;
+        min-height: 100vh;
+        padding: clamp(3rem, 8vw, 7rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: var(--color-text);
+      }
+
+      [data-theme='dark'] body.logo-capture {
+        background: radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.35), transparent 45%),
+          radial-gradient(circle at 80% 10%, rgba(14, 165, 233, 0.25), transparent 50%),
+          radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.35), transparent 40%),
+          #020617;
+      }
+
+      .logo-capture__frame {
+        display: inline-block;
+        padding: clamp(1rem, 2vw, 2.25rem);
+        border-radius: 3.5rem;
+        background: transparent;
+      }
+
+      .logo-capture__panel {
+        position: relative;
+        padding: clamp(3.5rem, 6vw, 6rem);
+        border-radius: 2.75rem;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 35px 90px rgba(15, 23, 42, 0.35);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        isolation: isolate;
+      }
+
+      [data-theme='dark'] .logo-capture__panel {
+        background: rgba(15, 23, 42, 0.92);
+        box-shadow: 0 35px 90px rgba(2, 6, 23, 0.85);
+      }
+
+      .logo-capture__glow {
+        position: absolute;
+        inset: 12%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(124, 58, 237, 0.35), transparent 65%);
+        filter: blur(35px);
+        z-index: -1;
+        opacity: 0.85;
+      }
+
+      .logo-capture__brand.brand {
+        font-size: clamp(2.5rem, 4vw, 4rem);
+        gap: clamp(1.25rem, 3vw, 2.5rem);
+        color: var(--color-accent);
+      }
+
+      .logo-capture__brand .brand-icon {
+        width: clamp(70px, 11vw, 140px);
+        height: clamp(70px, 11vw, 140px);
+        border-radius: 1.75rem;
+        padding: clamp(0.85rem, 2vw, 1.5rem);
+        box-shadow: 0 25px 45px rgba(124, 58, 237, 0.45);
+        background: rgba(124, 58, 237, 0.25);
+      }
+
+      .logo-capture__brand .brand-wordmark {
+        font-size: clamp(2.75rem, 5vw, 4.5rem);
+        text-shadow: 0 15px 35px rgba(15, 23, 42, 0.2);
+        color: inherit;
+      }
+
+      [data-theme='dark'] .logo-capture__brand .brand-wordmark {
+        text-shadow: 0 18px 35px rgba(2, 6, 23, 0.65);
+        color: inherit;
+      }
+
+      .logo-capture__toggle {
+        position: fixed;
+        top: clamp(1rem, 3vw, 2rem);
+        right: clamp(1rem, 3vw, 2rem);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.35rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
+        backdrop-filter: blur(10px);
+      }
+
+      [data-theme='dark'] .logo-capture__toggle {
+        background: rgba(15, 23, 42, 0.75);
+        box-shadow: 0 18px 35px rgba(2, 6, 23, 0.65);
+      }
+
+      @media (max-width: 640px) {
+        body.logo-capture {
+          padding: 2rem;
+        }
+
+        .logo-capture__panel {
+          padding: 2.75rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="page logo-capture">
+    <div class="logo-capture__toggle">
+      {% include "partials/theme_toggle.html" %}
+    </div>
+    <div class="logo-capture__frame">
+      <main class="logo-capture__panel" aria-labelledby="logo-title">
+        <div class="logo-capture__glow" aria-hidden="true"></div>
+        <span id="logo-title" class="logo-capture__brand brand" aria-label="WhiteBalloon">
+          <span class="brand-icon" aria-hidden="true">
+            {% include "partials/logo_icon.svg" %}
+          </span>
+          <span class="brand-wordmark">WhiteBalloon</span>
+        </span>
+      </main>
+    </div>
+    <script src="/static/js/theme-toggle.js" defer></script>
+  </body>
+</html>
