@@ -19,3 +19,8 @@
 - Changes: Added `CHAT_AI_CLI_MODULE` wiring plus a new subcommand that launches `app.tools.chat_ai_cli`, which impersonates a chosen username, runs prompts through the retrieval helper, and formats answers plus citation links inline.
 - Verification: Ran `./wb chat ai --prompt 'housing updates'` to confirm the new CLI prints summarized answers and source links without errors.
 - Notes: CLI uses direct DB access today; HTTP auth sessions can layer on later if needed.
+
+## Stage 5 – Web AI panel
+- Changes: Inserted an “Ask AI” panel on the request channels page with new markup, vanilla JS (`static/js/chat-ai-panel.js`) for calling `/api/chat/ai`, and scoped styles inside `static/skins/base/30-requests.css`.
+- Verification: Rendered `templates/requests/channels.html` through the shared Jinja environment with a stub request/session to confirm the panel markup appears (`data-chat-ai-panel` present).
+- Notes: Browser testing still recommended to validate fetches and auth cookies end-to-end.

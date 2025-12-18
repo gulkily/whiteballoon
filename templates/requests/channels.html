@@ -91,6 +91,48 @@
     </div>
   </aside>
   <section class="request-channels__chat" aria-live="polite" data-channel-pane>
+    {% if session and session.is_fully_authenticated %}
+    <section
+      class="chat-ai"
+      data-chat-ai-panel
+      data-chat-ai-scope="auto"
+      data-chat-ai-max="5"
+    >
+      <header class="chat-ai__header">
+        <div>
+          <p class="chat-ai__eyebrow">AI assistant</p>
+          <h3 class="chat-ai__title">Ask about requests & chats</h3>
+          <p class="chat-ai__subtitle">Use natural language to surface relevant requests, comments, and docs.</p>
+        </div>
+      </header>
+      <div class="chat-ai__transcript" data-chat-ai-transcript>
+        <p class="muted small-text" data-chat-ai-empty>Ask a question to start a conversation.</p>
+      </div>
+      <div class="chat-ai__citations" data-chat-ai-citations hidden></div>
+      <div class="chat-ai__guardrail" data-chat-ai-guardrail hidden></div>
+      <form class="chat-ai__form" data-chat-ai-form novalidate>
+        <label class="sr-only" for="chat-ai-input">Ask AI</label>
+        <textarea
+          id="chat-ai-input"
+          class="input chat-ai__input"
+          rows="2"
+          maxlength="500"
+          placeholder="Ask e.g. “Which housing requests had follow-ups this week?”"
+          data-chat-ai-input
+          required
+        ></textarea>
+        <div class="chat-ai__actions">
+          <button type="submit" class="button button--small" data-chat-ai-submit>Ask</button>
+          <span class="chat-ai__status" data-chat-ai-status hidden>Thinking…</span>
+        </div>
+      </form>
+      <div class="alert alert--error" data-chat-ai-error hidden></div>
+    </section>
+    {% else %}
+    <section class="chat-ai chat-ai--disabled">
+      <p class="muted small-text">Sign in to ask AI questions about requests and chats.</p>
+    </section>
+    {% endif %}
     {% if active_chat_context %}
       {% with chat = active_chat_context %}
         {% include "requests/partials/channel_chat.html" %}
@@ -146,6 +188,7 @@
     "active_channel_id": active_channel_id,
   } | tojson }}
 </script>
+<script src="/static/js/chat-ai-panel.js" defer></script>
 <script src="/static/js/request-channels.js" defer></script>
 {% if session and session.is_fully_authenticated %}
 <script src="/static/js/comment-promotion.js" defer></script>
