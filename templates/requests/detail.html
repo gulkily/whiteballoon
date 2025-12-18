@@ -188,7 +188,7 @@
         Posted by @{{ promoted_comment_context.comment.username }} ·
         <time datetime="{{ promoted_comment_context.comment.created_at_iso }}">{{ promoted_comment_context.comment.created_at | friendly_time }}</time>
       </p>
-      <p>{{ promoted_comment_context.comment.body }}</p>
+      <p>{{ promoted_comment_context.comment.body | render_multiline }}</p>
     </div>
     {% if promoted_comment_context.insight %}
       <div class="promoted-comment-card__insight">

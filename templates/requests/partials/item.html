@@ -134,7 +134,7 @@
     </div>
   {% endif %}
   <div>
-    <p>{{ item.description or 'No additional details.' }}</p>
+    <p>{{ item.description | render_multiline('No additional details.') }}</p>
   </div>
   <footer class="actions">
     {% if item.status == 'completed' %}

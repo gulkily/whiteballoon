@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional, Union
 
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 
 from app.config import get_settings
 from app.models import User, UserSession
@@ -78,7 +79,23 @@ def friendly_time(value: Union[str, datetime, None]) -> str:
     return local_dt.strftime("%b %d, %Y %I:%M %p")
 
 
+def render_multiline(value: Optional[str], default: str = "") -> Markup:
+    text = value if value and value.strip() else default
+    normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    normalized = (
+        normalized.replace("<br />", "\n")
+        .replace("<br/>", "\n")
+        .replace("<br>", "\n")
+    )
+    lines = normalized.split("\n")
+    escaped_lines = [escape(line) for line in lines if line]
+    if not escaped_lines:
+        return Markup("")
+    return Markup("<br />").join(escaped_lines)
+
+
 templates.env.filters["friendly_time"] = friendly_time
+templates.env.filters["render_multiline"] = render_multiline
 
 
 def describe_session_role(user: User, session: Optional[UserSession]) -> Optional[dict[str, str]]:
@@ -95,4 +112,4 @@ def describe_session_role(user: User, session: Optional[UserSession]) -> Optiona
     return {"label": "Member", "tone": "muted"}
 
 
-__all__ = ["describe_session_role", "friendly_time", "templates"]
+__all__ = ["describe_session_role", "friendly_time", "render_multiline", "templates"]
