@@ -4,12 +4,13 @@ import argparse
 import sys
 from typing import Iterable
 from uuid import uuid4
+from time import perf_counter
 
 from sqlmodel import Session, select
 
 from app.db import get_engine
 from app.models import User
-from app.services import chat_ai_service
+from app.services import chat_ai_metrics, chat_ai_service
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -64,6 +65,7 @@ def _resolve_user(session: Session, username: str | None) -> User | None:
 
 
 def _handle_prompt(session: Session, user: User, prompt: str, scope: str, max_items: int) -> None:
+    started = perf_counter()
     context = chat_ai_service.build_ai_chat_context(
         session,
         prompt=prompt,
@@ -71,9 +73,20 @@ def _handle_prompt(session: Session, user: User, prompt: str, scope: str, max_it
         context_scope=scope,
         max_items=max_items,
     )
+    latency_ms = (perf_counter() - started) * 1000
     response = _format_response(context)
     print(f"AI> {response}")
     _print_citations(context.citations)
+    chat_ai_metrics.log_event(
+        source="cli",
+        user_id=user.id,
+        conversation_id=None,
+        prompt=prompt,
+        citation_count=len(context.citations),
+        status="guardrail" if context.guardrail else "ok",
+        latency_ms=latency_ms,
+        guardrail=context.guardrail,
+    )
 
 
 def _format_response(context: chat_ai_service.ChatAIContextResult) -> str:

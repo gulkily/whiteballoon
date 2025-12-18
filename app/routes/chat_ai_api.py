@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 from typing import Literal
 from uuid import uuid4
+from time import perf_counter
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
-from app.services import chat_ai_service
+from app.services import chat_ai_metrics, chat_ai_service
 
 CHAT_AI_RATE_LIMIT_PER_MINUTE = 30
 CHAT_AI_MAX_HISTORY = 5
@@ -67,6 +68,7 @@ def chat_ai_query(
     db: SessionDep,
     session_user: SessionUser = Depends(require_session_user),
 ) -> ChatAIResponse:
+    started = perf_counter()
     conversation_id = payload.conversation_id or uuid4().hex
     max_items = min(payload.max_context_items, CHAT_AI_MAX_HISTORY)
     context = chat_ai_service.build_ai_chat_context(
@@ -97,6 +99,16 @@ def chat_ai_query(
         conversation_id,
         len(citations),
         payload.context_scope,
+    )
+    chat_ai_metrics.log_event(
+        source="web",
+        user_id=session_user.user.id,
+        conversation_id=conversation_id,
+        prompt=payload.prompt,
+        citation_count=len(citations),
+        status="guardrail" if context.guardrail else "ok",
+        latency_ms=(perf_counter() - started) * 1000,
+        guardrail=context.guardrail,
     )
     return ChatAIResponse(
         conversation_id=conversation_id,
