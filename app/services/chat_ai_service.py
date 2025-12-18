@@ -169,8 +169,18 @@ def _request_visible(request: HelpRequest, user: User) -> bool:
     return scope and scope == user_scope
 
 
+_HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
+
+
+def _strip_markup(text: str) -> str:
+    if "<" not in text:
+        return text
+    return _HTML_TAG_PATTERN.sub(" ", text)
+
+
 def _trim_text(text: str, *, limit: int = 240) -> str:
-    cleaned = " ".join(text.split())
+    sanitized = _strip_markup(text)
+    cleaned = " ".join(sanitized.split())
     if len(cleaned) <= limit:
         return cleaned
     return cleaned[: limit - 1].rstrip() + "…"

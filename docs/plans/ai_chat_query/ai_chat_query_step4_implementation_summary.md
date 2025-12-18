@@ -23,7 +23,7 @@
 ## Stage 5 – Web AI panel
 - Changes: Inserted an “Ask AI” panel on the request channels page with new markup, vanilla JS (`static/js/chat-ai-panel.js`) for calling `/api/chat/ai`, and scoped styles inside `static/skins/base/30-requests.css`.
 - Verification: Rendered `templates/requests/channels.html` through the shared Jinja environment with a stub request/session to confirm the panel markup appears (`data-chat-ai-panel` present).
-- Notes: Browser testing still recommended to validate fetches and auth cookies end-to-end.
+- Notes: Browser testing still recommended to validate fetches and auth cookies end-to-end, and HTML snippets are now sanitized so `<br />` tags render as line breaks instead of literal text.
 
 ## Stage 6 – Telemetry + guardrail instrumentation
 - Changes: Added `app/services/chat_ai_metrics.py` to write JSONL usage rows with opt-out support (`#private` marker), wired logging into the FastAPI route and CLI helper, and began persisting events under `storage/logs/chat_ai_events.log`.
