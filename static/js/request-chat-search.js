@@ -49,7 +49,8 @@
   };
 
   const highlightBody = (body, tokens) => {
-    let html = escapeHTML(body);
+    const normalized = escapeHTML(body).replace(/<br\s*\/?>/gi, '\n');
+    let html = normalized.replace(/\n/g, '<br />');
     (tokens || []).forEach((token) => {
       if (!token) {
         return;
