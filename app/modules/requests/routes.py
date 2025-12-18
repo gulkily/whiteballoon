@@ -41,6 +41,7 @@ class RequestResponse(BaseModel):
     contact_email: str | None
     created_by_user_id: int | None
     created_by_username: str | None = None
+    created_by_display_name: str | None = None
     created_at: str
     updated_at: str
     completed_at: str | None
@@ -59,6 +60,7 @@ class RequestResponse(BaseModel):
         request: HelpRequest,
         *,
         created_by_username: str | None = None,
+        created_by_display_name: str | None = None,
         can_complete: bool = False,
         is_pinned: bool = False,
         pin_rank: int | None = None,
@@ -74,6 +76,7 @@ class RequestResponse(BaseModel):
             contact_email=request.contact_email,
             created_by_user_id=request.created_by_user_id,
             created_by_username=created_by_username,
+            created_by_display_name=created_by_display_name,
             created_at=request.created_at.isoformat() + "Z",
             updated_at=request.updated_at.isoformat() + "Z",
             completed_at=request.completed_at.isoformat() + "Z" if request.completed_at else None,

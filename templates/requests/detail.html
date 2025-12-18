@@ -16,13 +16,17 @@
       <div class="request-detail-header__title">
         <div class="request-detail-meta">
           {% if request_item.created_by_username %}
-            <span class="meta-chip">
-              <span class="meta-chip__label">Requester</span>
-              <span class="meta-chip__value">@{{ request_item.created_by_username }}</span>
+            <span class="meta-chip meta-chip--requester">
+              <a
+                class="meta-chip__value meta-chip__value--link"
+                href="/people/{{ request_item.created_by_username }}"
+                title="@{{ request_item.created_by_username }}"
+              >
+                {{ request_item.created_by_display_name or '@' ~ request_item.created_by_username }}
+              </a>
             </span>
           {% else %}
             <span class="meta-chip">
-              <span class="meta-chip__label">Requester</span>
               <span class="meta-chip__value">Community member</span>
             </span>
           {% endif %}

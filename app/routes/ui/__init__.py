@@ -1811,11 +1811,21 @@ def _build_request_detail_context(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
     creator_usernames = request_services.load_creator_usernames(db, [help_request])
+    attr_key = _signal_display_attr_key(help_request)
+    creator_display_name = None
+    if help_request.created_by_user_id:
+        name_map = _load_signal_display_names_for_user_ids(
+            db,
+            {help_request.created_by_user_id},
+            attr_key,
+        )
+        creator_display_name = name_map.get(help_request.created_by_user_id)
     pin_map = request_pin_service.get_pin_map(db)
     pin_meta = pin_map.get(help_request.id)
     serialized = RequestResponse.from_model(
         help_request,
         created_by_username=creator_usernames.get(help_request.created_by_user_id),
+        created_by_display_name=creator_display_name,
         can_complete=calculate_can_complete(help_request, viewer),
         is_pinned=pin_meta is not None,
         pin_rank=pin_meta.rank if pin_meta else None,
@@ -1852,7 +1862,6 @@ def _build_request_detail_context(
             limit=limit,
             offset=offset,
         )
-    attr_key = _signal_display_attr_key(help_request)
     display_names = _load_signal_display_names(db, comment_rows, attr_key)
     insights_lookup = _build_comment_insights_lookup(help_request.id)
     matching_comment_ids: set[int] | None = None
