@@ -103,20 +103,24 @@
           {% endif %}
           <span class="meta-chip meta-chip--requester">
             {% if has_creator_link %}
-              {% include "partials/display_name.html" with
+              {% with
                 username=creator_username,
                 display_name=item.created_by_display_name,
                 href='/people/' ~ creator_username,
                 class_name='meta-chip__value meta-chip__value--link',
                 prefix_icon=request_icon
               %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
             {% else %}
-              {% include "partials/display_name.html" with
+              {% with
                 username=None,
                 display_name=item.created_by_display_name,
                 class_name='meta-chip__value',
                 fallback_label=request_icon ~ ' Community member'
               %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
             {% endif %}
           </span>
           <span class="{{ status_chip_class }}" aria-label="Status">

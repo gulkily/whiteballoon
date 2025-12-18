@@ -106,12 +106,14 @@
                         </span>
                         <div>
                           <p class="browse-card__username">
-                            {% include "partials/display_name.html" with
+                            {% with
                               username=entry.user.username,
                               display_name=entry.user.display_name,
                               href='/people/' ~ entry.user.username,
                               class_name='link-inline'
                             %}
+                              {% include "partials/display_name.html" %}
+                            {% endwith %}
                           </p>
                           <p class="muted small-text">Joined {{ entry.user.created_at | friendly_time }}</p>
                         </div>
@@ -123,12 +125,14 @@
                       <span class="meta-chip meta-chip--status">{{ entry.data.status | title }}</span>
                       {% if entry.data.created_by_username %}
                         <span class="meta-chip">
-                          {% include "partials/display_name.html" with
+                          {% with
                             username=entry.data.created_by_username,
                             display_name=entry.data.created_by_display_name,
                             href='/people/' ~ entry.data.created_by_username,
                             class_name='link-inline'
                           %}
+                            {% include "partials/display_name.html" %}
+                          {% endwith %}
                         </span>
                       {% endif %}
                       {% if entry.topics %}
@@ -142,12 +146,14 @@
                       <a class="button button--ghost" href="{{ entry.href }}">View request</a>
                     {% elif entry.kind == 'comment' %}
                       <p class="muted small-text">
-                        {% include "partials/display_name.html" with
+                        {% with
                           username=entry.data.username,
                           display_name=entry.data.display_name,
                           href='/people/' ~ entry.data.username,
                           class_name='link-inline'
                         %}
+                          {% include "partials/display_name.html" %}
+                        {% endwith %}
                         on Request #{{ entry.request.id }}
                       </p>
                       <a class="button button--ghost" href="{{ entry.href }}">Open conversation</a>
@@ -229,12 +235,14 @@
                       </span>
                       <div class="member-card__identity-text">
                         <p class="member-card__username">
-                          {% include "partials/display_name.html" with
+                          {% with
                             username=profile.username,
                             display_name=profile.display_name,
                             href=profile_href,
                             class_name='link-inline'
                           %}
+                            {% include "partials/display_name.html" %}
+                          {% endwith %}
                         </p>
                         <p class="muted small-text">Joined {{ profile.created_at | friendly_time }}</p>
                       </div>

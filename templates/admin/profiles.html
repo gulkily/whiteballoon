@@ -89,12 +89,14 @@
             {% for profile in profiles %}
               <tr>
                 <td data-label="Username">
-                  {% include "partials/display_name.html" with
+                  {% with
                     username=profile.username,
                     display_name=profile.display_name,
                     href='/admin/profiles/' ~ profile.id,
                     class_name='profile-name-link'
                   %}
+                    {% include "partials/display_name.html" %}
+                  {% endwith %}
                   <p class="muted small-text">ID #{{ profile.id }}</p>
                 </td>
                 <td data-label="Contact">

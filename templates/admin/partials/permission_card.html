@@ -34,12 +34,14 @@
                 Updated {{ peer_attr.updated_at | friendly_time }}
                 {% if updated_by %}
                   by
-                  {% include "partials/display_name.html" with
+                  {% with
                     username=updated_by.username,
                     display_name=updated_by.display_name,
                     href='/admin/profiles/' ~ updated_by.id,
                     class_name='profile-name-link'
                   %}
+                    {% include "partials/display_name.html" %}
+                  {% endwith %}
                 {% elif peer_attr.updated_by_user_id %}
                   by user #{{ peer_attr.updated_by_user_id }}
                 {% endif %}

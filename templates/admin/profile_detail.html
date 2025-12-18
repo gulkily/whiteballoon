@@ -44,12 +44,14 @@
       {% if invited_by_user %}
         <p class="muted small-text">
           Invited by
-          {% include "partials/display_name.html" with
+          {% with
             username=invited_by_user.username,
             display_name=invited_by_user.display_name,
             href='/admin/profiles/' ~ invited_by_user.id,
             class_name='profile-name-link'
           %}
+            {% include "partials/display_name.html" %}
+          {% endwith %}
         </p>
       {% elif invite_token_used %}
         <p class="muted small-text">Invite token {{ invite_token_used }}</p>

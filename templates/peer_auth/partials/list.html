@@ -5,12 +5,14 @@
         <header class="peer-auth-card__header">
           <div class="peer-auth-card__identity">
             <p class="peer-auth-card__username">
-              {% include "partials/display_name.html" with
+              {% with
                 username=record.username,
                 display_name=record.display_name,
                 href='/people/' ~ record.username,
                 class_name='link-inline'
               %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
             </p>
             <p class="muted small-text">Session {{ record.session_id[:8] }} · Requested {{ record.auth_request_created_at | friendly_time if record.auth_request_created_at else 'Unknown' }}</p>
           </div>

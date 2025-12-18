@@ -51,11 +51,13 @@
         {% endif %}
       </span>
       <span class="account-nav__name">
-        {% include "partials/display_name.html" with
+        {% with
           username=user.username,
           display_name=user.display_name,
           class_name='link-inline'
         %}
+          {% include "partials/display_name.html" %}
+        {% endwith %}
       </span>
     </a>
   </div>

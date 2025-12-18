@@ -69,12 +69,14 @@
                 </span>
                 <div class="member-card__identity-text">
                   <p class="member-card__username">
-                    {% include "partials/display_name.html" with
+                    {% with
                       username=profile.username,
                       display_name=profile.display_name,
                       href=profile_href,
                       class_name='link-inline'
                     %}
+                      {% include "partials/display_name.html" %}
+                    {% endwith %}
                   </p>
                   <p class="muted small-text">Joined {{ profile.created_at | friendly_time }}</p>
                 </div>

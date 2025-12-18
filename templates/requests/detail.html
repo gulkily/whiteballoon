@@ -17,18 +17,18 @@
         <div class="request-detail-meta">
           <span class="meta-chip meta-chip--requester">
             {% if request_item.created_by_username %}
-              {% include "partials/display_name.html" with
+              {% with
                 username=request_item.created_by_username,
                 display_name=request_item.created_by_display_name,
                 href='/people/' ~ request_item.created_by_username,
                 class_name='meta-chip__value meta-chip__value--link'
               %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
             {% else %}
-              {% include "partials/display_name.html" with
-                username=None,
-                display_name=None,
-                class_name='meta-chip__value'
-              %}
+              {% with username=None, display_name=None, class_name='meta-chip__value' %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
             {% endif %}
           </span>
           <span class="meta-chip meta-chip--status">
@@ -191,12 +191,14 @@
     <div class="promoted-comment-card__body">
       <p class="muted small-text">
         Posted by
-        {% include "partials/display_name.html" with
+        {% with
           username=promoted_comment_context.comment.username,
           display_name=promoted_comment_context.comment.display_name,
           href='/people/' ~ promoted_comment_context.comment.username,
           class_name='link-inline'
         %}
+          {% include "partials/display_name.html" %}
+        {% endwith %}
         ·
         <time datetime="{{ promoted_comment_context.comment.created_at_iso }}">{{ promoted_comment_context.comment.created_at | friendly_time }}</time>
       </p>
@@ -336,12 +338,14 @@
                 {% if suggestion.snippet %}
                   <blockquote class="request-chat-suggestions__snippet">
                     “{{ suggestion.snippet.body }}” —
-                    {% include "partials/display_name.html" with
+                    {% with
                       username=suggestion.snippet.username,
                       display_name=suggestion.snippet.display_name,
                       href='/people/' ~ suggestion.snippet.username,
                       class_name='link-inline'
                     %}
+                      {% include "partials/display_name.html" %}
+                    {% endwith %}
                     <a href="/requests/{{ suggestion.request_id }}#{{ suggestion.snippet.anchor }}" class="small-text">Jump to chat</a>
                   </blockquote>
                 {% endif %}

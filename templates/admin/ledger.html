@@ -61,24 +61,28 @@
                 </td>
                 <td data-label="Requester">
                   {% if requester %}
-                    {% include "partials/display_name.html" with
+                    {% with
                       username=requester.username,
                       display_name=requester.display_name,
                       href='/admin/profiles/' ~ requester.id,
                       class_name='profile-name-link'
                     %}
+                      {% include "partials/display_name.html" %}
+                    {% endwith %}
                   {% else %}
                     <span class="muted">User #{{ entry.requester_user_id }}</span>
                   {% endif %}
                 </td>
                 <td data-label="Reviewer">
                   {% if reviewer %}
-                    {% include "partials/display_name.html" with
+                    {% with
                       username=reviewer.username,
                       display_name=reviewer.display_name,
                       href='/admin/profiles/' ~ reviewer.id,
                       class_name='profile-name-link'
                     %}
+                      {% include "partials/display_name.html" %}
+                    {% endwith %}
                   {% else %}
                     <span class="muted">User #{{ entry.reviewer_user_id }}</span>
                   {% endif %}

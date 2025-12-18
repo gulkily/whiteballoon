@@ -19,12 +19,14 @@
   {% if not matches_filters %}style="display:none"{% endif %}
 >
   <div class="request-comment__meta">
-    {% include "partials/display_name.html" with
+    {% with
       username=comment.username,
       display_name=display_name,
       href='/people/' ~ comment.username,
       class_name='request-comment__author'
     %}
+      {% include "partials/display_name.html" %}
+    {% endwith %}
     <div class="request-comment__meta-right">
       <span class="request-comment__scope">{{ comment.sync_scope | title }}</span>
       {% if comment_insights_enabled and comment_insights_map.get(comment.id) %}
@@ -72,12 +74,14 @@
 {% elif variant == 'profile' %}
 <li class="profile-recent-comment" data-comment-id="{{ comment.id }}" id="comment-{{ comment.id }}">
   <div class="profile-recent-comment__meta">
-    {% include "partials/display_name.html" with
+    {% with
       username=comment.username,
       display_name=display_name,
       href='/people/' ~ comment.username,
       class_name='profile-recent-comment__request'
     %}
+      {% include "partials/display_name.html" %}
+    {% endwith %}
     {% if comment.created_at %}
       <a href="{{ comment.comment_url }}" class="profile-recent-comment__time-link">
         <time datetime="{{ comment.created_at_iso }}" class="profile-recent-comment__time">{{ comment.created_at | friendly_time }}</time>
@@ -90,12 +94,14 @@
 {% elif variant == 'search' %}
 <li class="request-chat-search__result" data-comment-id="{{ comment.id }}">
   <div class="request-chat-search__identity">
-    {% include "partials/display_name.html" with
+    {% with
       username=comment.username,
       display_name=display_name,
       href='/people/' ~ comment.username,
       class_name='request-chat-search__result-author'
     %}
+      {% include "partials/display_name.html" %}
+    {% endwith %}
     {% if comment.created_at %}
       <a class="request-chat-search__result-time" href="#{{ comment.comment_anchor or ('comment-' ~ comment.id) }}">
         <time datetime="{{ comment.created_at_iso }}">{{ comment.created_at | friendly_time }}</time>

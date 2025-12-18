@@ -94,13 +94,15 @@
                     <td><a href="/requests/{{ item.id }}">#{{ item.id }}</a></td>
                     <td>{{ item.status | title }}</td>
                     <td>
-                      {% include "partials/display_name.html" with
+                      {% with
                         username=item.created_by_username,
                         display_name=item.created_by_display_name,
                         href=item.created_by_username and '/people/' ~ item.created_by_username,
                         class_name='link-inline',
                         fallback_label='Unknown'
                       %}
+                        {% include "partials/display_name.html" %}
+                      {% endwith %}
                     </td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
@@ -151,13 +153,15 @@
                     </td>
                     <td>#{{ comment.help_request_id }}</td>
                     <td>
-                      {% include "partials/display_name.html" with
+                      {% with
                         username=comment.created_by_username,
                         display_name=comment.display_name,
                         href=comment.created_by_username and '/people/' ~ comment.created_by_username,
                         class_name='link-inline',
                         fallback_label='Unknown'
                       %}
+                        {% include "partials/display_name.html" %}
+                      {% endwith %}
                     </td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
@@ -201,12 +205,14 @@
                   {% set user_public = u.sync_scope == 'public' %}
                   <tr>
                     <td>
-                      {% include "partials/display_name.html" with
+                      {% with
                         username=u.username,
                         display_name=u.display_name,
                         href='/people/' ~ u.username,
                         class_name='link-inline'
                       %}
+                        {% include "partials/display_name.html" %}
+                      {% endwith %}
                     </td>
                     <td><time datetime="{{ u.created_at }}">{{ u.created_at | friendly_time }}</time></td>
                     <td>

@@ -23,7 +23,7 @@
 ## Stage 5 – Apply component across global templates
 - Changes: Replaced raw `@{{ username }}` strings in shared templates (`partials/comment_card.html`, `partials/account_nav.html`, `members/index.html`, `browse/index.html`, `peer_auth/partials/list.html`, `invite/map.html`, `sync/public.html`, `admin/profile_detail.html`, `admin/profiles.html`, `admin/ledger.html`, `admin/partials/permission_card.html`) with the new `display_name` include so every identity renders consistently regardless of surface.
 - Verification: Clicked through Members, Browse (requests/comments/profiles tabs), Peer Auth queue, Invite Map, Sync public control panel, and Admin profiles/ledger to confirm usernames now render via the helper without layout regressions. No automated tests were run per instructions.
-- Notes: Some contexts still lack display-name data; the component gracefully falls back to `@username` or “Unknown” until we add richer metadata.
+- Notes: Some contexts still lack display-name data; the component gracefully falls back to `@username` or “Unknown” until we add richer metadata. Updated templates to pass parameters via `{% with %}` blocks so they remain compatible with our Jinja version (which doesn’t support `include … with` syntax).
 
 ## Stage 6 – Documentation + regression sweep
 - Changes: Confirmed the new helper is referenced in `DEV_CHEATSHEET.md` (Stage 2) and ran `rg -n '@{{' templates` to ensure no stray raw-username markup remains; captured the final inventory in this summary.
