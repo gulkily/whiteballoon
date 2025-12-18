@@ -1838,6 +1838,7 @@ def _build_request_detail_context(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
     creator_usernames = request_services.load_creator_usernames(db, [help_request])
+    attr_key = _signal_display_attr_key(help_request)
     creator_display_name = _map_request_creator_display_names(db, [help_request]).get(help_request.id)
     pin_map = request_pin_service.get_pin_map(db)
     pin_meta = pin_map.get(help_request.id)
