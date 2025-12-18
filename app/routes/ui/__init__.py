@@ -1890,6 +1890,9 @@ def _build_request_detail_context(
             offset=offset,
         )
     display_names = _load_signal_display_names(db, comment_rows, attr_key)
+    if not creator_display_name and attr_key and help_request.created_by_user_id:
+        fallback_map = _load_signal_display_names_for_user_ids(db, {help_request.created_by_user_id}, attr_key)
+        creator_display_name = fallback_map.get(help_request.created_by_user_id)
     insights_lookup = _build_comment_insights_lookup(help_request.id)
     matching_comment_ids: set[int] | None = None
     if filters_active:
