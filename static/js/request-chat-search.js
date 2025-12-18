@@ -115,6 +115,7 @@
           const time = fragment.querySelector('[data-time]');
           const body = fragment.querySelector('[data-body]');
           const tags = fragment.querySelector('[data-tags]');
+          const reactions = fragment.querySelector('[data-reactions]');
 
           if (profileLink) {
             profileLink.href = `/people/${entry.username}`;
@@ -128,6 +129,18 @@
           }
           if (body) {
             body.innerHTML = highlightBody(entry.body, entry.matched_tokens);
+          }
+          if (reactions) {
+            const summary = entry.reaction_summary || [];
+            if (summary.length) {
+              reactions.hidden = false;
+              reactions.textContent = `Reactions: ${summary
+                .map((item) => `${item.emoji} ×${item.count}`)
+                .join(', ')}`;
+            } else {
+              reactions.hidden = true;
+              reactions.textContent = '';
+            }
           }
           if (tags) {
             tags.innerHTML = '';

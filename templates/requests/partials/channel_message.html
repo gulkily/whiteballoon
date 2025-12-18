@@ -20,6 +20,14 @@
       </a>
     </div>
     <div class="channel-message__text" data-comment-body-text>{{ comment.body | render_multiline }}</div>
+    {% if comment.reaction_summary %}
+      <div class="channel-message__reactions muted small-text">
+        Reactions:
+        {% for reaction in comment.reaction_summary %}
+          <span class="meta-chip meta-chip--small">{{ reaction.emoji }} ×{{ reaction.count }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
     {% if chat.can_promote_comments %}
       <div class="channel-message__footer">
         <button
