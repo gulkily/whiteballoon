@@ -19,3 +19,8 @@
 - Changes: Channel messages now render a “Reactions:” line beneath the body (using `meta-chip` badges), and chat-search results get a muted summary plus an updated JS template to pull `reaction_summary` from the API. `request_chat_search_service.serialize_result` now strips the suffix and exposes the summary so search snippets stay clean.
 - Verification: Manually exercised `/requests/channels`, `/requests/30` search panel, and search results triggered via the JS UI to confirm reaction blocks disappeared from message text and concise summaries show up instead. No automated tests run.
 - Notes: Styling intentionally minimal per Option B; summaries collapse automatically when no reactions exist.
+
+## Stage 5 – Documentation + regression sweep
+- Changes: Recorded parsing/rendering behavior here and ran `rg "(Reactions:" templates` to confirm no templates emit the legacy suffix anymore; the helper keeps raw data hidden from UI.
+- Verification: Manual grep plus quick spot-check on `/requests/39` and `/requests/channels?channel=39` to ensure no raw reaction strings remain. No automated tests run.
+- Notes: Future enhancements (interactive chips) can build on the existing `reaction_summary` field without touching backend parsing again.
