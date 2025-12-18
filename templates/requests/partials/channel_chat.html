@@ -5,7 +5,7 @@
   <header class="request-channels__chat-header">
     <div>
       <p class="request-channels__chat-status">{{ request_meta.status | default('open') | capitalize }}</p>
-      <h2 class="request-channels__chat-title">{{ heading }}</h2>
+      <h2 class="request-channels__chat-title">{{ heading | render_multiline }}</h2>
     </div>
     <a
       class="button button--ghost"
