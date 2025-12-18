@@ -51,6 +51,14 @@
     </div>
   </div>
   <p class="request-comment__body" data-comment-body-text>{{ comment.body }}</p>
+  {% if comment.reaction_summary %}
+    <div class="request-comment__reactions muted small-text">
+      Reactions:
+      {% for reaction in comment.reaction_summary %}
+        <span class="meta-chip meta-chip--small">{{ reaction.emoji }} ×{{ reaction.count }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
   {% if promotion_target %}
     <div class="request-comment__promotion">
       <span class="meta-chip meta-chip--small meta-chip--ghost">
@@ -89,6 +97,14 @@
     {% endif %}
   </div>
   <p class="profile-recent-comment__body">{{ comment.body }}</p>
+  {% if comment.reaction_summary %}
+    <div class="request-comment__reactions muted small-text">
+      Reactions:
+      {% for reaction in comment.reaction_summary %}
+        <span class="meta-chip meta-chip--small">{{ reaction.emoji }} ×{{ reaction.count }}</span>
+      {% endfor %}
+    </div>
+  {% endif %}
   <span class="meta-chip meta-chip--small">{{ comment.scope }}</span>
 </li>
 {% elif variant == 'search' %}

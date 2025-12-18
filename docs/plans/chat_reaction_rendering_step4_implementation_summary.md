@@ -16,7 +16,7 @@
 - Notes: Search/index payloads still contain the raw text; Stage 4 will handle rendering/summary output.
 
 ## Stage 4 – Render summaries in chat + search UI
-- Changes: Channel messages now render a “Reactions:” line beneath the body (using `meta-chip` badges), and chat-search results get a muted summary plus an updated JS template to pull `reaction_summary` from the API. `request_chat_search_service.serialize_result` now strips the suffix and exposes the summary so search snippets stay clean.
+- Changes: Channel messages now render a “Reactions:” line beneath the body (using `meta-chip` badges), `comment_card` variants (request + profile) show the same summary, and chat-search results get a muted summary plus an updated JS template to pull `reaction_summary` from the API. `request_chat_search_service.serialize_result` now strips the suffix and exposes the summary so search snippets stay clean.
 - Verification: Manually exercised `/requests/channels`, `/requests/30` search panel, and search results triggered via the JS UI to confirm reaction blocks disappeared from message text and concise summaries show up instead. No automated tests run.
 - Notes: Styling intentionally minimal per Option B; summaries collapse automatically when no reactions exist.
 
