@@ -29,3 +29,8 @@
 - Changes: Added `app/services/chat_ai_metrics.py` to write JSONL usage rows with opt-out support (`#private` marker), wired logging into the FastAPI route and CLI helper, and began persisting events under `storage/logs/chat_ai_events.log`.
 - Verification: Ran `./wb chat ai --prompt 'telemetry stage'` and inspected the new log file to confirm a structured entry was recorded.
 - Notes: Web callers inherit the same opt-out behavior automatically.
+
+## Stage 7 – Pilot QA + success checklist
+- Changes: Consolidated all planning docs into `docs/plans/ai_chat_query/`, documented the pilot QA checklist (`ai_chat_query_pilot_checklist.md`), and indexed the folder for discoverability in `docs/plans/README.md`.
+- Verification: Rendered the checklist locally to ensure formatting and steps cover the success criteria, and confirmed the new folder appears in the planning index.
+- Notes: Capture pilot feedback per the checklist and open follow-up tickets rather than extending Stage 4.
