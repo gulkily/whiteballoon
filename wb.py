@@ -57,6 +57,7 @@ DEDALUS_LOG_MAINT = SCRIPT_DIR / "tools" / "dedalus_log_maintenance.py"
 SIGNAL_IMPORT_MODULE = "app.tools.signal_import"
 CHAT_INDEX_MODULE = "app.tools.request_chat_index"
 CHAT_EMBED_MODULE = "app.tools.request_chat_embeddings"
+CHAT_AI_CLI_MODULE = "app.tools.chat_ai_cli"
 COMMENT_LLM_MODULE = "app.tools.comment_llm_processing"
 SIGNAL_PROFILE_MODULE = "app.tools.signal_profile_snapshot_cli"
 PROFILE_GLAZE_MODULE = "app.tools.profile_glaze_cli"
@@ -362,6 +363,7 @@ def cmd_chat(args: list[str]) -> int:
         print("  index [opts]   Reindex request chats + optional LLM tagging")
         print("  embed [opts]   Build semantic embeddings for request chats")
         print("  llm [opts]     Plan or run batched comment processing via LLM")
+        print("  ai [opts]      Launch the conversational AI helper")
         return 0
 
     ns = parser.parse_args(args[:1])
@@ -373,6 +375,8 @@ def cmd_chat(args: list[str]) -> int:
         return cmd_chat_embed(sub_args)
     if subcommand in {"llm", "comment-llm"}:
         return cmd_comment_llm(sub_args)
+    if subcommand == "ai":
+        return cmd_chat_ai(sub_args)
     warn(f"Unknown chat subcommand '{subcommand}'.")
     parser.print_help()
     return 1
@@ -444,6 +448,20 @@ def cmd_comment_llm(args: list[str]) -> int:
         graceful_interrupt=True,
         interrupt_message="Comment LLM run interrupted",
     )
+
+
+def cmd_chat_ai(args: list[str]) -> int:
+    vpy = python_in_venv()
+    if not vpy.exists():
+        warn("Virtualenv missing. Run './wb setup' first.")
+        return 1
+    if not ensure_cli_ready(vpy):
+        warn("Dependencies missing. Run './wb setup' first.")
+        return 1
+    passthrough = list(args)
+    cmd = [str(vpy), "-m", CHAT_AI_CLI_MODULE, *passthrough]
+    info("Starting conversational AI helper")
+    return _run_process(cmd, graceful_interrupt=True, interrupt_message="AI chat session ended")
 
 
 def cmd_promote_comment(args: list[str]) -> int:

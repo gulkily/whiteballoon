@@ -14,3 +14,8 @@
 - Changes: Replaced the placeholder route with logic that builds contextual citations, composes a deterministic assistant reply, and logs usage metadata; responses now include numbered user/assistant messages plus guardrail text when no matches exist.
 - Verification: Called `chat_ai_query` directly inside a Python shell with a real SQLModel session and ensured it returned a conversation ID, assistant response, and citation list.
 - Notes: Still synchronous HTTP; streaming/backpressure can be revisited after the first release.
+
+## Stage 4 – Add `wb chat ai` CLI experience
+- Changes: Added `CHAT_AI_CLI_MODULE` wiring plus a new subcommand that launches `app.tools.chat_ai_cli`, which impersonates a chosen username, runs prompts through the retrieval helper, and formats answers plus citation links inline.
+- Verification: Ran `./wb chat ai --prompt 'housing updates'` to confirm the new CLI prints summarized answers and source links without errors.
+- Notes: CLI uses direct DB access today; HTTP auth sessions can layer on later if needed.
