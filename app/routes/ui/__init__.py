@@ -132,8 +132,14 @@ def _normalize_filter_values(values: list[str]) -> set[str]:
     return {value.strip().lower() for value in values if value and value.strip()}
 
 
+def _request_description_text(help_request: HelpRequest) -> str:
+    """Return the help request description without inline reaction suffixes."""
+    clean_text, _ = chat_reaction_parser.strip_reactions(help_request.description or "")
+    return clean_text
+
+
 def _infer_request_topics(help_request: HelpRequest) -> set[str]:
-    description = (help_request.description or "").lower()
+    description = _request_description_text(help_request).lower()
     topics: set[str] = set()
     for topic in FILTER_TOPICS:
         if any(keyword in description for keyword in topic["keywords"]):
@@ -142,7 +148,7 @@ def _infer_request_topics(help_request: HelpRequest) -> set[str]:
 
 
 def _infer_request_urgency(help_request: HelpRequest) -> str:
-    description = (help_request.description or "").lower()
+    description = _request_description_text(help_request).lower()
     for level in URGENCY_LEVELS:
         if level["keywords"] and any(keyword in description for keyword in level["keywords"]):
             return level["slug"]
@@ -213,7 +219,7 @@ def _trim_request_title(help_request: HelpRequest) -> str:
     explicit = (help_request.title or "").strip()
     if explicit:
         return explicit
-    description = (help_request.description or "").strip()
+    description = _request_description_text(help_request).strip()
     if not description:
         return f"Request #{help_request.id}" if help_request.id else "Request"
     first_line = description.splitlines()[0].strip()

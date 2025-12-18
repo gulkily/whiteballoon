@@ -156,6 +156,14 @@
   {% endif %}
   <div>
     <p>{{ item.description | render_multiline('No additional details.') }}</p>
+    {% if item.reaction_summary %}
+      <div class="request-item__reactions muted small-text">
+        Reactions:
+        {% for reaction in item.reaction_summary %}
+          <span class="meta-chip meta-chip--small">{{ reaction.emoji }} ×{{ reaction.count }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
   </div>
   <footer class="actions">
     {% if item.status == 'completed' %}

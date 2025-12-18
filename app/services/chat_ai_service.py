@@ -13,6 +13,7 @@ from app.models import (
     RequestComment,
     User,
 )
+from app.services import chat_reaction_parser
 
 
 @dataclass
@@ -101,7 +102,8 @@ def _search_requests(
         if not _request_visible(request, user):
             continue
         caption = request.title or f"Request #{request.id}"
-        snippet = _trim_text(request.description or "")
+        clean_description, _ = chat_reaction_parser.strip_reactions(request.description or "")
+        snippet = _trim_text(clean_description)
         results.append(
             ChatAIContextCitation(
                 id=f"request:{request.id}",
@@ -143,7 +145,8 @@ def _search_comments(
     for comment, request, author in rows:
         if not _request_visible(request, user):
             continue
-        snippet = _trim_text(comment.body or "")
+        clean_body, _ = chat_reaction_parser.strip_reactions(comment.body or "")
+        snippet = _trim_text(clean_body)
         label = f"Comment by {author.username} on {request.title or f'Request {request.id}'}"
         results.append(
             ChatAIContextCitation(

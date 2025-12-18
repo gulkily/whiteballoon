@@ -9,6 +9,7 @@ from app.dependencies import SessionDep, SessionUser, require_authenticated_user
 from app.models import HelpRequest, User
 from app.modules.requests import services
 from app.services import (
+    chat_reaction_parser,
     recurring_template_service,
     request_channel_metrics,
     request_channel_reads,
@@ -37,6 +38,7 @@ class PublishDraftPayload(BaseModel):
 class RequestResponse(BaseModel):
     id: int
     description: str
+    reaction_summary: list[dict[str, object]] | None = None
     status: str
     contact_email: str | None
     created_by_user_id: int | None
@@ -69,9 +71,15 @@ class RequestResponse(BaseModel):
         recurring_template_id: int | None = None,
         recurring_template_title: str | None = None,
     ) -> "RequestResponse":
+        raw_description = request.description or ""
+        clean_description, reactions = chat_reaction_parser.strip_reactions(raw_description)
+        reaction_summary = (
+            [{"emoji": reaction.emoji, "count": reaction.count} for reaction in reactions] if reactions else None
+        )
         return cls(
             id=request.id,
-            description=request.description,
+            description=clean_description,
+            reaction_summary=reaction_summary,
             status=request.status,
             contact_email=request.contact_email,
             created_by_user_id=request.created_by_user_id,
