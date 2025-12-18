@@ -31,6 +31,7 @@ cp .env.example .env                # Copy defaults and adjust as needed
 
 ## UI Components
 - `templates/partials/action_menu.html` renders the shared overflow-menu (⋯ trigger) used on request and comment cards. Pass `actions=[{label, href?, method?, type?, attributes?, form_attributes?, hidden_fields?}]` and the helper will emit links, buttons, or forms inside the dropdown. The companion script `static/js/action-menu.js` handles open/close state, focus management, and outside-click dismissal automatically.
+- `templates/partials/display_name.html` renders person identifiers consistently. Supply `username`, optional `display_name`, `href`, `class_name`, and `fallback_label`. The include outputs either `<a>` or `<span>` with the correct text (`display_name` preferred, otherwise `@username`, otherwise fallback). Always use this component instead of hand-writing `@{{ user.username }}` to keep profile links uniform across templates.
 
 ## Feature Development Process
 For every new feature or module, follow the four-step process in `FEATURE_DEVELOPMENT_PROCESS.md`:

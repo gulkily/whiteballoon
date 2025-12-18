@@ -1,0 +1,28 @@
+{# Shared display-name renderer.
+   Example:
+   {% include "partials/display_name.html" with
+      username=item.created_by_username,
+      display_name=item.created_by_display_name,
+      href='/people/' ~ item.created_by_username,
+      class_name='meta-chip__value meta-chip__value--link',
+      prefix_icon=request_icon
+   %}
+#}
+{% set _username = username if username is defined else None %}
+{% set _display = display_name if display_name is defined else None %}
+{% set _fallback = fallback_label | default('Community member') %}
+{% set _label = _display or (_username and '@' ~ _username) or _fallback %}
+{% set _css = class_name | default('') %}
+{% set _title = title_text | default((_username and '@' ~ _username) or '') %}
+{% set _prefix_icon = prefix_icon | default('') %}
+{% if href and _username %}
+  <a class="display-name {{ _css }}" href="{{ href }}" title="{{ _title }}">
+    {% if _prefix_icon %}<span aria-hidden="true">{{ _prefix_icon }}</span> {% endif %}
+    {{ _label }}
+  </a>
+{% else %}
+  <span class="display-name {{ _css }}" title="{{ _title }}">
+    {% if _prefix_icon %}<span aria-hidden="true">{{ _prefix_icon }}</span> {% endif %}
+    {{ _label }}
+  </span>
+{% endif %}
