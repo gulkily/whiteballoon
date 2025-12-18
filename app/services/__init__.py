@@ -3,6 +3,7 @@
 from . import (
     caption_preference_service,
     auth_service,
+    chat_ai_service,
     comment_llm_insights_db,
     comment_attribute_service,
     comment_request_promotion_service,
@@ -33,6 +34,7 @@ from . import (
 __all__ = [
     "caption_preference_service",
     "auth_service",
+    "chat_ai_service",
     "comment_llm_insights_db",
     "comment_attribute_service",
     "comment_request_promotion_service",
