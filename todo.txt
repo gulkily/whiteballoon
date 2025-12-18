@@ -59,3 +59,9 @@ navbar - get rid of all the other user statuses
 
 add rss feeds for everything
 
+shopping lists
+	allow people to request something in channel
+	build shopping list
+	organize by place of purchase
+	estimate costs
+	
