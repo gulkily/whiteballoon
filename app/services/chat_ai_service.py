@@ -23,6 +23,7 @@ class ChatAIContextCitation:
     url: str
     snippet: str
     source_type: str
+    reaction_summary: list[dict[str, object]] = field(default_factory=list)
 
 
 @dataclass
@@ -101,8 +102,11 @@ def _search_requests(
     for request in rows:
         if not _request_visible(request, user):
             continue
-        caption = request.title or f"Request #{request.id}"
-        clean_description, _ = chat_reaction_parser.strip_reactions(request.description or "")
+        caption_source = request.title or f"Request #{request.id}"
+        caption_plain = _strip_reaction_suffix(_strip_markup(caption_source))
+        clean_caption, _ = chat_reaction_parser.strip_reactions(caption_plain)
+        caption = clean_caption or caption_plain or f"Request #{request.id}"
+        clean_description, reactions = chat_reaction_parser.strip_reactions(request.description or "")
         snippet = _trim_text(clean_description)
         results.append(
             ChatAIContextCitation(
@@ -111,6 +115,9 @@ def _search_requests(
                 url=f"/requests/{request.id}",
                 snippet=snippet,
                 source_type="request",
+                reaction_summary=[
+                    {"emoji": reaction.emoji, "count": reaction.count} for reaction in reactions
+                ],
             )
         )
         if len(results) >= limit:
@@ -145,9 +152,13 @@ def _search_comments(
     for comment, request, author in rows:
         if not _request_visible(request, user):
             continue
-        clean_body, _ = chat_reaction_parser.strip_reactions(comment.body or "")
+        clean_body, reactions = chat_reaction_parser.strip_reactions(comment.body or "")
         snippet = _trim_text(clean_body)
-        label = f"Comment by {author.username} on {request.title or f'Request {request.id}'}"
+        request_ref = request.title or f"Request {request.id}"
+        request_ref_plain = _strip_reaction_suffix(_strip_markup(request_ref))
+        clean_request_ref, _ = chat_reaction_parser.strip_reactions(request_ref_plain)
+        request_label = clean_request_ref or request_ref_plain or f"Request {request.id}"
+        label = f"Comment by {author.username} on {request_label}"
         results.append(
             ChatAIContextCitation(
                 id=f"comment:{comment.id}",
@@ -155,6 +166,9 @@ def _search_comments(
                 url=f"/requests/{request.id}#comment-{comment.id}",
                 snippet=snippet,
                 source_type="comment",
+                reaction_summary=[
+                    {"emoji": reaction.emoji, "count": reaction.count} for reaction in reactions
+                ],
             )
         )
         if len(results) >= limit:
@@ -173,12 +187,17 @@ def _request_visible(request: HelpRequest, user: User) -> bool:
 
 
 _HTML_TAG_PATTERN = re.compile(r"<[^>]+>")
+_REACTION_TRAIL_PATTERN = re.compile(r"\s*\(Reactions:.*$", re.IGNORECASE)
 
 
 def _strip_markup(text: str) -> str:
     if "<" not in text:
         return text
     return _HTML_TAG_PATTERN.sub(" ", text)
+
+
+def _strip_reaction_suffix(text: str) -> str:
+    return _REACTION_TRAIL_PATTERN.sub("", text or "")
 
 
 def _trim_text(text: str, *, limit: int = 240) -> str:

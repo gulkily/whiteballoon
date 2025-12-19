@@ -1096,6 +1096,19 @@
   color: var(--color-warning);
 }
 
+.chat-ai__citations-reactions {
+  margin-top: 0.35rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.chat-ai__citations-reactions-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
 .request-channels__chat-header {
   display: flex;
   justify-content: space-between;

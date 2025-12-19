@@ -28,6 +28,10 @@ class ChatAICitation(BaseModel):
     label: str = Field(..., description="Short display label for the resource.")
     url: str | None = Field(default=None, description="Deep link to view the referenced data.")
     snippet: str | None = Field(default=None, description="Optional supporting snippet or context preview.")
+    reaction_summary: list[dict[str, object]] | None = Field(
+        default=None,
+        description="Optional reaction counts derived from `(Reactions: …)` suffixes.",
+    )
     source_type: Literal["request", "comment", "doc", "user", "other"] = "other"
 
 
@@ -84,6 +88,7 @@ def chat_ai_query(
             label=item.label,
             url=item.url,
             snippet=item.snippet,
+            reaction_summary=item.reaction_summary or None,
             source_type=item.source_type if item.source_type in {"request", "comment", "doc", "user", "other"} else "other",
         )
         for item in context.citations

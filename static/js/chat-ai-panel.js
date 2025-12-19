@@ -122,6 +122,23 @@
         snippet.textContent = citation.snippet;
         item.appendChild(snippet);
       }
+      if (Array.isArray(citation.reaction_summary) && citation.reaction_summary.length > 0) {
+        const reactionsRow = document.createElement("div");
+        reactionsRow.className = "chat-ai__citations-reactions muted small-text";
+        const label = document.createElement("span");
+        label.className = "chat-ai__citations-reactions-label";
+        label.textContent = "Reactions:";
+        reactionsRow.appendChild(label);
+        citation.reaction_summary.forEach((reaction) => {
+          if (!reaction) return;
+          const chip = document.createElement("span");
+          chip.className = "meta-chip meta-chip--small";
+          const count = typeof reaction.count === "number" ? reaction.count : "";
+          chip.textContent = count ? `${reaction.emoji} ×${count}` : `${reaction.emoji}`;
+          reactionsRow.appendChild(chip);
+        });
+        item.appendChild(reactionsRow);
+      }
       list.appendChild(item);
     });
     container.appendChild(heading);
