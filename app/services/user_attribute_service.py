@@ -12,6 +12,7 @@ INVITE_TOKEN_USED_KEY = "invite_token_used"
 PROFILE_PHOTO_URL_KEY = "profile_photo_url"
 UI_HIDE_CAPTIONS_KEY = "ui_hide_captions"
 UI_CAPTION_DISMISSALS_KEY = "ui_caption_dismissals"
+_SIGNAL_DISPLAY_NAME_PREFIX = "signal_display_name:"
 
 
 def get_attribute(session: Session, *, user_id: int, key: str) -> Optional[str]:
@@ -38,6 +39,34 @@ def load_profile_photo_urls(session: Session, *, user_ids: list[int]) -> dict[in
         .where(UserAttribute.key == PROFILE_PHOTO_URL_KEY)
     ).all()
     return {row.user_id: row.value for row in rows if row and row.value}
+
+
+def load_display_names(
+    session: Session, *, user_ids: list[int], group_slug: Optional[str] = None
+) -> dict[int, str]:
+    """Return the best-known display name for each user id."""
+
+    if not user_ids:
+        return {}
+
+    statement = select(UserAttribute.user_id, UserAttribute.value).where(
+        UserAttribute.user_id.in_(user_ids)
+    )
+    if group_slug:
+        key = f"{_SIGNAL_DISPLAY_NAME_PREFIX}{group_slug}"
+        statement = statement.where(UserAttribute.key == key)
+    else:
+        statement = statement.where(UserAttribute.key.like(f"{_SIGNAL_DISPLAY_NAME_PREFIX}%"))
+    statement = statement.order_by(UserAttribute.updated_at.desc(), UserAttribute.id.desc())
+
+    rows = session.exec(statement).all()
+    display_names: dict[int, str] = {}
+    for user_id, value in rows:
+        if not value or user_id is None:
+            continue
+        if group_slug or user_id not in display_names:
+            display_names[user_id] = value
+    return display_names
 
 
 def list_invitee_user_ids(session: Session, *, inviter_user_id: int) -> list[int]:

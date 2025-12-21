@@ -36,9 +36,14 @@ def members_directory(
         filters=filters,
     )
 
+    member_ids = [profile.id for profile in directory_page.profiles if profile.id is not None]
     avatar_urls = user_attribute_service.load_profile_photo_urls(
         db,
-        user_ids=[profile.id for profile in directory_page.profiles if profile.id is not None],
+        user_ids=member_ids,
+    )
+    display_names = user_attribute_service.load_display_names(
+        db,
+        user_ids=member_ids,
     )
 
     def _page_url(target_page: int) -> str:
@@ -74,6 +79,7 @@ def members_directory(
         "current_url": str(request.url),
         "viewer_is_admin": session_user.user.is_admin,
         "member_avatar_urls": avatar_urls,
+        "member_display_names": display_names,
     }
     return templates.TemplateResponse("members/index.html", context)
 

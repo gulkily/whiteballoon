@@ -68,10 +68,11 @@
                   {% endif %}
                 </span>
                 <div class="member-card__identity-text">
+                  {% set profile_display_name = member_display_names.get(profile.id) or profile.display_name %}
                   <p class="member-card__username">
                     {% with
                       username=profile.username,
-                      display_name=profile.display_name,
+                      display_name=profile_display_name,
                       href=profile_href,
                       class_name='link-inline'
                     %}
@@ -87,16 +88,6 @@
               </span>
             </header>
             <div class="member-card__body stack">
-              <div class="member-card__contact">
-                {% if profile.contact_email and (viewer_is_admin or scope_is_public) %}
-                  <a href="mailto:{{ profile.contact_email }}" class="meta-chip meta-chip--action">
-                    <span class="meta-chip__label">Contact</span>
-                    <span class="meta-chip__value">{{ profile.contact_email }}</span>
-                  </a>
-                {% else %}
-                  <p class="muted">Contact hidden</p>
-                {% endif %}
-              </div>
               <div class="member-card__actions">
                 <a class="button button--ghost" href="{{ profile_href }}">View profile</a>
               </div>
