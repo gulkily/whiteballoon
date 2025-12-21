@@ -91,7 +91,7 @@
                 <td data-label="Username">
                   {% with
                     username=profile.username,
-                    display_name=profile.display_name,
+                    display_name=profile_display_names.get(profile.id) or profile.display_name,
                     href='/admin/profiles/' ~ profile.id,
                     class_name='profile-name-link'
                   %}

@@ -29,6 +29,7 @@ class MemberDirectoryPage:
     total_pages: int
     page_size: int
     filters: MemberDirectoryFilters
+    display_names: dict[int, str]
 
 
 def list_members(
@@ -70,6 +71,15 @@ def list_members(
         else []
     )
 
+    display_name_map: dict[int, str] = {}
+    if profiles:
+        member_ids = [profile.id for profile in profiles if profile.id is not None]
+        if member_ids:
+            display_name_map = user_attribute_service.load_display_names(
+                session,
+                user_ids=member_ids,
+            )
+
     return MemberDirectoryPage(
         profiles=profiles,
         total_count=total_count,
@@ -77,6 +87,7 @@ def list_members(
         total_pages=total_pages,
         page_size=page_size,
         filters=normalized_filters,
+        display_names=display_name_map,
     )
 
 

@@ -626,6 +626,7 @@ def admin_profile_directory(
         "permission_summaries": permission_summaries,
         "flash_message": flash_message,
         "flash_severity": flash_severity,
+        "profile_display_names": directory_page.display_names,
     }
     return templates.TemplateResponse("admin/profiles.html", context)
 
