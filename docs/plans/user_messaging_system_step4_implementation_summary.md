@@ -34,8 +34,13 @@
 
 ## Stage 4 – Conversation creation + send endpoints
 - Changes:
+  - Extended the messaging models with `direct_key` + `unread_count`, and built a dedicated service layer that can create direct threads, append messages, and surface thread summaries.
+  - Added `/messages/direct` and `/messages/{thread_id}/messages` endpoints (guarded by the feature toggle) plus a placeholder inbox route so the new nav link no longer 404s.
+  - Wired a CLI-safe schema reset path by re-initializing `data/messages.db` through the new service helpers.
 - Verification:
+  - Rebuilt the messaging DB via `./wb messaging init-db`, then used a Python harness (`services.send_direct_message(1, 2, "Hello")`) to confirm messages write to the dedicated store and threads track participants.
 - Notes:
+  - Placeholder GET `/messages` simply returns a stub for now; Stage 5 swaps in the real inbox/thread templates.
 
 ## Stage 5 – Inbox + thread views
 - Changes:

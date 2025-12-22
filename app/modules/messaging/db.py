@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from functools import lru_cache
 from pathlib import Path
-from typing import Generator
+from typing import Iterator
 
 from sqlalchemy.engine import Engine
 from sqlalchemy.engine.url import make_url
@@ -35,6 +36,7 @@ def init_messaging_db() -> None:
     messaging_metadata.create_all(engine)
 
 
-def get_messaging_session() -> Generator[Session, None, None]:
+@contextmanager
+def get_messaging_session() -> Iterator[Session]:
     with Session(get_messaging_engine()) as session:
         yield session

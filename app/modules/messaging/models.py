@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Optional
 
-from sqlalchemy import MetaData, UniqueConstraint
+from sqlalchemy import Column, MetaData, String, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -20,6 +20,11 @@ class MessageThread(MessagingBase, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     created_by_user_id: int = Field(index=True)
+    direct_key: Optional[str] = Field(
+        default=None,
+        max_length=64,
+        sa_column=Column(String(64), unique=True, nullable=True, index=True),
+    )
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     latest_message_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
@@ -36,6 +41,7 @@ class MessageParticipant(MessagingBase, table=True):
     user_id: int = Field(nullable=False, index=True)
     joined_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     last_read_at: Optional[datetime] = Field(default=None)
+    unread_count: int = Field(default=0, nullable=False)
 
 
 class Message(MessagingBase, table=True):
