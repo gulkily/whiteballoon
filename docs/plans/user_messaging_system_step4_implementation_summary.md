@@ -63,5 +63,9 @@
 
 ## Stage 7 – Ops instrumentation + docs
 - Changes:
+  - Documented the messaging toggle/CLI workflow in `README.md`, `AI_PROJECT_GUIDE.md`, and `docs/spec.md` so operators know to run `./wb messaging init-db` and where to find the Inbox routes.
+  - Highlighted that the messaging database lives at `data/messages.db`, separate from `data/app.db`, to keep backup/retention plans isolated.
 - Verification:
+  - Manual doc review to ensure each reference clearly calls out the toggle location plus the CLI command required to initialize the dedicated store.
 - Notes:
+  - Future instrumentation (analytics, retention policies) can hook into the messaging service layer without touching the primary DB.
