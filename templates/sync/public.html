@@ -23,6 +23,30 @@
 
     <div class="control-panel__grid">
       <article class="control-panel__card stack">
+        <h2>Direct messaging</h2>
+        <p>
+          Status:
+          <strong>{{ 'Enabled' if messaging_enabled else 'Disabled' }}</strong>
+        </p>
+        {% if messaging_status and messaging_message %}
+          <div class="alert {{ 'alert--success' if messaging_status == 'success' else 'alert--error' }}">
+            {{ messaging_message }}
+          </div>
+        {% endif %}
+        <form method="post" action="/admin/messaging/toggle" class="stack">
+          <input type="hidden" name="next" value="{{ request.url.path }}" />
+          <input type="hidden" name="enable" value="{{ '0' if messaging_enabled else '1' }}" />
+          <button type="submit" class="button {{ 'button--ghost' if messaging_enabled else 'button--primary' }}">
+            {{ 'Disable messaging' if messaging_enabled else 'Enable messaging' }}
+          </button>
+        </form>
+        <p class="muted small-text">
+          Messages store in <code>{{ messaging_database_url }}</code>.
+          Run <code>./wb messaging init-db</code> if this is the first time enabling the feature.
+        </p>
+      </article>
+
+      <article class="control-panel__card stack">
         <h2>Signing & Bootstrap</h2>
         <p>
           Local signing key: <code>{{ local_signing_key.key_id if local_signing_key else 'n/a' }}</code>

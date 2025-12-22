@@ -12,8 +12,14 @@
 
 ## Stage 2 – Admin toggle + setup workflow
 - Changes:
+  - Added `ENABLE_DIRECT_MESSAGING` flag + dynamic settings reload so admins can flip messaging without restarts.
+  - Exposed a direct-messaging card on `/sync/public` with a form that POSTs to the new `/admin/messaging/toggle` route, ensuring the messaging DB initializes automatically on enable.
+  - Documented the dedicated DB path in `.env.example` and added `wb messaging init-db` to the CLI (plus wiring through `wb.py`) for operators who prefer the terminal workflow.
 - Verification:
+  - Ran `./wb messaging init-db` to ensure the CLI hook initializes `data/messages.db`.
+  - Flipped `ENABLE_DIRECT_MESSAGING` on/off via a Python shell (`reset_settings_cache`) to confirm `get_settings().messaging_enabled` reflects changes immediately.
 - Notes:
+  - Toggle redirects back to `/sync/public` with a status alert so admins can see the outcome alongside existing sync controls.
 
 ## Stage 3 – Profile entry points + nav affordances
 - Changes:

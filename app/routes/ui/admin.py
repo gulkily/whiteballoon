@@ -9,7 +9,8 @@ import io
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Annotated, Optional
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
@@ -53,6 +54,7 @@ ENV_PATH = Path(".env")
 ENV_EXAMPLE_PATH = Path(".env.example")
 DEDALUS_ENV_KEY = "DEDALUS_API_KEY"
 DEDALUS_ENV_VERIFIED = "DEDALUS_API_KEY_VERIFIED_AT"
+MESSAGING_ENV_FLAG = "ENABLE_DIRECT_MESSAGING"
 VERIFICATION_MAX_CHARS = 300
 DEDALUS_VERIFICATION_PROMPT = (
     "You are verifying the WhiteBalloon Mutual Aid Copilot Dedalus connection. "
@@ -275,6 +277,54 @@ def _write_env_value(key: str, value: Optional[str]) -> None:
     if content:
         content += "\n"
     ENV_PATH.write_text(content, encoding="utf-8")
+
+
+def _set_messaging_enabled(enabled: bool) -> tuple[bool, str]:
+    new_value = "true" if enabled else "false"
+    try:
+        _write_env_value(MESSAGING_ENV_FLAG, new_value)
+        if enabled:
+            os.environ[MESSAGING_ENV_FLAG] = "true"
+        else:
+            os.environ[MESSAGING_ENV_FLAG] = "false"
+        config.reset_settings_cache()
+    except OSError as exc:
+        return False, f"Unable to update .env file: {exc}"
+    if enabled:
+        from app.modules.messaging.db import init_messaging_db
+
+        init_messaging_db()
+    return True, "Direct messaging enabled." if enabled else "Direct messaging disabled."
+
+
+@router.post("/admin/messaging/toggle")
+def toggle_direct_messaging(
+    request: Request,
+    enable: Annotated[str, Form(...)],
+    session_user: SessionUser = Depends(require_session_user),
+    next_url: Optional[str] = Form(None),
+):
+    _require_admin(session_user)
+    normalized = enable.strip().lower()
+    desired = normalized in {"1", "true", "on", "enable", "yes"}
+    success, message = _set_messaging_enabled(desired)
+    action = "enabled" if desired else "disabled"
+    if success:
+        logger.info("Admin %s %s direct messaging", session_user.user.username, action)
+    else:
+        logger.error("Admin %s attempted to toggle messaging but failed: %s", session_user.user.username, message)
+    redirect_to = next_url or request.headers.get("referer") or "/sync/public"
+    if redirect_to.startswith("/"):
+        status_label = "success" if success else "error"
+        params = urlencode(
+            {
+                "messaging_status": status_label,
+                "messaging_message": message,
+            }
+        )
+        separator = "&" if "?" in redirect_to else "?"
+        redirect_to = f"{redirect_to}{separator}{params}"
+    return RedirectResponse(url=redirect_to, status_code=status.HTTP_303_SEE_OTHER)
 
 
 async def _verify_dedalus_api_key(value: str) -> tuple[bool, str]:

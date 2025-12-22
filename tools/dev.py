@@ -29,6 +29,7 @@ from sqlmodel import Session, SQLModel, select
 from app.db import get_engine, init_db
 from app.config import get_settings
 from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
+from app.modules.messaging.db import init_messaging_db
 from app.modules.requests import services as request_services
 from app.schema_utils import ensure_schema_integrity
 from app.services import auth_service, comment_llm_insights_db, peer_auth_service, vouch_service
@@ -929,6 +930,18 @@ def create_invite(
             click.echo(f"Expires at: {invite.expires_at.isoformat()}Z")
         click.echo(f"Auto-approve registrations: {'yes' if invite.auto_approve else 'no'}")
         click.echo("Claim by visiting /register in the web UI and entering the token, or POST to /auth/register with invite_token.")
+
+
+@cli.group(name="messaging", help="Direct messaging utilities")
+def messaging_group() -> None:
+    """Messaging module commands."""
+
+
+@messaging_group.command(name="init-db")
+def messaging_init_db_command() -> None:
+    """Initialize the dedicated messaging database."""
+    init_messaging_db()
+    click.secho("Messaging database initialized.", fg="green")
 
 
 if __name__ == "__main__":

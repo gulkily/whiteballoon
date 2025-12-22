@@ -693,6 +693,7 @@ def print_help() -> None:
     print("  dedalus test [opts]   Run the Dedalus verification script")
     print("  sync <command> [opts] Manual sync utilities (export/import)")
     print("  skins <command>       Build or watch skin CSS bundles")
+    print("  messaging <command>   Manage the direct messaging module")
     print("  hub serve [opts]      Run the sync hub (uvicorn)")
     print("  update-env [opts]     Add missing values from .env.example")
     print("  version               Display CLI version info")
@@ -726,6 +727,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("profile-glaze")
     subparsers.add_parser("sync")
     subparsers.add_parser("skins")
+    subparsers.add_parser("messaging")
     subparsers.add_parser("hub")
     subparsers.add_parser("update-env")
     subparsers.add_parser("signal-profile")
@@ -775,8 +777,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_profile_glaze(passthrough)
 
     # Known commands path
-    if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "peer-auth", "sync", "skins"}:
-        if ns.command in {"session", "peer-auth", "sync"}:
+    if ns.command in {"runserver", "init-db", "create-admin", "create-invite", "session", "peer-auth", "sync", "skins", "messaging"}:
+        if ns.command in {"session", "peer-auth", "sync", "messaging"}:
             if not passthrough:
                 passthrough = ["--help"]
             elif passthrough[0] == "help":
