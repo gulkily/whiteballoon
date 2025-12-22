@@ -34,7 +34,7 @@ The base authentication and request feed modules serve as reference implementati
 - `app/modules/` – Optional directory for plug-in modules packaged independently
 - `templates/` – Jinja2 templates (base layout, auth pages, request feed views)
 - `static/css/app.css` – Custom vanilla CSS design system (no external frameworks)
-- `data/` – SQLite database files and derived artifacts
+- `data/` – SQLite database files and derived artifacts (including `data/messages.db` for the messaging module)
 - `tools/dev.py` – Click CLI (invoked via `./wb`)
 - `balloon` – Git-style wrapper for developer commands
 - `docs/plans/` – Planning documents for each feature/module stage
@@ -45,6 +45,7 @@ The base authentication and request feed modules serve as reference implementati
 3. Request feed that lists, creates, and completes user-submitted requests
 4. Vanilla CSS design system with tokens, layout primitives, and component patterns
 5. Progressive enhancement for request lifecycle actions without heavy dependencies
+6. Admin-gated direct messaging stored in a dedicated SQLite database so compliance/backup policies stay isolated
 
 ## Extensibility Guidelines
 

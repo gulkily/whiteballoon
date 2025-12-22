@@ -50,6 +50,13 @@ enhancement so the project can be restored accurately using this document.
   `POST /api/requests/{id}/complete`; the server-rendered fallback posts to
   `/requests/{id}/complete` and redirects.
 
+### Direct Messaging
+- Messaging stays disabled until an admin flips the toggle on `/sync/public`. Once enabled, run `./wb messaging init-db` to create `data/messages.db`, which stores every message/thread separately from the primary app database.
+- Fully authenticated members see a new Inbox link in the nav and can open `/messages` to list all conversations. Each card links to `/messages/{thread_id}` where they can read history and send replies.
+- Profile pages (`/people/{username}`) and the members directory render “Message” forms that POST to `/messages/direct`, ensuring the thread exists before redirecting to the conversation view. Direct links (`/messages/with/{username}`) do the same lookup.
+- Each conversation stores per-user `unread_count` values so the Inbox and nav badge can reflect outstanding messages. Opening a thread marks it read immediately.
+- All messaging routes enforce the feature toggle plus full-session authentication. Admins can disable messaging at any time; the nav/inbox entry points disappear automatically.
+
 ### Progressive Enhancement
 - Every screen renders fully via SSR. Enhancements include: toggling the
   request form, refreshing the feed after API mutations, and rendering newly
