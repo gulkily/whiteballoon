@@ -6,15 +6,23 @@
 
 {% block content %}
 <section class="section">
-  <div class="card stack">
+  <div class="card stack" data-auth-status-root>
     <h2>Approval requested</h2>
-    <p class="muted">Share this verification code with an administrator or trusted device to complete login.</p>
-    <div class="alert">Verification code: <strong>{{ verification_code }}</strong></div>
-    {% if error %}
-      <div class="alert" data-tone="error">{{ error }}</div>
-    {% endif %}
+    <p class="muted" data-auth-status-instructions>
+      Share this verification code with a trusted member (or a device you control) to complete login.
+    </p>
+    <div class="alert" data-auth-status-code>
+      Verification code: <strong>{{ verification_code }}</strong>
+    </div>
+    <div data-auth-status-messages>
+      {% if error %}
+        <div class="alert" data-tone="error">{{ error }}</div>
+      {% endif %}
+      <div hidden data-auth-status-live-message aria-live="polite" role="status"></div>
+    </div>
+    <div class="stack" data-auth-status-actions hidden></div>
     {% if feature_self_auth %}
-      <form method="post" action="/login/verify" class="form-grid">
+      <form method="post" action="/login/verify" class="form-grid" data-auth-self-form>
         <input type="hidden" name="username" value="{{ username }}" />
         <div class="input-group">
           <label for="verification_code">Enter verification code</label>
@@ -22,9 +30,98 @@
         </div>
         <button type="submit" class="button">Verify and continue</button>
       </form>
-    {% else %}
-      <p class="muted">Self-authentication is disabled. Share your code with a peer reviewer or admin to finish logging in.</p>
     {% endif %}
   </div>
 </section>
+<script>
+  (() => {
+    const POLL_INTERVAL_MS = 15000;
+    const STATUS_ENDPOINT = '/login/status';
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const root = document.querySelector('[data-auth-status-root]');
+      if (!root || typeof window.fetch !== 'function') {
+        return;
+      }
+
+      const liveMessage = root.querySelector('[data-auth-status-live-message]');
+      const actionSlot = root.querySelector('[data-auth-status-actions]');
+
+      const schedulePoll = () => {
+        window.setTimeout(fetchStatus, POLL_INTERVAL_MS);
+      };
+
+      const updateMessage = (text, tone) => {
+        if (!liveMessage) {
+          return;
+        }
+        if (!text) {
+          liveMessage.textContent = '';
+          liveMessage.hidden = true;
+          liveMessage.removeAttribute('data-tone');
+          liveMessage.className = '';
+          return;
+        }
+        liveMessage.className = 'alert';
+        if (tone) {
+          liveMessage.setAttribute('data-tone', tone);
+        } else {
+          liveMessage.removeAttribute('data-tone');
+        }
+        liveMessage.textContent = text;
+        liveMessage.hidden = false;
+      };
+
+      const updateActions = (actionUrl, actionLabel) => {
+        if (!actionSlot) {
+          return;
+        }
+        actionSlot.innerHTML = '';
+        if (actionUrl && actionLabel) {
+          const link = document.createElement('a');
+          link.href = actionUrl;
+          link.className = 'button button--ghost';
+          link.textContent = actionLabel;
+          actionSlot.appendChild(link);
+          actionSlot.hidden = false;
+          return;
+        }
+        actionSlot.hidden = true;
+      };
+
+      const handlePayload = (payload) => {
+        if (!payload) {
+          return;
+        }
+        if (payload.state === 'authenticated' && payload.redirect_url) {
+          window.location.assign(payload.redirect_url);
+          return;
+        }
+        updateMessage(payload.message || null, payload.tone || null);
+        updateActions(payload.action_url || null, payload.action_label || null);
+      };
+
+      const fetchStatus = async () => {
+        try {
+          const response = await fetch(STATUS_ENDPOINT, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+            cache: 'no-store',
+          });
+          if (!response.ok) {
+            throw new Error(`Status request failed (${response.status})`);
+          }
+          const payload = await response.json();
+          handlePayload(payload);
+        } catch (error) {
+          console.error('Unable to refresh authentication status.', error);
+        } finally {
+          schedulePoll();
+        }
+      };
+
+      fetchStatus();
+    });
+  })();
+</script>
 {% endblock %}

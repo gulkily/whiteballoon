@@ -109,38 +109,44 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("Provide --username/--user-id or --all to select targets.")
 
     engine = get_engine()
-    with Session(engine) as session:
-        target_ids = _resolve_targets(session, ns.usernames or [], ns.user_ids or [], ns.all)
-        if not target_ids:
-            parser.error("No eligible users found for the supplied filters.")
+    try:
+        with Session(engine) as session:
+            target_ids = _resolve_targets(session, ns.usernames or [], ns.user_ids or [], ns.all)
+            if not target_ids:
+                parser.error("No eligible users found for the supplied filters.")
 
-        user_map = _load_usernames(session, target_ids)
-        total_processed = 0
-        for user_id in target_ids:
-            label = _format_user_label(user_id, user_map)
-            print(f"[profile-glaze] Processing {label}")
-            comment_label = _build_comment_snapshot_label(ns.comment_label_prefix, user_map.get(user_id))
-            comment_args = _build_comment_cli_args(ns, user_id, comment_label)
-            rc = comment_llm_processing.main(comment_args)
-            if rc != 0:
-                return rc
-            if ns.dry_run:
-                continue
-            glaze_stats, processed_users = snapshot_cli.glaze_users(
-                session,
-                [user_id],
-                dry_run=False,
-                group_slug=ns.group_slug,
-                model=ns.glaze_model,
-                glaze_dir=ns.glaze_dir,
-                max_users=None,
-                resume_skip=set(),
-            )
-            print(
-                f"[profile-glaze] Glaze complete for {label}: "
-                f"{glaze_stats.generated}/{glaze_stats.attempted} stored, {glaze_stats.guardrail_fallbacks} guardrail fallbacks"
-            )
-            total_processed += len(processed_users)
+            user_map = _load_usernames(session, target_ids)
+            total_processed = 0
+            for user_id in target_ids:
+                label = _format_user_label(user_id, user_map)
+                print(f"[profile-glaze] Processing {label}")
+                comment_label = _build_comment_snapshot_label(
+                    ns.comment_label_prefix, user_map.get(user_id)
+                )
+                comment_args = _build_comment_cli_args(ns, user_id, comment_label)
+                rc = comment_llm_processing.main(comment_args)
+                if rc != 0:
+                    return rc
+                if ns.dry_run:
+                    continue
+                glaze_stats, processed_users = snapshot_cli.glaze_users(
+                    session,
+                    [user_id],
+                    dry_run=False,
+                    group_slug=ns.group_slug,
+                    model=ns.glaze_model,
+                    glaze_dir=ns.glaze_dir,
+                    max_users=None,
+                    resume_skip=set(),
+                )
+                print(
+                    f"[profile-glaze] Glaze complete for {label}: "
+                    f"{glaze_stats.generated}/{glaze_stats.attempted} stored, {glaze_stats.guardrail_fallbacks} guardrail fallbacks"
+                )
+                total_processed += len(processed_users)
+    except KeyboardInterrupt:
+        print("\n[profile-glaze] Interrupted; exiting.")
+        return 0
 
     if ns.dry_run:
         print("[profile-glaze] Dry run finished (no glazing performed).")

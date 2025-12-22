@@ -5,11 +5,13 @@ from typing import Optional, Union
 
 from fastapi.templating import Jinja2Templates
 
+from app.config import get_settings
 from app.models import User, UserSession
 from app.skins.runtime import register_skin_helpers
 
 templates = Jinja2Templates(directory="templates")
 register_skin_helpers(templates)
+templates.env.globals["feature_nav_status_tags"] = get_settings().feature_nav_status_tags
 
 
 def _parse_iso_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:

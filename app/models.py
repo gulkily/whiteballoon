@@ -181,6 +181,23 @@ class InvitePersonalization(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
 
+class RssFeedToken(SQLModel, table=True):
+    __tablename__ = "rss_feed_tokens"
+    __table_args__ = (UniqueConstraint("user_id", "category", name="ux_rss_feed_tokens_user_category"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", nullable=False, index=True)
+    category: str = Field(sa_column=Column(String(64), nullable=False))
+    token: str = Field(
+        default_factory=lambda: secrets.token_urlsafe(32),
+        sa_column=Column(String(128), nullable=False, unique=True, index=True),
+    )
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    rotated_at: Optional[datetime] = Field(default=None)
+    last_used_at: Optional[datetime] = Field(default=None)
+    revoked_at: Optional[datetime] = Field(default=None)
+
+
 
 class UserAttribute(SQLModel, table=True):
     __tablename__ = "user_attributes"

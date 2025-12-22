@@ -20,7 +20,7 @@ from . import auth_service, user_attribute_service
 PEER_AUTH_REVIEWER_ATTRIBUTE_KEY = "peer_auth_reviewer"
 DEFAULT_PAGE_LIMIT = 25
 MAX_PAGE_LIMIT = 100
-_TRUTHY_VALUES = {"1", "true", "yes", "on", "approved", "enabled"}
+PEER_AUTH_TRUTHY_VALUES = {"1", "true", "yes", "on", "approved", "enabled"}
 
 
 @dataclass(slots=True)
@@ -216,7 +216,7 @@ def user_is_peer_auth_reviewer(session: Session, *, user: User) -> bool:
     if not flag:
         return False
     normalized = flag.strip().lower()
-    return normalized in _TRUTHY_VALUES
+    return normalized in PEER_AUTH_TRUTHY_VALUES
 
 
 def require_peer_auth_reviewer(session: Session, *, user: User) -> None:
@@ -226,3 +226,49 @@ def require_peer_auth_reviewer(session: Session, *, user: User) -> None:
         status_code=status.HTTP_403_FORBIDDEN,
         detail="Peer authentication reviewer access required",
     )
+
+
+def grant_peer_auth_reviewer(
+    session: Session,
+    *,
+    user: User,
+    actor_user_id: Optional[int] = None,
+) -> bool:
+    if user.id is None:
+        return False
+    existing = user_attribute_service.get_attribute(
+        session,
+        user_id=user.id,
+        key=PEER_AUTH_REVIEWER_ATTRIBUTE_KEY,
+    )
+    if existing:
+        normalized = existing.strip().lower()
+        if normalized:
+            return False
+    user_attribute_service.set_attribute(
+        session,
+        user_id=user.id,
+        key=PEER_AUTH_REVIEWER_ATTRIBUTE_KEY,
+        value="approved",
+        actor_user_id=actor_user_id,
+    )
+    return True
+
+
+def grant_peer_auth_reviewer_to_all_users(
+    session: Session,
+    *,
+    actor_user_id: Optional[int] = None,
+) -> int:
+    user_ids = session.exec(select(User.id)).all()
+    granted = 0
+    for row in user_ids:
+        user_id = row if isinstance(row, int) else row[0]
+        if user_id is None:
+            continue
+        user = session.get(User, user_id)
+        if not user:
+            continue
+        if grant_peer_auth_reviewer(session, user=user, actor_user_id=actor_user_id):
+            granted += 1
+    return granted

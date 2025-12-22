@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications & Feeds · WhiteBalloon{% endblock %}
+
+{% block main_class %} container--narrow{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack account-settings">
+  <header class="stack">
+    <h1>Notifications & RSS feeds</h1>
+    <p class="muted">
+      Subscribe to these private URLs in your reader to mirror what you see in WhiteBalloon without logging in.
+    </p>
+  </header>
+
+  {% if form_message %}
+    <div class="alert {{ 'alert--success' if form_status == 'success' else 'alert--error' if form_status == 'error' else 'alert--info' }}">
+      {{ form_message }}
+    </div>
+  {% endif %}
+
+  <div class="stack">
+    {% for feed in rss_feeds %}
+      <article class="card stack">
+        <div class="stack">
+          <h2 class="h4">{{ feed.variant.label }}</h2>
+          <p class="muted small-text">{{ feed.variant.description }}</p>
+          {% if feed.variant.require_admin %}
+            <p class="account-status__tag account-status__tag--role">Admin only</p>
+          {% endif %}
+        </div>
+        <div class="stack">
+          <label class="small-text muted" for="rss-url-{{ feed.variant.slug }}">Feed URL</label>
+          <input
+            id="rss-url-{{ feed.variant.slug }}"
+            type="text"
+            readonly
+            value="{{ feed.url }}"
+          />
+          {% if feed.token.last_used_at %}
+            <p class="muted small-text">Last read {{ feed.token.last_used_at | friendly_time }}</p>
+          {% endif %}
+        </div>
+        <form action="/settings/notifications/rotate" method="post">
+          <input type="hidden" name="category" value="{{ feed.variant.slug }}">
+          <button type="submit" class="button button--ghost">Regenerate link</button>
+        </form>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

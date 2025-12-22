@@ -11,8 +11,9 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse
+from sqlalchemy import func
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, get_session, require_session_user
@@ -38,8 +39,10 @@ from app.services import (
     comment_llm_insights_service,
     member_directory_service,
     peer_auth_ledger,
+    peer_auth_service,
     request_comment_service,
     user_attribute_service,
+    user_permission_service,
     user_profile_highlight_service,
 )
 from starlette.datastructures import URL
@@ -103,6 +106,20 @@ def _get_account_avatar(db: SessionDep, user_id: int) -> Optional[str]:
         user_id=user_id,
         key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
     )
+
+
+def _serialize_peer_filter(value: Optional[bool]) -> str:
+    if value is None:
+        return ""
+    return "1" if value else "0"
+
+
+def _relative_url(url: URL) -> str:
+    query = url.query
+    base = url.path or "/"
+    if query:
+        return f"{base}?{query}"
+    return base
 
 
 @router.get("/admin")
@@ -173,6 +190,17 @@ def admin_peer_auth_ledger(
     _require_admin(session_user)
     if not get_settings().feature_peer_auth_queue:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Peer auth ledger disabled")
+    entries = peer_auth_ledger.read_entries(limit=200)
+    user_ids: set[int] = set()
+    for entry in entries:
+        user_ids.add(entry.requester_user_id)
+        user_ids.add(entry.reviewer_user_id)
+    user_map: dict[int, User] = {}
+    if user_ids:
+        rows = db.exec(select(User).where(User.id.in_(list(user_ids)))).all()
+        for user in rows:
+            if user.id is not None:
+                user_map[user.id] = user
     context = {
         "request": request,
         "user": session_user.user,
@@ -181,6 +209,8 @@ def admin_peer_auth_ledger(
         "session_username": session_user.user.username,
         "session_avatar_url": _get_account_avatar(db, session_user.user.id),
         "latest_checksum": peer_auth_ledger.latest_checksum(),
+        "ledger_entries": entries,
+        "ledger_user_map": user_map,
     }
     return templates.TemplateResponse("admin/ledger.html", context)
 
@@ -523,6 +553,8 @@ def admin_profile_directory(
     page: int = Query(1, ge=1),
     q: Optional[str] = Query(None, alias="username"),
     contact: Optional[str] = None,
+    role: Optional[str] = Query(None),
+    peer: Optional[str] = Query(None),
 ):
     _require_admin(session_user)
     viewer = session_user.user
@@ -531,6 +563,8 @@ def admin_profile_directory(
     filters = member_directory_service.MemberDirectoryFilters(
         username=q,
         contact=contact,
+        role=role,
+        peer_auth_reviewer=peer,
     )
 
     directory_page = member_directory_service.list_members(
@@ -555,6 +589,20 @@ def admin_profile_directory(
         else None,
     }
 
+    permission_summaries = user_permission_service.load_permission_summaries(db, users)
+
+    filters_active = any(
+        [
+            bool(directory_page.filters.username),
+            bool(directory_page.filters.contact),
+            bool(directory_page.filters.role),
+            directory_page.filters.peer_auth_reviewer is not None,
+        ]
+    )
+
+    flash_message = request.query_params.get("message")
+    flash_severity = request.query_params.get("severity", "info")
+
     context = {
         "request": request,
         "user": viewer,
@@ -569,10 +617,15 @@ def admin_profile_directory(
         "page_size": directory_page.page_size,
         "username_query": directory_page.filters.username or "",
         "contact_query": directory_page.filters.contact or "",
+        "role_query": directory_page.filters.role or "",
+        "peer_query": _serialize_peer_filter(directory_page.filters.peer_auth_reviewer),
         "pagination": pagination,
-        "filters_active": bool(directory_page.filters.username or directory_page.filters.contact),
+        "filters_active": filters_active,
         "clear_filters_url": request.url.path,
-        "current_url": str(request.url),
+        "current_url": _relative_url(request.url),
+        "permission_summaries": permission_summaries,
+        "flash_message": flash_message,
+        "flash_severity": flash_severity,
     }
     return templates.TemplateResponse("admin/profiles.html", context)
 
@@ -631,6 +684,9 @@ def admin_profile_detail(
     flash_message = request.query_params.get("message")
     flash_severity = request.query_params.get("severity", "info")
 
+    permission_summary_map = user_permission_service.load_permission_summaries(db, [profile])
+    profile_permission_summary = permission_summary_map.get(profile.id) if profile.id else None
+
     context = {
         "request": request,
         "user": viewer,
@@ -649,6 +705,8 @@ def admin_profile_detail(
         "highlight": highlight,
         "flash_message": flash_message,
         "flash_severity": flash_severity,
+        "profile_permission_summary": profile_permission_summary,
+        "current_url": _relative_url(request.url),
     }
     return templates.TemplateResponse("admin/profile_detail.html", context)
 
@@ -704,6 +762,93 @@ def admin_profile_highlight_action(
         severity=severity,
     )
     return RedirectResponse(str(target), status_code=303)
+
+
+@router.post("/admin/profiles/{user_id}/permissions")
+def admin_profile_permissions_action(
+    request: Request,
+    user_id: int,
+    db: SessionDep,
+    action: str = Form(...),
+    next_url: Optional[str] = Form(None, alias="next"),
+    session_user: SessionUser = Depends(require_session_user),
+):
+    _require_admin(session_user)
+    target_user = db.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    message = ""
+    severity = "success"
+    viewer = session_user.user
+
+    def _redirect(message: str, severity: str) -> RedirectResponse:
+        default_target = URL(str(request.url_for("admin_profile_directory")))
+        next_target = default_target
+        raw_next: Optional[str] = None
+        if next_url:
+            if isinstance(next_url, URL):
+                raw_next = str(next_url)
+            elif isinstance(next_url, str):
+                raw_next = next_url
+        if raw_next and raw_next.startswith("/"):
+            try:
+                next_target = URL(raw_next)
+            except ValueError:
+                next_target = default_target
+        target_with_message = next_target.include_query_params(message=message, severity=severity)
+        return RedirectResponse(str(target_with_message), status_code=status.HTTP_303_SEE_OTHER)
+
+    if action == "grant_admin":
+        if target_user.is_admin:
+            message = f"@{target_user.username} is already an admin."
+            severity = "info"
+        else:
+            target_user.is_admin = True
+            db.add(target_user)
+            db.commit()
+            logger.info("Admin %s granted admin role to user %s", viewer.id, target_user.id)
+            message = f"Granted admin access to @{target_user.username}."
+    elif action == "revoke_admin":
+        admin_count_row = db.exec(select(func.count()).select_from(User).where(User.is_admin.is_(True))).first()
+        admin_count = int(admin_count_row[0] if isinstance(admin_count_row, tuple) else admin_count_row or 0)
+        if not target_user.is_admin:
+            message = f"@{target_user.username} is not an admin."
+            severity = "info"
+        elif admin_count <= 1:
+            message = "Cannot remove the last admin."
+            severity = "error"
+        else:
+            target_user.is_admin = False
+            db.add(target_user)
+            db.commit()
+            logger.info("Admin %s revoked admin role from user %s", viewer.id, target_user.id)
+            message = f"Removed admin access from @{target_user.username}."
+    elif action == "peer_auth_enable":
+        user_attribute_service.set_attribute(
+            db,
+            user_id=target_user.id,
+            key=peer_auth_service.PEER_AUTH_REVIEWER_ATTRIBUTE_KEY,
+            value="approved",
+            actor_user_id=viewer.id,
+        )
+        db.commit()
+        logger.info("Admin %s enabled peer-auth reviewer for user %s", viewer.id, target_user.id)
+        message = f"Enabled peer-auth reviewer role for @{target_user.username}."
+    elif action == "peer_auth_disable":
+        user_attribute_service.delete_attribute(
+            db,
+            user_id=target_user.id,
+            key=peer_auth_service.PEER_AUTH_REVIEWER_ATTRIBUTE_KEY,
+        )
+        db.commit()
+        logger.info("Admin %s disabled peer-auth reviewer for user %s", viewer.id, target_user.id)
+        message = f"Disabled peer-auth reviewer role for @{target_user.username}."
+    else:
+        message = "Unknown action."
+        severity = "error"
+
+    return _redirect(message, severity)
 
 
 @router.get("/admin/dedalus")

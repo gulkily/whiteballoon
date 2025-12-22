@@ -26,6 +26,7 @@ def list_requests(
     statuses: Iterable[str] | None = None,
     pinned_only: bool = False,
     include_pending: bool = False,
+    created_by_user_ids: Iterable[int] | None = None,
 ) -> List[HelpRequest]:
     statement = select(HelpRequest).where(HelpRequest.status != HELP_REQUEST_STATUS_DRAFT)
     if pinned_only:
@@ -40,6 +41,10 @@ def list_requests(
         normalized = {status.strip().lower() for status in statuses if status}
         if normalized:
             statement = statement.where(HelpRequest.status.in_(normalized))
+    if created_by_user_ids:
+        normalized_ids = {user_id for user_id in created_by_user_ids if user_id}
+        if normalized_ids:
+            statement = statement.where(HelpRequest.created_by_user_id.in_(normalized_ids))
     if search:
         query = search.strip()
         if query:

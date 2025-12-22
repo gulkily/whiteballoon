@@ -52,6 +52,7 @@ class Settings:
     recurring_template_poll_seconds: int = int(os.getenv("RECURRING_TEMPLATE_POLL_SECONDS", "300"))
     feature_peer_auth_queue: bool = _get_bool(os.getenv("WB_FEATURE_PEER_AUTH_QUEUE"), False)
     feature_self_auth: bool = _get_bool(os.getenv("WB_FEATURE_SELF_AUTH"), False)
+    feature_nav_status_tags: bool = _get_bool(os.getenv("WB_FEATURE_NAV_STATUS_TAGS"), True)
 
 
 @lru_cache(maxsize=1)

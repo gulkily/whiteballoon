@@ -1,0 +1,67 @@
+{% if peer_auth_sessions %}
+  <ol class="peer-auth-list" role="list">
+    {% for record in peer_auth_sessions %}
+      <li class="peer-auth-card">
+        <header class="peer-auth-card__header">
+          <div class="peer-auth-card__identity">
+            <p class="peer-auth-card__username">@{{ record.username }}</p>
+            <p class="muted small-text">Session {{ record.session_id[:8] }} · Requested {{ record.auth_request_created_at | friendly_time if record.auth_request_created_at else 'Unknown' }}</p>
+          </div>
+          <span class="meta-chip meta-chip--status meta-chip--pending">
+            <span class="meta-chip__label">Status</span>
+            <span class="meta-chip__value">{{ record.status.value | capitalize }}</span>
+          </span>
+        </header>
+        <dl class="peer-auth-card__facts">
+          <div>
+            <dt>6-digit code</dt>
+            <dd class="peer-auth-card__code">{{ record.verification_code }}</dd>
+          </div>
+          <div>
+            <dt>Last seen</dt>
+            <dd>{{ record.session_last_seen_at | friendly_time if record.session_last_seen_at else 'Unknown' }}</dd>
+          </div>
+          <div>
+            <dt>IP / Device</dt>
+            <dd>{{ record.ip_address or 'Unknown' }} · {{ record.device_info or 'Unknown' }}</dd>
+          </div>
+        </dl>
+        <details class="peer-auth-card__details">
+          <summary>Review session</summary>
+          <div class="peer-auth-card__review stack">
+            <form method="post" action="/peer-auth/{{ record.auth_request_id }}/approve" class="peer-auth-form">
+              <label class="stack" for="peer-auth-note-approve-{{ loop.index }}">
+                <span>Attestation note (optional)</span>
+                <textarea
+                  id="peer-auth-note-approve-{{ loop.index }}"
+                  name="attestation_note"
+                  rows="3"
+                  placeholder="Confirmed code via call at 4:32pm"
+                ></textarea>
+              </label>
+              <div class="peer-auth-form__actions">
+                <button class="button" type="submit">Approve</button>
+              </div>
+            </form>
+            <form method="post" action="/peer-auth/{{ record.auth_request_id }}/deny" class="peer-auth-form peer-auth-form--danger">
+              <label class="stack" for="peer-auth-note-deny-{{ loop.index }}">
+                <span>Denial note (optional)</span>
+                <textarea
+                  id="peer-auth-note-deny-{{ loop.index }}"
+                  name="attestation_note"
+                  rows="2"
+                  placeholder="Could not confirm code via requested channel"
+                ></textarea>
+              </label>
+              <div class="peer-auth-form__actions">
+                <button class="button button--secondary" type="submit">Deny</button>
+              </div>
+            </form>
+          </div>
+        </details>
+      </li>
+    {% endfor %}
+  </ol>
+{% else %}
+  <p class="muted">No pending peer-auth sessions at the moment.</p>
+{% endif %}

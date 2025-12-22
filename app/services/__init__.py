@@ -22,9 +22,12 @@ from . import (
     request_comment_service,
     request_pin_service,
     signal_profile_snapshot_service,
+    user_permission_service,
     user_attribute_service,
     user_profile_highlight_service,
     vouch_service,
+    rss_feed_token_service,
+    rss_feed_catalog,
 )
 
 __all__ = [
@@ -49,7 +52,10 @@ __all__ = [
     "request_comment_service",
     "request_pin_service",
     "signal_profile_snapshot_service",
+    "user_permission_service",
     "user_attribute_service",
     "user_profile_highlight_service",
     "vouch_service",
+    "rss_feed_token_service",
+    "rss_feed_catalog",
 ]

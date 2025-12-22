@@ -17,6 +17,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Admin-only profile directory ( `/admin/profiles` ) with per-account drill-downs to review contact info, sharing scope, requests, and invite history
 - Members directory (`/members`) for fully authenticated members to browse public profiles plus their invitees with filters and scope-aware contact visibility
 - Admin control panel (`/admin`) that centralizes links to the directory, sync dashboard, and future operator tools
+- Private RSS feeds (`/settings/notifications`) so members/admins can subscribe to all-open, invite-circle, completed, or admin-pending request slices with tokenized URLs
 - Per-request detail pages with shareable URLs and consistent permissions
 - Comment threads on request detail pages with progressive enhancement (vanilla JS) for instant posting
 - Manual sync bundles (`*.sync.txt`) use email-style headers plus plain-text bodies so exports are Git-friendly
@@ -34,6 +35,10 @@ WhiteBalloon ships self-hosted variable fonts to keep typography distinctive wit
 - **Inter** (body copy, UI) — SIL Open Font License
 
 Both WOFF2 files live under `static/fonts/` and load via `@font-face` in `static/css/app.css`. When updating fonts, download the latest releases from the upstream projects, convert to WOFF2 if needed, and replace the existing files with the same filenames so the CSS continues to resolve them. Keep the font-weight axis between 400–700 to match the existing usage.
+
+## Feature Development Process
+
+All new feature work follows the four-step process outlined in `FEATURE_DEVELOPMENT_PROCESS.md`. That file now serves as the entry point to a chained set of step-specific instructions in `docs/dev/feature_process/step{N}_*.md`. Only open the file for the step you’re currently on, deliver the artifact in `docs/plans/`, and wait for an “Approved Step N” reply before moving to the next document. This keeps later-step guidance in the context window when you need it instead of up front.
 
 ## Quick start
 
@@ -142,6 +147,11 @@ Administrators can now operate sync workflows entirely from the browser:
 
 Jobs reuse the same signing and verification pipeline as the CLI. You can queue a push, continue browsing, and refresh to see the completion state once the background task finishes.
 
+## RSS feeds
+- Visit `/settings/notifications` from the Menu → Account section to grab private RSS URLs for each request slice: all open items you can see, your invite circle, recently completed requests, and (for admins) pending verifications.
+- Each URL is tokenized (`/feeds/<token>/<category>.xml`). Paste it into any reader to stay current without logging in—the backend enforces the same permissions the web feed already uses.
+- Use the “Regenerate link” button beside a feed to rotate its token immediately; the settings page also shows when each feed was last accessed so you can spot stale or suspicious clients at a glance.
+
 ## Send Welcome page
 - While signed in, use the “Send Welcome” button (header menu) to generate an invite instantly.
 - The page shows the invite link, token, QR code, and optional fields for suggested username/bio to share with the invitee.
@@ -194,7 +204,7 @@ wb / wb.bat             # Thin wrappers for Linux/macOS and Windows
 1. Create a package under `app/modules/<module_name>/` with `services.py` and optional routers.
 2. Register the module in `app/modules/__init__.py` so `register_modules()` wires it into the app.
 3. Provide templates and static assets under `templates/<module_name>/` and `static/` as needed.
-4. Document the feature using the four-step planning process in `docs/plans/`.
+4. Document the feature using the four-step planning process in `docs/plans/` (see `FEATURE_DEVELOPMENT_PROCESS.md` for the chained instructions).
 5. Add CLI helpers or UI routes when the module requires interactive workflows.
 
 ## Deployment notes

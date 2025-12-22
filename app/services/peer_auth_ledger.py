@@ -155,6 +155,10 @@ def iter_decisions(limit: Optional[int] = None) -> Iterable[LedgerEntry]:
         )
 
 
+def read_entries(limit: int = 200) -> list[LedgerEntry]:
+    return list(iter_decisions(limit=limit))
+
+
 def latest_checksum() -> Optional[str]:
     with _lock:
         with _open_connection() as conn:

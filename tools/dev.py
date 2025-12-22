@@ -31,7 +31,7 @@ from app.config import get_settings
 from app.models import AuthRequestStatus, AuthenticationRequest, User, UserSession
 from app.modules.requests import services as request_services
 from app.schema_utils import ensure_schema_integrity
-from app.services import auth_service, comment_llm_insights_db, vouch_service
+from app.services import auth_service, comment_llm_insights_db, peer_auth_service, vouch_service
 from app.url_utils import build_invite_link
 from app.sync.export_import import export_sync_data, import_sync_data
 from app.sync.peers import Peer, get_peer, load_peers, save_peers
@@ -666,8 +666,25 @@ def create_admin(username: str) -> None:
             click.echo(f"User '{normalized}' not found. Register the user first.")
             raise click.Abort()
         user.is_admin = True
+        peer_auth_service.grant_peer_auth_reviewer(session, user=user, actor_user_id=None)
         session.commit()
         click.secho(f"User '{normalized}' promoted to admin.", fg="green")
+
+
+@cli.group(name="peer-auth", help="Peer authentication utilities.")
+def peer_auth_group() -> None:
+    """CLI group for peer auth helpers."""
+
+
+@peer_auth_group.command(name="grant-all")
+def peer_auth_grant_all() -> None:
+    """Grant peer-auth reviewer access to every existing user."""
+
+    engine = get_engine()
+    with Session(engine) as session:
+        granted = peer_auth_service.grant_peer_auth_reviewer_to_all_users(session)
+        session.commit()
+    click.secho(f"Granted peer-auth reviewer access to {granted} user(s).", fg="green")
 
 
 @cli.group(name="session", help="Inspect and manage authentication sessions.")

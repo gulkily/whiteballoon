@@ -1,113 +1,61 @@
 # Feature Development Process
 
 ## Overview
-Four-step process for feature development with optional solution assessment.
+Feature work flows through four tightly scoped steps with an optional solution assessment upfront. To keep the instructions inside the context window, the detailed guidance for each step now lives in separate files that you open only when you are ready for that step.
 
-## The Process
+## How to Use This Chain
+1. Start with the highest-numbered approved step (usually Step 1 unless explicitly skipped).
+2. Read only the dedicated step file in `docs/dev/feature_process/`, complete that deliverable, and request approval in the format “Approved Step N.”
+3. Do not open the next file until the user replies with the exact approval phrase.
+4. Reprint the instructions from the relevant file before you begin working on that step’s deliverable.
 
-### Step 1: Solution Assessment (Optional)
-**When Needed**: Multiple viable approaches, complex trade-offs, or unclear direction
+## Step Guide
+- **Step 1 – Solution Assessment (Optional)**: resolve uncertainty across multiple approaches. `docs/dev/feature_process/step1_solution_assessment.md`
+- **Step 2 – Feature Description**: capture problem framing, user stories, requirements, and success criteria. `docs/dev/feature_process/step2_feature_description.md`
+- **Step 3 – Development Plan**: break the work into atomic stages with dependencies, verification notes, and shared component references. `docs/dev/feature_process/step3_development_plan.md`
+- **Step 4 – Implementation**: execute staged work on a feature branch and maintain the implementation summary. `docs/dev/feature_process/step4_implementation.md`
 
-**Format**: Ultra-concise comparison document (≤1 page) in `docs/plans/`
-**Filename**: `{feature_name}_solution_assessment.md`
-- Problem statement (1 sentence)
-- ≥2 solution options, each tagged sequentially as Option A/B/C/etc., with key pros/cons (bullet points only)
-- Clear recommendation with brief reasoning
+Each file ends with instructions for when to proceed to the next step so you never overrun the context window.
 
-**Avoid**: Long explanations, implementation details, verbose prose
-
----
-
-### Step 2: Feature Description
-**Content**: Problem statement, 3-5 user stories, core requirements, user flow, success criteria, and a shared-component inventory when the feature presents entities already visible elsewhere in the product
-
-**Format**: Concise document (≤1 page) in `docs/plans/`
-**Filename**: `{feature_name}_feature_description.md`
-- Problem (1-2 sentences)
-- User stories (bullet points: "As [role], I want [goal] so that [benefit]")
-- Core requirements (3-5 bullet points)
-- Shared component inventory: list every existing UI/API surface that already renders the data (e.g., comment cards, identity chips) and state whether the feature will reuse/extend the canonical component or needs a new one (with rationale)
-- Simple user flow (numbered steps)
-- Success criteria (measurable outcomes)
-
-**Avoid**: Implementation details, code, database schema, UI mockups, verbose descriptions
-
----
-
-### Step 3: Development Plan
-**Content**: Atomic stages (~≤1 hour or ~≤50 lines of change each), dependencies, verification approach (manual is fine), risk assessment, and explicit adoption steps for any shared components called out in Step 2
-
-**Format**: Numbered stages in `docs/plans/` (≤1 page)
-**Filename**: `{feature_name}_development_plan.md`
-- Each stage: goal, dependencies, changes, verification (manual smoke allowed), risks (bullet points), plus a reminder of which canonical components/API contracts are being touched so nothing forks silently
-- Break work into as many small stages as needed; flag any stage that still feels too large so it can be split before implementation.
-- Database changes (conceptual, no SQL)
-- Function signatures (no implementation)
-
-**Avoid**: Full code, HTML templates, detailed SQL, verbose explanations
-
----
-
-### Step 4: Implementation
-**Process**: Create feature branch, implement stages in order, and favor the simplest viable implementation before iterating on enhancements or automation.
-
-**Critical Requirements**:
-- **MUST create feature branch first** (e.g., `feature/request-feed-enhancements`)
-- Commit approved planning documents (Steps 1-3) to the feature branch before beginning implementation work (after Step 3.)
-- Complete stages atomically (<2 hours each)
-- Manual smoke verification is sufficient for each stage; do not write automated tests.
-- Avoid seeding adhoc data fixtures or writing temporary scripts; verify using existing UI/CLI flows only.
-- Before introducing new presentation markup or API payloads, confirm whether a canonical component/contract already exists (per Step 2 inventory) and reuse or extend it instead of duplicating logic.
-- Update the Step 4 implementation summary document immediately after finishing each stage (document what shipped + how it was verified).
-- Commit the code + documentation for each stage (including the Step 4 summary update) before starting the next stage.
-- Conclude Step 4 by finalizing the implementation summary document.
-
-**Completion Criteria**:
-- All stages implemented and manually verified
-- Feature accessible through normal UI (not just direct URLs)
-- System dependencies resolved (roles, migrations, etc.)
-- Documentation updated
-
-## File Naming Convention
+## Planning Artifacts
 Each step MUST be a separate file in `docs/plans/`:
 - **Step 1**: `{feature_name}_step1_solution_assessment.md`
 - **Step 2**: `{feature_name}_step2_feature_description.md`
 - **Step 3**: `{feature_name}_step3_development_plan.md`
 - **Step 4**: `{feature_name}_step4_implementation_summary.md`
 
-**Directory structure**: When a feature has four or more planning artifacts (e.g., all Step 1–4 docs and auxiliary stage files), place them inside `docs/plans/{feature_name}/`. Keep smaller single-file efforts at the root until they grow, and update `docs/plans/README.md` with any new folder so others can navigate the directory.
+**Directory structure**: When a feature accumulates four or more planning artifacts (e.g., all Step 1–4 docs plus auxiliary notes), move them into `docs/plans/{feature_name}/`. Keep smaller efforts at the root until they grow, and update `docs/plans/README.md` when a new folder appears so others can navigate.
 
-**Commit Discipline**: Keep each stage’s document uncommitted until the user reviews it. Commit only after approval and immediately before starting the next stage to keep IDE “dirty file” views meaningful.
-**Plan Review**: Do not commit Step 1–3 plan files until the user explicitly reviews and approves them. Deliver the drafts for feedback, wait for “Approved Step N”, then commit before beginning development.
+**Commit discipline**: Keep each stage’s document uncommitted until the user reviews it. Commit only after approval and immediately before starting the next stage to keep IDE “dirty file” views meaningful.
+
+**Plan review**: Do not commit Step 1–3 plan files until the user explicitly reviews and approves them. Deliver the drafts for feedback, wait for “Approved Step N,” then commit before beginning the next step. Step 4 must start on a feature branch with the approved plan already committed.
 
 ## Key Rules
 
-**AI Coding Assistant**:
-- Suggest Step 1 for complex or multi-solution features
-- Stay in the current step, don't draft or edit deliverables for later steps without approval
-- After delivering each step, explicitly request confirmation using the wording “Approved Step N” and pause until the user replies with that exact phrase; do not create the next step’s document or code until that confirmation is received
-- ALWAYS create separate files for each step only after the relevant approval
-- ALWAYS create a feature branch before Step 4 implementation
-- Favor **shared components first**: when surfacing data that already appears elsewhere, reuse the existing canonical component/API contract or extend it intentionally; do not fork markup, CSS, or payloads without updating the shared spec.
-- Flag scope creep and return to the appropriate planning step when needed
-- If the projected work exceeds roughly a day of effort or would require more than about eight Step 3 stages, recommend breaking the effort into multiple features before proceeding.
-- **AVOID database schema changes when possible** – prefer using existing models and fields
-- To help us stay on track, reprint the instructions for each step before proceeding with it.
+**AI coding assistant**
+- Recommend Step 1 for complex features or whenever multiple solutions exist
+- Stay in the current step; do not draft/edit later deliverables without approval
+- After delivering each step, explicitly request “Approved Step N” and pause until the user responds with that exact phrase
+- Create separate files for each step only after receiving the relevant approval
+- ALWAYS create a feature branch before Step 4 implementation
+- Prefer shared components/API contracts first; reuse or extend instead of forking markup, CSS, or payloads
+- Flag scope creep early and bounce back to planning steps rather than improvising mid-implementation
+- Keep projected work within roughly a day or eight Step 3 stages; otherwise recommend splitting the feature
+- Avoid database schema changes when possible—lean on existing models/fields
+- Reprint each step’s instructions (from the linked file) before you begin that step
 
-**User**:
+**User**
 - Review and approve explicitly at each step
-- Flag issues early (easier to change)
-- Resist adding features mid-implementation
-- Prefer solutions that avoid database migrations; use existing schema where feasible
+- Flag issues early so adjustments happen before implementation
+- Resist adding scope during Step 4
+- Prefer solutions that avoid database migrations; rely on existing schema where feasible
 
 ## Warning Signs
-- **Step 1**: >1 page, >4 options, verbose explanations
-- **Step 2**: >1 page, code examples, UI/database details
-- **Step 3**: >1 page, >2 hour stages, complex dependencies
-- **Step 4**: No feature branch, skipping stages, changing requirements mid-flight
+- **Step 1**: >1 page, >4 options, or verbose explanations
+- **Step 2**: >1 page, includes code/DB details, or drifts into UI mockups
+- **Step 3**: >1 page, stages >2 hours, or tangled dependencies
+- **Step 4**: Missing feature branch, skipping stages, or changing requirements mid-flight
 
 ## Workflows
-
-**Simple**: Step 2 → Step 3 → Step 4 (feature branch → implement stages → test/commit → complete)
-
-**Complex**: Step 1 (solution assessment) → Step 2 → Step 3 → Step 4
+- **Simple**: Step 2 → Step 3 → Step 4 (feature branch → implement stages → test/commit → complete)
+- **Complex**: Step 1 (solution assessment) → Step 2 → Step 3 → Step 4

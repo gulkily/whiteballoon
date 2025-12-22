@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 import logging
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from datetime import datetime
+import os
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Sequence
 
 from sqlmodel import Session
 
@@ -17,6 +19,12 @@ logger = logging.getLogger(__name__)
 CACHE_DIR = Path("storage/cache/request_chats")
 TOKEN_PATTERN = re.compile(r"[a-z0-9@#]+")
 DEFAULT_RESULT_LIMIT = 20
+_CPU_COUNT = os.cpu_count() or 4
+DEFAULT_CLASSIFIER_WORKERS = max(2, min(8, _CPU_COUNT))
+CLASSIFIER_WORKER_LIMIT = max(
+    1,
+    int(os.environ.get("REQUEST_CHAT_CLASSIFIER_WORKERS", DEFAULT_CLASSIFIER_WORKERS)),
+)
 
 ClassifierFn = Callable[[int, str], list[str]]
 
@@ -74,12 +82,13 @@ def refresh_chat_index(
     entries: list[ChatSearchEntry] = []
     participant_terms: dict[str, list[str]] = {}
 
+    classifier_inputs: list[tuple[ChatSearchEntry, int, str]] = []
+
     for comment, user in rows:
         normalized_body = (comment.body or "").strip()
         lowered = normalized_body.lower()
         tokens = _extract_tokens(lowered)
         topics = _detect_topics(lowered)
-        ai_topics = extra_classifier(comment.id, normalized_body) if extra_classifier else []
         created_at_iso = comment.created_at.isoformat() if comment.created_at else None
         entry = ChatSearchEntry(
             comment_id=comment.id,
@@ -89,10 +98,15 @@ def refresh_chat_index(
             body=normalized_body,
             tokens=tokens,
             topics=topics,
-            ai_topics=ai_topics,
+            ai_topics=[],
         )
         entries.append(entry)
         participant_terms[str(user.id)] = _participant_terms(user.username)
+        if extra_classifier:
+            classifier_inputs.append((entry, comment.id, normalized_body))
+
+    if extra_classifier and classifier_inputs:
+        _apply_parallel_classification(extra_classifier, classifier_inputs)
 
     index = ChatSearchIndex(
         request_id=help_request_id,
@@ -199,6 +213,31 @@ def _participant_terms(username: str) -> list[str]:
     terms.add(lowered)
     terms.update(part.strip() for part in lowered.split() if part.strip())
     return sorted(terms)
+
+
+def _apply_parallel_classification(
+    classifier: ClassifierFn,
+    workloads: list[tuple[ChatSearchEntry, int, str]],
+) -> None:
+    """Populate ai_topics concurrently to avoid sequential classifier calls."""
+    worker_count = min(len(workloads), CLASSIFIER_WORKER_LIMIT)
+    if worker_count <= 1:
+        for entry, comment_id, text in workloads:
+            entry.ai_topics = classifier(comment_id, text)
+        return
+
+    with ThreadPoolExecutor(max_workers=worker_count) as executor:
+        future_map = {
+            executor.submit(classifier, comment_id, text): entry for entry, comment_id, text in workloads
+        }
+        try:
+            for future in as_completed(future_map):
+                entry = future_map[future]
+                entry.ai_topics = future.result()
+        except BaseException:
+            for future in future_map:
+                future.cancel()
+            raise
 
 
 def _detect_topics(text: str) -> list[str]:

@@ -40,9 +40,22 @@ peer auth
 	hide message about self-authentication being disabled
 	auto-refresh the authentication page
 	authentication process should redirect to non-post page
-	notifications about lobby status for logged in users
+	notifications about half-auth status for logged in users
 	queue page should auto-update
 
 channels page
 	the channes list should be expandable on mobile, not all the way at the bottom
 	the send textbox should be always visible
+
+peer auth
+	add device fingerprinting
+	add localstorage-stored private key
+	display currently authenticated users
+
+navbar - get rid of all the other user statuses
+	half-authed
+	pending verification
+	member
+
+add rss feeds for everything
+
