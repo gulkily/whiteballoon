@@ -93,14 +93,17 @@
               <div class="member-card__actions">
                 <a class="button button--ghost" href="{{ profile_href }}">View profile</a>
                 {% if messaging_enabled_flag and session and session.is_fully_authenticated and profile.id and profile.id != user.id %}
-                  <button
-                    type="button"
-                    class="button button--primary"
-                    data-messaging-launch
-                    data-message-username="{{ profile.username }}"
-                  >
-                    Message
-                  </button>
+                  <form method="post" action="/messages/direct">
+                    <input type="hidden" name="username" value="{{ profile.username }}" />
+                    <button
+                      type="submit"
+                      class="button button--primary"
+                      data-messaging-launch
+                      data-message-username="{{ profile.username }}"
+                    >
+                      Message
+                    </button>
+                  </form>
                 {% endif %}
               </div>
             </div>

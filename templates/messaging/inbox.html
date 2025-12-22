@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Inbox · WhiteBalloon{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack">
+  <header class="stack">
+    <p class="muted small-text">Direct messages</p>
+    <h1>Inbox</h1>
+    <p class="muted">Conversations you’ve started with other members appear here.</p>
+  </header>
+
+  {% if has_threads %}
+    <div class="card stack" data-messaging-inbox>
+      {% for entry in threads %}
+        <article class="stack message-thread-card">
+          <div class="message-thread-card__header">
+            {% if entry.counterpart %}
+              {% with
+                username=entry.counterpart.username,
+                href='/people/' ~ entry.counterpart.username,
+                class_name='message-thread-card__name'
+              %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
+            {% else %}
+              <p class="message-thread-card__name muted">Unknown member</p>
+            {% endif %}
+            {% if entry.viewer_participant and entry.viewer_participant.unread_count %}
+              <span class="meta-chip meta-chip--status meta-chip--accent">
+                <span class="meta-chip__label">Unread</span>
+                <span class="meta-chip__value">{{ entry.viewer_participant.unread_count }}</span>
+              </span>
+            {% endif %}
+          </div>
+          {% if entry.last_message %}
+            <p class="muted">
+              {{ entry.last_message.body[:160] ~ ('…' if entry.last_message.body|length > 160 else '') }}
+            </p>
+            <p class="message-thread-card__meta small-text">
+              Last message ·
+              <time datetime="{{ entry.last_message.created_at }}">
+                {{ entry.last_message.created_at | friendly_time }}
+              </time>
+            </p>
+          {% else %}
+            <p class="muted small-text">No messages exchanged yet.</p>
+          {% endif %}
+          <a class="button button--primary" href="/messages/{{ entry.thread.id }}">Open conversation</a>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="card stack">
+      <p class="muted">No conversations yet.</p>
+      <p class="muted small-text">
+        Visit a member profile or the directory to send your first message.
+      </p>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

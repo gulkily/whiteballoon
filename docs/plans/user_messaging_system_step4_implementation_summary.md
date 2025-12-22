@@ -44,8 +44,13 @@
 
 ## Stage 5 – Inbox + thread views
 - Changes:
+  - Replaced the placeholder inbox with `templates/messaging/inbox.html` + `thread.html`, listing every conversation via the new service summaries and rendering a simple, server-rendered thread view with a send form.
+  - Added GET routes for `/messages`, `/messages/{thread_id}`, and `/messages/with/{username}` so members can jump straight into a conversation from the nav, profile CTA, or members directory.
+  - Updated the profile + directory CTA buttons to post to `/messages/direct`, keeping graceful-degradation forms in place while data attributes remain for future JS.
 - Verification:
+  - Exercised the messaging service in a Python shell (creating direct messages, listing summaries, loading threads) to ensure the templates have data to render without errors.
 - Notes:
+  - Thread templates currently use simple stacked cards; Stage 6 will wire unread counts/badges in the nav and inbox cards.
 
 ## Stage 6 – Unread counts + notifications
 - Changes:
