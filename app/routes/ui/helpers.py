@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
 
 from app.config import get_settings
+from app.modules.messaging import services as messaging_services
 from app.models import User, UserSession
 from app.skins.runtime import register_skin_helpers
 
@@ -20,6 +21,24 @@ def messaging_feature_enabled() -> bool:
 
 
 templates.env.globals["messaging_feature_enabled"] = messaging_feature_enabled
+
+
+def messaging_unread_count(user_id: int | None) -> int:
+    if not user_id or not get_settings().messaging_enabled:
+        return 0
+    try:
+        summaries = messaging_services.list_threads_for_user(user_id)
+    except Exception:
+        return 0
+    total = 0
+    for summary in summaries:
+        viewer_participant = next((p for p in summary.participants if p.user_id == user_id), None)
+        if viewer_participant and viewer_participant.unread_count:
+            total += viewer_participant.unread_count
+    return total
+
+
+templates.env.globals["messaging_unread_count"] = messaging_unread_count
 
 
 def _parse_iso_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:

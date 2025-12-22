@@ -54,8 +54,12 @@
 
 ## Stage 6 – Unread counts + notifications
 - Changes:
+  - Added a `messaging_unread_count()` helper so templates can ask for a user’s unread total, and updated the account nav/Inboxes to display live badges sourced from `MessageParticipant.unread_count`.
+  - Wired the helper into the nav so fully authenticated members see their unread tally beside the Inbox link.
 - Verification:
+  - Toggled `ENABLE_DIRECT_MESSAGING` on in a Python shell, sent cross-user messages via the service, and confirmed `messaging_unread_count(1)` reflects the expected unread value while the sender’s count stays at zero.
 - Notes:
+  - Stage 7 will wrap up documentation and CLI guidance for backups/backfilling.
 
 ## Stage 7 – Ops instrumentation + docs
 - Changes:
