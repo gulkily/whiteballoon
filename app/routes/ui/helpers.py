@@ -15,6 +15,13 @@ register_skin_helpers(templates)
 templates.env.globals["feature_nav_status_tags"] = get_settings().feature_nav_status_tags
 
 
+def messaging_feature_enabled() -> bool:
+    return get_settings().messaging_enabled
+
+
+templates.env.globals["messaging_feature_enabled"] = messaging_feature_enabled
+
+
 def _parse_iso_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:
     if value is None:
         return None

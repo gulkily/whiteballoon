@@ -23,8 +23,14 @@
 
 ## Stage 3 – Profile entry points + nav affordances
 - Changes:
+  - Registered a `messaging_feature_enabled()` helper so templates can react to the instance toggle without duplicating config plumbing.
+  - Added inbox affordances to the global account nav (hidden until members are fully authenticated) with data attributes for upcoming unread-badge logic.
+  - Surfaced “Message” buttons on `/people/{username}` and the members directory cards; both emit `data-messaging-launch`/`data-message-username` hooks for the upcoming composer.
 - Verification:
+  - Rendered `profile/show.html` via the template engine to confirm the new CTA renders without errors when messaging is enabled.
+  - Manually inspected the nav/member templates to ensure the inbox link and card buttons are gated by `messaging_feature_enabled()` plus session checks, so they disappear when the toggle is off or viewers are half-authenticated.
 - Notes:
+  - Buttons currently act as launch affordances only; Stage 4 wires them to real compose endpoints.
 
 ## Stage 4 – Conversation creation + send endpoints
 - Changes:

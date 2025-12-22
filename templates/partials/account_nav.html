@@ -4,6 +4,7 @@
 {% set show_admin = user.is_admin %}
 {% set show_half_auth = session and (not session.is_fully_authenticated) %}
 {% set show_nav_status_tags = show_nav_status_tags if show_nav_status_tags is defined else (feature_nav_status_tags | default(True)) %}
+{% set messaging_enabled_flag = messaging_feature_enabled() %}
 {% set primary_links = [
   {"label": "Members", "href": "/members", "icon": "partials/icons/nav_members.svg"},
   {"label": "Browse", "href": "/browse", "icon": "partials/icons/nav_browse.svg"},
@@ -42,6 +43,12 @@
       </a>
       <span class="account-nav__peer-count" data-peer-auth-count aria-live="polite" aria-label="0 pending logins"></span>
     </div>
+    {% if messaging_enabled_flag and session and session.is_fully_authenticated %}
+      <a class="account-status__tag account-status__tag--link account-status__tag--inbox" href="/messages" data-messaging-nav>
+        Inbox
+        <span class="account-nav__peer-count" data-messaging-unread hidden aria-live="polite">0</span>
+      </a>
+    {% endif %}
     <a class="account-nav__user" href="/profile">
       <span class="account-nav__avatar" aria-hidden="true">
         {% if avatar_url %}
