@@ -30,6 +30,7 @@ def _parse_csv(value: str | None) -> Tuple[str, ...]:
 @dataclass(frozen=True)
 class Settings:
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///data/app.db")
+    messaging_database_url: str = os.getenv("MESSAGING_DATABASE_URL", "sqlite:///data/messages.db")
     secret_key: str = os.getenv("SECRET_KEY", "changeme")
     session_expiry_minutes: int = int(os.getenv("SESSION_EXPIRY_MINUTES", "20160"))
     cookie_secure: bool = _get_bool(os.getenv("COOKIE_SECURE"), False)
