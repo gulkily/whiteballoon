@@ -8,13 +8,15 @@
   {% include "partials/account_nav.html" %}
 {% endblock %}
 
+{% set default_filter = 'open' %}
+{% set is_single_status_view = default_filter in ['open', 'completed'] %}
 {% block content %}
-<section class="request-channels" data-request-channels>
+<section
+  class="request-channels{% if is_single_status_view %} request-channels--single-status{% endif %}"
+  data-request-channels
+  data-default-filter="{{ default_filter }}"
+>
   <aside class="request-channels__sidebar" aria-label="Request channels">
-    <header class="request-channels__sidebar-header">
-      <h1 class="request-channels__title">Request channels</h1>
-      <p class="muted">Each help request becomes a chat-style channel.</p>
-    </header>
     <div class="request-channels__search">
       <label class="sr-only" for="channel-search">Search requests</label>
       <input
@@ -38,7 +40,7 @@
           type="button"
           class="channel-filter"
           data-channel-filter="{{ filter.slug }}"
-          {% if filter.slug == 'all' %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}
+          {% if filter.slug == default_filter %}aria-pressed="true"{% else %}aria-pressed="false"{% endif %}
         >
           {{ filter.label }}
         </button>
@@ -51,6 +53,9 @@
       </button>
     </div>
     {% set initial_channel_count = channel_requests | length %}
+    {% if is_single_status_view %}
+      {% set initial_channel_count = channel_requests | selectattr('status', 'equalto', default_filter) | list | length %}
+    {% endif %}
     <div class="request-channels__result-count" data-channel-result-count>
       Showing <span data-channel-result-count-value>{{ initial_channel_count }}</span> channel(s)
     </div>
@@ -78,7 +83,9 @@
               {% if channel.is_pinned %}
                 <span class="request-channel__pin" aria-label="Pinned channel">📌</span>
               {% endif %}
-              <span class="request-channel__badge">{{ channel.comment_count }} replies</span>
+              {% if channel.comment_count %}
+                <span class="request-channel__badge" data-channel-replies>{{ channel.comment_count }} replies</span>
+              {% endif %}
               {% if channel.unread_count %}
                 <span class="request-channel__badge request-channel__badge--unread" data-channel-unread>{{ channel.unread_count }}</span>
               {% endif %}

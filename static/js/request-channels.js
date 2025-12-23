@@ -12,6 +12,7 @@
     console.warn('Unable to bootstrap request channels', error);
   }
 
+  const defaultFilter = container.dataset.defaultFilter || 'all';
   const list = container.querySelector('[data-channel-list]');
   const searchInput = container.querySelector('[data-channel-search]');
   let buttons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
@@ -24,7 +25,7 @@
   const channelMeta = {};
   const resultCache = new Map();
   const visibleCount = container.querySelector('[data-channel-result-count-value]');
-  let activeFilter = 'all';
+  let activeFilter = defaultFilter;
   let searchTerm = '';
   let searchDebounce = null;
   let inflightController = null;
@@ -41,7 +42,7 @@
       });
       updateRelativeTime(btn);
     });
-    resultCache.set(buildQueryKey(), state.requests || []);
+    resultCache.set(buildQueryKey('all', ''), state.requests || []);
   }
 
   function scheduleSearch() {
@@ -234,10 +235,13 @@
       pin.textContent = '📌';
       badges.appendChild(pin);
     }
-    const replies = document.createElement('span');
-    replies.className = 'request-channel__badge';
-    replies.textContent = `${channel.comment_count || 0} replies`;
-    badges.appendChild(replies);
+    if (channel.comment_count) {
+      const replies = document.createElement('span');
+      replies.className = 'request-channel__badge';
+      replies.setAttribute('data-channel-replies', '');
+      replies.textContent = `${channel.comment_count} replies`;
+      badges.appendChild(replies);
+    }
     if (channel.unread_count) {
       const unread = document.createElement('span');
       unread.className = 'request-channel__badge request-channel__badge--unread';
@@ -308,10 +312,8 @@
       const target = event.target;
       const button = target instanceof Element ? target.closest('[data-channel-filter]') : null;
       if (!button) return;
-      activeFilter = button.dataset.channelFilter || 'all';
-      filters.querySelectorAll('[data-channel-filter]').forEach((node) => {
-        node.setAttribute('aria-pressed', node === button ? 'true' : 'false');
-      });
+      activeFilter = button.dataset.channelFilter || defaultFilter;
+      syncFilterButtons();
       applyFilters();
       scheduleSearch();
     });
@@ -323,12 +325,8 @@
         searchInput.value = '';
       }
       searchTerm = '';
-      activeFilter = 'all';
-      if (filters) {
-        filters.querySelectorAll('[data-channel-filter]').forEach((node) => {
-          node.setAttribute('aria-pressed', node.dataset.channelFilter === 'all' ? 'true' : 'false');
-        });
-      }
+      activeFilter = defaultFilter;
+      syncFilterButtons();
       applyFilters();
       scheduleSearch();
       updateFilterNotice(false);
@@ -345,6 +343,12 @@
       focusRelativeChannel(-1);
     }
   });
+
+  syncFilterButtons();
+  applyFilters();
+  if (activeFilter !== 'all') {
+    scheduleSearch();
+  }
 
   function selectChannel(channelId, button) {
     buttons.forEach((btn) => btn.removeAttribute('aria-current'));
@@ -383,6 +387,7 @@
   }
 
   function applyFilters() {
+    updateStatusVisibility();
     const normalizedSearch = searchTerm.trim().toLowerCase();
     buttons.forEach((btn) => {
       const status = (btn.dataset.channelStatus || '').toLowerCase();
@@ -395,6 +400,23 @@
         matchesFilter = isPinned;
       }
       btn.style.display = matchesSearch && matchesFilter ? '' : 'none';
+    });
+  }
+
+  function updateStatusVisibility() {
+    if (!container) return;
+    container.classList.toggle('request-channels--single-status', isSingleStatusView());
+  }
+
+  function isSingleStatusView(filter = activeFilter) {
+    return filter === 'open' || filter === 'completed';
+  }
+
+  function syncFilterButtons() {
+    if (!filters) return;
+    filters.querySelectorAll('[data-channel-filter]').forEach((node) => {
+      const isActive = node.dataset.channelFilter === activeFilter;
+      node.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
   }
 
@@ -568,9 +590,23 @@
   function updateChannelRowMeta(channel) {
     const button = buttons.find((btn) => Number(btn.dataset.channelId) === Number(channel.id));
     if (!button) return;
-    const replyBadge = button.querySelector('.request-channel__badge');
-    if (replyBadge && typeof channel.comment_count === 'number') {
-      replyBadge.textContent = `${channel.comment_count} replies`;
+    let replyBadge = button.querySelector('[data-channel-replies]');
+    if (typeof channel.comment_count === 'number' && channel.comment_count > 0) {
+      if (!replyBadge) {
+        const holder = button.querySelector('.request-channel__badges');
+        if (holder) {
+          replyBadge = document.createElement('span');
+          replyBadge.className = 'request-channel__badge';
+          replyBadge.setAttribute('data-channel-replies', '');
+          const unread = holder.querySelector('[data-channel-unread]');
+          holder.insertBefore(replyBadge, unread || null);
+        }
+      }
+      if (replyBadge) {
+        replyBadge.textContent = `${channel.comment_count} replies`;
+      }
+    } else if (replyBadge) {
+      replyBadge.remove();
     }
     const unreadBadge = button.querySelector('[data-channel-unread]');
     if (unreadBadge) {

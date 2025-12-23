@@ -916,6 +916,10 @@
   color: var(--text-muted);
 }
 
+.request-channels--single-status .request-channel__status {
+  display: none;
+}
+
 .request-channel__presence {
   display: inline-flex;
   align-items: center;
