@@ -17,3 +17,8 @@
 - Changes: Added `app/routes/ui/requests/recurring.py` plus a package-level router so `/requests/recurring` + related POST handlers now live outside `app/routes/ui/__init__.py` with their helper functions. Hooked the new router into the top-level UI router.
 - Verification: `python -m compileall app/routes/ui/requests` to ensure the package imports cleanly.
 - Notes: Future stages will pick up the remaining `/requests/*` endpoints; this stage isolates the recurring template flows first to keep risk manageable.
+
+## Stage 5 – Extract browse surface
+- Changes: Moved `/browse` and all supporting pagination/filter helpers into `app/routes/ui/browse/routes.py`, wiring the `browse` package router into the UI root. `_build_request_*` pagination helpers now live alongside the route, shrinking the monolith substantially.
+- Verification: `python -m compileall app/routes/ui/browse` to confirm the new module compiles without circular imports.
+- Notes: Root module now delegates browse rendering entirely to the package; next stage can focus on remaining request detail handlers.
