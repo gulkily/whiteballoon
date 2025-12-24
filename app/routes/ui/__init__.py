@@ -53,15 +53,12 @@ from app.captions import (
     build_caption_payload,
     load_preferences as load_caption_preferences,
 )
-from app.captions import load_preferences as load_caption_preferences
 from app.services import (
     auth_service,
     caption_preference_service,
     chat_reaction_parser,
     comment_llm_insights_service,
     comment_request_promotion_service,
-    invite_graph_service,
-    invite_map_cache_service,
     recurring_template_service,
     request_chat_search_service,
     request_chat_suggestions,
@@ -1671,29 +1668,6 @@ def delete_request_comment(
     return RedirectResponse(url=f"/requests/{request_id}", status_code=status.HTTP_303_SEE_OTHER)
 
 
-@router.get("/invite/new")
-def invite_new(
-    request: Request,
-    db: SessionDep,
-    session_user: SessionUser = Depends(require_session_user),
-) -> Response:
-    caption_prefs = load_caption_preferences(db, session_user.user.id)
-    context = {
-        "request": request,
-        "inviter_username": session_user.user.username,
-        "session": session_user.session,
-        "session_role": describe_session_role(session_user.user, session_user.session),
-        "session_username": session_user.user.username,
-        "session_avatar_url": session_user.avatar_url,
-        "invite_caption": build_caption_payload(
-            caption_prefs,
-            caption_id="invite_intro",
-            text="Make the invite personal so your friend lands with a smile and knows how you plan to support them.",
-        ),
-    }
-    return templates.TemplateResponse("invite/new.html", context)
-
-
 CONTACT_EMAIL_MAX_LENGTH = 255
 PROFILE_PHOTO_MAX_BYTES = 5 * 1024 * 1024
 PROFILE_PHOTO_DIR = Path("static/uploads/profile_photos")
@@ -2335,36 +2309,6 @@ async def account_settings_submit(
         form_status="success",
     )
     return templates.TemplateResponse("settings/account.html", context)
-
-
-@router.get("/invite/map")
-def invite_map(
-    request: Request,
-    db: SessionDep,
-    session_user: SessionUser = Depends(require_session_user),
-) -> Response:
-    user = session_user.user
-    invite_map = invite_map_cache_service.get_cached_map(db, user_id=user.id)
-    cache_hit = invite_map is not None
-    if not invite_map:
-        invite_map = invite_graph_service.build_bidirectional_invite_map(
-            db,
-            root_user_id=user.id,
-            max_degree=invite_graph_service.DEFAULT_MAP_DEGREE,
-        )
-        if invite_map:
-            invite_map_cache_service.store_cached_map(db, user_id=user.id, invite_map=invite_map)
-
-    context = {
-        "request": request,
-        "session": session_user.session,
-        "session_role": describe_session_role(user, session_user.session),
-        "session_username": user.username,
-        "user": user,
-        "invite_map": invite_map,
-        "invite_map_cache_hit": cache_hit,
-    }
-    return templates.TemplateResponse("invite/map.html", context)
 
 
 @router.get("/profile")
@@ -3167,6 +3111,7 @@ def _get_account_avatar(db: Session, user_id: int) -> Optional[str]:
 
 
 from . import admin as admin_routes
+from . import invite as invite_routes
 from . import members as members_routes
 from . import menu as menu_routes
 from . import peer_auth as peer_auth_routes
@@ -3176,6 +3121,7 @@ from . import sync as sync_routes
 
 router.include_router(session_routes.router)
 router.include_router(sync_routes.router)
+router.include_router(invite_routes.router)
 router.include_router(members_routes.router)
 router.include_router(menu_routes.router)
 router.include_router(peer_auth_routes.router)

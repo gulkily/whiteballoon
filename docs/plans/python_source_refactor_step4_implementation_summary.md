@@ -7,3 +7,8 @@
 - Changes: Created packages under `app/routes/ui/` for `auth`, `requests`, `invite`, `people`, `profile`, `browse`, `settings`, `comments`, and `api`, each exporting an empty FastAPI `router`. Documented the structure & ownership in `app/routes/ui/README.md` so contributors know where to drop new handlers.
 - Verification: Ran `python -m compileall app/routes/ui` to confirm the new packages compile and import cleanly.
 - Notes: Routers are inert until handlers move over in later stages; README will evolve as admin splits land.
+
+## Stage 3 – Extract invite routes
+- Changes: Moved `/invite/new` and `/invite/map` handlers into `app/routes/ui/invite/__init__.py`, wiring them up via a dedicated router and including it from `app.routes.ui.__init__`. Trimmed unused `invite_*` service imports from the monolith.
+- Verification: `python -m compileall app/routes/ui/invite` to ensure the new module compiles; smoke-checked router registration order.
+- Notes: Login/register already lived in `sessions.py`, so this stage focused solely on invite flows from the main module.
