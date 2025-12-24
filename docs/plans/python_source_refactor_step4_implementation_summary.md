@@ -12,3 +12,8 @@
 - Changes: Moved `/invite/new` and `/invite/map` handlers into `app/routes/ui/invite/__init__.py`, wiring them up via a dedicated router and including it from `app.routes.ui.__init__`. Trimmed unused `invite_*` service imports from the monolith.
 - Verification: `python -m compileall app/routes/ui/invite` to ensure the new module compiles; smoke-checked router registration order.
 - Notes: Login/register already lived in `sessions.py`, so this stage focused solely on invite flows from the main module.
+
+## Stage 4 – Move recurring request routes
+- Changes: Added `app/routes/ui/requests/recurring.py` plus a package-level router so `/requests/recurring` + related POST handlers now live outside `app/routes/ui/__init__.py` with their helper functions. Hooked the new router into the top-level UI router.
+- Verification: `python -m compileall app/routes/ui/requests` to ensure the package imports cleanly.
+- Notes: Future stages will pick up the remaining `/requests/*` endpoints; this stage isolates the recurring template flows first to keep risk manageable.
