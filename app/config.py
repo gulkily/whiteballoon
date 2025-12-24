@@ -37,6 +37,7 @@ class Settings:
     cookie_secure: bool = _get_bool(os.getenv("COOKIE_SECURE"), False)
     enable_contact_email: bool = _get_bool(os.getenv("ENABLE_CONTACT_EMAIL"), True)
     site_url: str = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+    site_title: str = os.getenv("SITE_TITLE", "WhiteBalloon")
     skins_enabled: bool = _get_bool(os.getenv("WB_SKINS_ENABLED"), False)
     skin_default: str = os.getenv("WB_SKIN_DEFAULT", "default")
     skins_allowed: tuple[str, ...] = _parse_csv(os.getenv("WB_SKINS_ALLOWED", ""))
@@ -68,6 +69,7 @@ def _build_settings() -> Settings:
         cookie_secure=_get_bool(os.getenv("COOKIE_SECURE"), False),
         enable_contact_email=_get_bool(os.getenv("ENABLE_CONTACT_EMAIL"), True),
         site_url=os.getenv("SITE_URL", "http://127.0.0.1:8000"),
+        site_title=os.getenv("SITE_TITLE", "WhiteBalloon"),
         skins_enabled=_get_bool(os.getenv("WB_SKINS_ENABLED"), False),
         skin_default=os.getenv("WB_SKIN_DEFAULT", "default"),
         skins_allowed=_parse_csv(os.getenv("WB_SKINS_ALLOWED", "")),

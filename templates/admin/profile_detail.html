@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin · {{ profile.username }} · WhiteBalloon{% endblock %}
+{% block title %}Admin · {{ profile.username }} · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}

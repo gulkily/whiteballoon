@@ -2,7 +2,7 @@
 
 {% block main_class %} container--wide{% endblock %}
 
-{% block title %}{{ person.username }} · Profile · WhiteBalloon{% endblock %}
+{% block title %}{{ person.username }} · Profile · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}

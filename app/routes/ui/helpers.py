@@ -16,6 +16,13 @@ register_skin_helpers(templates)
 templates.env.globals["feature_nav_status_tags"] = get_settings().feature_nav_status_tags
 
 
+def site_title() -> str:
+    return get_settings().site_title
+
+
+templates.env.globals["site_title"] = site_title
+
+
 def messaging_feature_enabled() -> bool:
     return get_settings().messaging_enabled
 

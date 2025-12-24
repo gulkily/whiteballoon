@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>WhiteBalloon Logo</title>
+    <title>{{ site_title() }} Logo</title>
     <script>document.documentElement.classList.add('js');</script>
     <script>
       (function () {
@@ -158,11 +158,11 @@
     <div class="logo-capture__frame">
       <main class="logo-capture__panel" aria-labelledby="logo-title">
         <div class="logo-capture__glow" aria-hidden="true"></div>
-        <span id="logo-title" class="logo-capture__brand brand" aria-label="WhiteBalloon">
+        <span id="logo-title" class="logo-capture__brand brand" aria-label="{{ site_title() }}">
           <span class="brand-icon" aria-hidden="true">
             {% include "partials/logo_icon.svg" %}
           </span>
-          <span class="brand-wordmark">WhiteBalloon</span>
+          <span class="brand-wordmark">{{ site_title() }}</span>
         </span>
       </main>
     </div>

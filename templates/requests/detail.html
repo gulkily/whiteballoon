@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Request #{{ request_item.id }} · WhiteBalloon{% endblock %}
+{% block title %}Request #{{ request_item.id }} · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}
