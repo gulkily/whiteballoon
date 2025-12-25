@@ -27,3 +27,13 @@
 - Changes: Added `app/routes/ui/branding.py` for the `/brand/logo*` endpoints and `app/routes/ui/api/routes.py` for `/api/metrics`, then mounted both routers from the UI root.
 - Verification: `python -m compileall app/routes/ui/branding.py app/routes/ui/api` ensures both packages import cleanly.
 - Notes: This trims more utility routes from the monolith and sets up a dedicated API surface for future helpers.
+
+## Stage 7 – Document updated layout
+- Changes: Updated `app/routes/ui/README.md` to reflect the new package split (branding + API packages, auth vs invite ownership).
+- Verification: Doc-only change; reviewed the rendered Markdown in-editor to ensure accurate descriptions.
+- Notes: This keeps onboarding guidance aligned with the refactor so future contributors place routes correctly.
+
+## Stage 8 – Regression sweep
+- Changes: Ran `python -m compileall app` to ensure the full tree compiles; attempted `python -m pytest -q` (and `python -m pytest tests -q`) but both timed out after 120s under current sandbox limits before producing results.
+- Verification: `compileall` succeeded; pytest attempts logged the timeout plus the pytest-asyncio deprecation warning. Recommend re-running `pytest -q` outside the time limit to double-check behavior.
+- Notes: No code changes were required for this stage—just verification commands.
