@@ -22,3 +22,8 @@
 - Changes: Moved `/browse` and all supporting pagination/filter helpers into `app/routes/ui/browse/routes.py`, wiring the `browse` package router into the UI root. `_build_request_*` pagination helpers now live alongside the route, shrinking the monolith substantially.
 - Verification: `python -m compileall app/routes/ui/browse` to confirm the new module compiles without circular imports.
 - Notes: Root module now delegates browse rendering entirely to the package; next stage can focus on remaining request detail handlers.
+
+## Stage 6 – Isolate branding + metrics helpers
+- Changes: Added `app/routes/ui/branding.py` for the `/brand/logo*` endpoints and `app/routes/ui/api/routes.py` for `/api/metrics`, then mounted both routers from the UI root.
+- Verification: `python -m compileall app/routes/ui/branding.py app/routes/ui/api` ensures both packages import cleanly.
+- Notes: This trims more utility routes from the monolith and sets up a dedicated API surface for future helpers.

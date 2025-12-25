@@ -660,18 +660,6 @@ def home(
     return _render_requests_page(request, db, user, session_record, session_role)
 
 
-@router.get("/brand/logo", include_in_schema=False)
-def logo_capture(request: Request) -> Response:
-    """Render a padded, standalone logo for easy screenshots."""
-    return templates.TemplateResponse("branding/logo_capture.html", {"request": request})
-
-
-@router.get("/brand/logo/flat", include_in_schema=False)
-def logo_capture_flat(request: Request) -> Response:
-    """Render a flat, rectangular logo layout for screenshots."""
-    return templates.TemplateResponse("branding/logo_capture_flat.html", {"request": request})
-
-
 @router.get("/requests")
 def requests_feed(
     request: Request,
@@ -2106,39 +2094,6 @@ def profile_view(
     return templates.TemplateResponse("profile/show.html", context)
 
 
-@router.post("/api/metrics")
-async def ingest_metric(
-    request: Request,
-    session_user: SessionUser = Depends(require_session_user),
-):
-    try:
-        payload = await request.json()
-    except Exception:  # pragma: no cover - malformed bodies
-        raise HTTPException(status_code=400, detail="Invalid payload")
-
-    category = str(payload.get("category", "")).strip().lower()
-    event = str(payload.get("event", "")).strip().lower()
-    if not category or not event:
-        raise HTTPException(status_code=400, detail="category and event required")
-
-    metadata = payload.get("metadata")
-    if not isinstance(metadata, dict):
-        metadata = {}
-    sanitized_metadata = {str(key): str(value) for key, value in metadata.items()}
-    subject_id = payload.get("subject_id")
-    logger.info(
-        "metric_event",
-        extra={
-            "category": category,
-            "event": event,
-            "viewer_id": session_user.user.id,
-            "subject_id": subject_id,
-            "metadata": sanitized_metadata,
-        },
-    )
-    return JSONResponse({"ok": True})
-
-
 @router.get("/people/{username}/comments")
 def profile_comments(
     username: str,
@@ -2251,6 +2206,8 @@ def _get_account_avatar(db: Session, user_id: int) -> Optional[str]:
 
 
 from . import admin as admin_routes
+from . import api as api_routes
+from . import branding as branding_routes
 from . import browse as browse_routes
 from . import requests as requests_routes
 from . import invite as invite_routes
@@ -2265,6 +2222,8 @@ router.include_router(session_routes.router)
 router.include_router(sync_routes.router)
 router.include_router(requests_routes.router)
 router.include_router(browse_routes.router)
+router.include_router(api_routes.router)
+router.include_router(branding_routes.router)
 router.include_router(invite_routes.router)
 router.include_router(members_routes.router)
 router.include_router(menu_routes.router)
