@@ -16,11 +16,19 @@ import subprocess
 import sys
 from pathlib import Path
 
-from app.env import ensure_env_loaded
+# Check Python version before importing app code
+if sys.version_info < (3, 10):
+    print(f"Error: Python 3.10+ is required, but you're running {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}", file=sys.stderr)
+    print("Please install Python 3.10 or later and re-run.", file=sys.stderr)
+    sys.exit(1)
 
-ensure_env_loaded()
-
-from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
+# Load .env file directly without importing app code (which requires dependencies)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed yet, that's okay for setup
+    pass
 
 
 # -------- Logging helpers --------
@@ -507,6 +515,9 @@ def cmd_dedalus(args: list[str]) -> int:
 
 
 def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
+    # Lazy import to avoid importing app code before venv is set up
+    from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
+    
     token = secrets.token_hex(32)
     config_path.parent.mkdir(parents=True, exist_ok=True)
     if config_path.exists():
