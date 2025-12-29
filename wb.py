@@ -18,8 +18,14 @@ from pathlib import Path
 
 # Check Python version before importing app code
 if sys.version_info < (3, 10):
-    print(f"Error: Python 3.10+ is required, but you're running {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}", file=sys.stderr)
-    print("Please install Python 3.10 or later and re-run.", file=sys.stderr)
+    print(
+        f"Oops! WhiteBalloon requires Python 3.10 or newer (detected: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}).",
+        file=sys.stderr,
+    )
+    print(
+        "Please upgrade your Python installation to version 3.10 or above. If you have questions, feel free to ask for help!",
+        file=sys.stderr,
+    )
     sys.exit(1)
 
 # Load .env file directly without importing app code (which requires dependencies)
