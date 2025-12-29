@@ -17,13 +17,27 @@ fail() {
 }
 
 python_exec() {
+  # Try Python 3.10+ versions first (common on macOS with Homebrew)
+  for version in python3.13 python3.12 python3.11 python3.10; do
+    if command -v "$version" >/dev/null 2>&1; then
+      if "$version" -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then
+        echo "$(command -v "$version")"
+        return
+      fi
+    fi
+  done
+  # Fall back to python3 or python
   if command -v python3 >/dev/null 2>&1; then
-    echo "$(command -v python3)"
-    return
+    if python3 -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then
+      echo "$(command -v python3)"
+      return
+    fi
   fi
   if command -v python >/dev/null 2>&1; then
-    echo "$(command -v python)"
-    return
+    if python -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then
+      echo "$(command -v python)"
+      return
+    fi
   fi
   fail "Python 3.10+ is required. Please install it and re-run."
 }
