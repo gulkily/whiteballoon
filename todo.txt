@@ -52,10 +52,9 @@ peer auth
 	add localstorage-stored private key
 	display currently authenticated users
 
-navbar - get rid of all the other user statuses
-	half-authed
-	pending verification
-	member
-
-add rss feeds for everything
-
+shopping lists
+	allow people to request something in channel
+	build shopping list
+	organize by place of purchase
+	estimate costs
+	

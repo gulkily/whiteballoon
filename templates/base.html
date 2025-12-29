@@ -35,7 +35,8 @@
         }
       })();
     </script>
-    <title>{% block title %}WhiteBalloon{% endblock %}</title>
+    {% set default_site_title = site_title() %}
+    <title>{% block title %}{{ default_site_title }}{% endblock %}</title>
     <link rel="stylesheet" href="{{ skin_bundle_href(request) }}" />
     <link rel="icon" type="image/png" href="/static/img/logo-icon-256.png" sizes="256x256" />
     <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico" />
@@ -63,7 +64,7 @@
           <span class="brand-icon" aria-hidden="true">
             {% include "partials/logo_icon.svg" %}
           </span>
-          <span class="brand-wordmark">WhiteBalloon</span>
+          <span class="brand-wordmark">{{ site_title() }}</span>
         </a>
         <nav class="nav-links" data-nav-links>
           {% block nav %}{% endblock %}

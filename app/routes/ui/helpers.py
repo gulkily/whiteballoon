@@ -4,14 +4,48 @@ from datetime import datetime, timezone
 from typing import Optional, Union
 
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup, escape
 
 from app.config import get_settings
+from app.modules.messaging import services as messaging_services
 from app.models import User, UserSession
 from app.skins.runtime import register_skin_helpers
 
 templates = Jinja2Templates(directory="templates")
 register_skin_helpers(templates)
 templates.env.globals["feature_nav_status_tags"] = get_settings().feature_nav_status_tags
+
+
+def site_title() -> str:
+    return get_settings().site_title
+
+
+templates.env.globals["site_title"] = site_title
+
+
+def messaging_feature_enabled() -> bool:
+    return get_settings().messaging_enabled
+
+
+templates.env.globals["messaging_feature_enabled"] = messaging_feature_enabled
+
+
+def messaging_unread_count(user_id: int | None) -> int:
+    if not user_id or not get_settings().messaging_enabled:
+        return 0
+    try:
+        summaries = messaging_services.list_threads_for_user(user_id)
+    except Exception:
+        return 0
+    total = 0
+    for summary in summaries:
+        viewer_participant = next((p for p in summary.participants if p.user_id == user_id), None)
+        if viewer_participant and viewer_participant.unread_count:
+            total += viewer_participant.unread_count
+    return total
+
+
+templates.env.globals["messaging_unread_count"] = messaging_unread_count
 
 
 def _parse_iso_datetime(value: Union[str, datetime, None]) -> Optional[datetime]:
@@ -78,7 +112,23 @@ def friendly_time(value: Union[str, datetime, None]) -> str:
     return local_dt.strftime("%b %d, %Y %I:%M %p")
 
 
+def render_multiline(value: Optional[str], default: str = "") -> Markup:
+    text = value if value and value.strip() else default
+    normalized = (text or "").replace("\r\n", "\n").replace("\r", "\n")
+    normalized = (
+        normalized.replace("<br />", "\n")
+        .replace("<br/>", "\n")
+        .replace("<br>", "\n")
+    )
+    lines = normalized.split("\n")
+    escaped_lines = [escape(line) for line in lines if line]
+    if not escaped_lines:
+        return Markup("")
+    return Markup("<br />").join(escaped_lines)
+
+
 templates.env.filters["friendly_time"] = friendly_time
+templates.env.filters["render_multiline"] = render_multiline
 
 
 def describe_session_role(user: User, session: Optional[UserSession]) -> Optional[dict[str, str]]:
@@ -95,4 +145,4 @@ def describe_session_role(user: User, session: Optional[UserSession]) -> Optiona
     return {"label": "Member", "tone": "muted"}
 
 
-__all__ = ["describe_session_role", "friendly_time", "templates"]
+__all__ = ["describe_session_role", "friendly_time", "render_multiline", "templates"]

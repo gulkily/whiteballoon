@@ -14,6 +14,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from sqlmodel import select
 
 from app.dependencies import SessionDep, SessionUser, require_session_user
+from app.config import get_settings
 from app.models import (
     HELP_REQUEST_STATUS_DRAFT,
     HelpRequest,
@@ -548,6 +549,8 @@ def sync_public(
     if not user.is_admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
+    settings = get_settings()
+
     public_requests = db.exec(
         select(HelpRequest)
         .where(HelpRequest.sync_scope == "public")
@@ -626,6 +629,10 @@ def sync_public(
         "public_key_files": public_key_files,
         "local_signing_key": local_key,
         "keys_dir": keys_dir,
+        "messaging_enabled": settings.messaging_enabled,
+        "messaging_database_url": settings.messaging_database_url,
+        "messaging_status": request.query_params.get("messaging_status"),
+        "messaging_message": request.query_params.get("messaging_message"),
     }
     return templates.TemplateResponse("sync/public.html", context)
 

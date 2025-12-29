@@ -30,11 +30,14 @@ def _parse_csv(value: str | None) -> Tuple[str, ...]:
 @dataclass(frozen=True)
 class Settings:
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///data/app.db")
+    messaging_database_url: str = os.getenv("MESSAGING_DATABASE_URL", "sqlite:///data/messages.db")
+    messaging_enabled: bool = _get_bool(os.getenv("ENABLE_DIRECT_MESSAGING"), False)
     secret_key: str = os.getenv("SECRET_KEY", "changeme")
     session_expiry_minutes: int = int(os.getenv("SESSION_EXPIRY_MINUTES", "20160"))
     cookie_secure: bool = _get_bool(os.getenv("COOKIE_SECURE"), False)
     enable_contact_email: bool = _get_bool(os.getenv("ENABLE_CONTACT_EMAIL"), True)
     site_url: str = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+    site_title: str = os.getenv("SITE_TITLE", "WhiteBalloon")
     skins_enabled: bool = _get_bool(os.getenv("WB_SKINS_ENABLED"), False)
     skin_default: str = os.getenv("WB_SKIN_DEFAULT", "default")
     skins_allowed: tuple[str, ...] = _parse_csv(os.getenv("WB_SKINS_ALLOWED", ""))
@@ -57,7 +60,35 @@ class Settings:
 
 @lru_cache(maxsize=1)
 def _build_settings() -> Settings:
-    return Settings()
+    return Settings(
+        database_url=os.getenv("DATABASE_URL", "sqlite:///data/app.db"),
+        messaging_database_url=os.getenv("MESSAGING_DATABASE_URL", "sqlite:///data/messages.db"),
+        messaging_enabled=_get_bool(os.getenv("ENABLE_DIRECT_MESSAGING"), False),
+        secret_key=os.getenv("SECRET_KEY", "changeme"),
+        session_expiry_minutes=int(os.getenv("SESSION_EXPIRY_MINUTES", "20160")),
+        cookie_secure=_get_bool(os.getenv("COOKIE_SECURE"), False),
+        enable_contact_email=_get_bool(os.getenv("ENABLE_CONTACT_EMAIL"), True),
+        site_url=os.getenv("SITE_URL", "http://127.0.0.1:8000"),
+        site_title=os.getenv("SITE_TITLE", "WhiteBalloon"),
+        skins_enabled=_get_bool(os.getenv("WB_SKINS_ENABLED"), False),
+        skin_default=os.getenv("WB_SKIN_DEFAULT", "default"),
+        skins_allowed=_parse_csv(os.getenv("WB_SKINS_ALLOWED", "")),
+        skins_manifest_path=os.getenv("WB_SKINS_MANIFEST_PATH", "static/build/skins/manifest.json"),
+        skin_preview_enabled=_get_bool(os.getenv("WB_SKIN_PREVIEW_ENABLED"), False),
+        skin_preview_param=os.getenv("WB_SKIN_PREVIEW_PARAM", "skin"),
+        skin_strict=_get_bool(os.getenv("WB_SKIN_STRICT"), False),
+        dedalus_api_key=os.getenv("DEDALUS_API_KEY", ""),
+        dedalus_api_key_verified_at=os.getenv("DEDALUS_API_KEY_VERIFIED_AT"),
+        dedalus_log_retention_days=int(os.getenv("DEDALUS_LOG_RETENTION_DAYS", "30")),
+        comment_insights_indicator_enabled=_get_bool(os.getenv("COMMENT_INSIGHTS_INDICATOR"), False),
+        profile_signal_glaze_enabled=_get_bool(os.getenv("PROFILE_SIGNAL_GLAZE"), False),
+        pinned_requests_limit=int(os.getenv("WB_PINNED_REQUESTS_LIMIT", "3")),
+        request_channels_enabled=_get_bool(os.getenv("REQUEST_CHANNELS"), False),
+        recurring_template_poll_seconds=int(os.getenv("RECURRING_TEMPLATE_POLL_SECONDS", "300")),
+        feature_peer_auth_queue=_get_bool(os.getenv("WB_FEATURE_PEER_AUTH_QUEUE"), False),
+        feature_self_auth=_get_bool(os.getenv("WB_FEATURE_SELF_AUTH"), False),
+        feature_nav_status_tags=_get_bool(os.getenv("WB_FEATURE_NAV_STATUS_TAGS"), True),
+    )
 
 
 def get_settings() -> Settings:

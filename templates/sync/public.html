@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Sync Dashboard · WhiteBalloon{% endblock %}
+{% block title %}Sync Dashboard · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}
@@ -22,6 +22,30 @@
     </p>
 
     <div class="control-panel__grid">
+      <article class="control-panel__card stack">
+        <h2>Direct messaging</h2>
+        <p>
+          Status:
+          <strong>{{ 'Enabled' if messaging_enabled else 'Disabled' }}</strong>
+        </p>
+        {% if messaging_status and messaging_message %}
+          <div class="alert {{ 'alert--success' if messaging_status == 'success' else 'alert--error' }}">
+            {{ messaging_message }}
+          </div>
+        {% endif %}
+        <form method="post" action="/admin/messaging/toggle" class="stack">
+          <input type="hidden" name="next" value="{{ request.url.path }}" />
+          <input type="hidden" name="enable" value="{{ '0' if messaging_enabled else '1' }}" />
+          <button type="submit" class="button {{ 'button--ghost' if messaging_enabled else 'button--primary' }}">
+            {{ 'Disable messaging' if messaging_enabled else 'Enable messaging' }}
+          </button>
+        </form>
+        <p class="muted small-text">
+          Messages store in <code>{{ messaging_database_url }}</code>.
+          Run <code>./wb messaging init-db</code> if this is the first time enabling the feature.
+        </p>
+      </article>
+
       <article class="control-panel__card stack">
         <h2>Signing & Bootstrap</h2>
         <p>
@@ -93,7 +117,17 @@
                   <tr>
                     <td><a href="/requests/{{ item.id }}">#{{ item.id }}</a></td>
                     <td>{{ item.status | title }}</td>
-                    <td>@{{ item.created_by_username or 'unknown' }}</td>
+                    <td>
+                      {% with
+                        username=item.created_by_username,
+                        display_name=item.created_by_display_name,
+                        href=item.created_by_username and '/people/' ~ item.created_by_username,
+                        class_name='link-inline',
+                        fallback_label='Unknown'
+                      %}
+                        {% include "partials/display_name.html" %}
+                      {% endwith %}
+                    </td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
                         <input type="hidden" name="entity_type" value="request" />
@@ -142,7 +176,17 @@
                       </a>
                     </td>
                     <td>#{{ comment.help_request_id }}</td>
-                    <td>@{{ comment.created_by_username or 'unknown' }}</td>
+                    <td>
+                      {% with
+                        username=comment.created_by_username,
+                        display_name=comment.display_name,
+                        href=comment.created_by_username and '/people/' ~ comment.created_by_username,
+                        class_name='link-inline',
+                        fallback_label='Unknown'
+                      %}
+                        {% include "partials/display_name.html" %}
+                      {% endwith %}
+                    </td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>
                         <input type="hidden" name="entity_type" value="comment" />
@@ -184,7 +228,16 @@
                 {% for u in public_users %}
                   {% set user_public = u.sync_scope == 'public' %}
                   <tr>
-                    <td><a href="/people/{{ u.username }}">@{{ u.username }}</a></td>
+                    <td>
+                      {% with
+                        username=u.username,
+                        display_name=u.display_name,
+                        href='/people/' ~ u.username,
+                        class_name='link-inline'
+                      %}
+                        {% include "partials/display_name.html" %}
+                      {% endwith %}
+                    </td>
                     <td><time datetime="{{ u.created_at }}">{{ u.created_at | friendly_time }}</time></td>
                     <td>
                       <form method="post" action="/sync/scope" class="sync-scope-toggle" data-sync-toggle>

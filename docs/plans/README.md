@@ -10,6 +10,7 @@ This folder stores every planning artifact referenced in the Feature Development
 ## Active feature folders
 | Folder | Scope |
 | --- | --- |
+| `ai_chat_query/` | Retrieval-assisted AI chat planning + pilot assets. |
 | `chat_search_dialog/` | Chat search dialog iteration covering Steps 1–4.
 | `comment_filters/` | Admin comment filter improvements.
 | `comment_index_promotion/` | Plans for promoting comment index entries.

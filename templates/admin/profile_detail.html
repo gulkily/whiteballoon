@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin · {{ profile.username }} · WhiteBalloon{% endblock %}
+{% block title %}Admin · {{ profile.username }} · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}
@@ -42,7 +42,17 @@
         · {{ 'Admin' if profile.is_admin else 'Member' }}
       </p>
       {% if invited_by_user %}
-        <p class="muted small-text">Invited by <a href="/admin/profiles/{{ invited_by_user.id }}">@{{ invited_by_user.username }}</a></p>
+        <p class="muted small-text">
+          Invited by
+          {% with
+            username=invited_by_user.username,
+            display_name=invited_by_user.display_name,
+            href='/admin/profiles/' ~ invited_by_user.id,
+            class_name='profile-name-link'
+          %}
+            {% include "partials/display_name.html" %}
+          {% endwith %}
+        </p>
       {% elif invite_token_used %}
         <p class="muted small-text">Invite token {{ invite_token_used }}</p>
       {% endif %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Conversation · {{ site_title() }}{% endblock %}
+
+{% block nav %}
+  {% include "partials/account_nav.html" %}
+{% endblock %}
+
+{% block content %}
+<section class="section stack" data-page="messaging-thread">
+  <header class="stack">
+    <p class="muted small-text">Direct messages</p>
+    {% if counterpart %}
+      <h1>Conversation with
+        {% with
+          username=counterpart.username,
+          href='/people/' ~ counterpart.username,
+          class_name='link-inline'
+        %}
+          {% include "partials/display_name.html" %}
+        {% endwith %}
+      </h1>
+    {% else %}
+      <h1>Conversation</h1>
+    {% endif %}
+  </header>
+
+  <div class="card stack messaging-thread__body">
+    {% if messages %}
+      <ol class="message-log stack">
+        {% for entry in messages %}
+          <li class="message-log__item {{ 'message-log__item--self' if entry.is_self else '' }}">
+            <div class="message-log__meta">
+              {% if entry.sender %}
+                {% with
+                  username=entry.sender.username,
+                  href='/people/' ~ entry.sender.username,
+                  class_name='message-log__author'
+                %}
+                  {% include "partials/display_name.html" %}
+                {% endwith %}
+              {% else %}
+                <span class="message-log__author muted">Member</span>
+              {% endif %}
+              <time datetime="{{ entry.record.created_at }}">{{ entry.record.created_at | friendly_time }}</time>
+            </div>
+            <p class="message-log__body">{{ entry.record.body }}</p>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">No messages yet. Say hello below.</p>
+    {% endif %}
+
+    <form method="post" action="/messages/{{ thread.id }}/messages" class="stack messaging-thread__form">
+      <label class="stack" for="message-body">
+        <span>New message</span>
+        <textarea
+          id="message-body"
+          name="body"
+          rows="3"
+          maxlength="4000"
+          placeholder="Write your message..."
+          required
+        ></textarea>
+      </label>
+      <button type="submit" class="button button--primary">Send</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -14,6 +14,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Multi-device login approvals powered by verification codes
 - Session management via secure cookies backed by the database
 - Help-request feed with progressive enhancement for creating and completing requests
+- Admin-toggleable direct messaging module backed by a dedicated SQLite store (disabled by default)
 - Admin-only profile directory ( `/admin/profiles` ) with per-account drill-downs to review contact info, sharing scope, requests, and invite history
 - Members directory (`/members`) for fully authenticated members to browse public profiles plus their invitees with filters and scope-aware contact visibility
 - Admin control panel (`/admin`) that centralizes links to the directory, sync dashboard, and future operator tools
@@ -83,6 +84,16 @@ Requires Python 3.10+.
 > **Developer reminder**: Whenever you add a new configuration flag or environment variable, update `.env.example` with the default and a short description so fresh installs pick it up.
 >
 > **Frontend skins**: Whenever you change files under `static/skins/` or adjust shared design tokens, run `./wb skins build` (or `./wb skins watch` during development) so the hashed bundles in `static/build/skins/` stay in sync. Use `./wb skins list` to see which entry bundles exist before rebuilding. Skipping the rebuild leaves browsers serving the previous CSS and makes refreshed layouts look broken.
+
+### Direct messaging storage
+
+Direct messaging ships disabled. After flipping the toggle on `/sync/public`, initialize the dedicated database once:
+
+```bash
+./wb messaging init-db
+```
+
+The CLI will create `data/messages.db`, leaving the primary `data/app.db` untouched so backups and retention policies stay isolated.
 
 ## Manual sync bundles & signatures
 

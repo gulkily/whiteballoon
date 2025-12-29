@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Notifications & Feeds · WhiteBalloon{% endblock %}
+{% block title %}Notifications & Feeds · {{ site_title() }}{% endblock %}
 
 {% block main_class %} container--narrow{% endblock %}
 
@@ -13,7 +13,7 @@
   <header class="stack">
     <h1>Notifications & RSS feeds</h1>
     <p class="muted">
-      Subscribe to these private URLs in your reader to mirror what you see in WhiteBalloon without logging in.
+      Subscribe to these private URLs in your reader to mirror what you see in {{ site_title() }} without logging in.
     </p>
   </header>
 

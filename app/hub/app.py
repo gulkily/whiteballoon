@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from app.config import get_settings as get_core_settings
 from app.hub.config import get_settings
 from app.hub.feed import DEFAULT_FEED_PAGE_SIZE, feed_api_router, list_feed_requests
 from app.hub.storage import summarize_bundle, METADATA_FILENAME
@@ -18,6 +19,7 @@ from .routes import router
 
 templates = Jinja2Templates(directory="templates")
 register_skin_helpers(templates)
+templates.env.globals.setdefault("site_title", lambda: get_core_settings().site_title)
 
 
 def create_hub_app() -> FastAPI:

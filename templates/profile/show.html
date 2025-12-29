@@ -2,7 +2,7 @@
 
 {% block main_class %} container--wide{% endblock %}
 
-{% block title %}{{ person.username }} · Profile · WhiteBalloon{% endblock %}
+{% block title %}{{ person.username }} · Profile · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}
@@ -24,6 +24,21 @@
         <p class="muted">This is your profile as seen by other members.</p>
       {% else %}
         <p class="muted">Community profile visible to members with sign-in access.</p>
+      {% endif %}
+    </div>
+    <div class="profile-header__actions">
+      {% if messaging_feature_enabled() and session and session.is_fully_authenticated and not is_self %}
+        <form method="post" action="/messages/direct" class="profile-message-form">
+          <input type="hidden" name="username" value="{{ person.username }}" />
+          <button
+            type="submit"
+            class="button button--primary"
+            data-messaging-launch
+            data-message-username="{{ person.username }}"
+          >
+            Message {{ person.username }}
+          </button>
+        </form>
       {% endif %}
     </div>
   </header>

@@ -57,6 +57,7 @@ from app.captions import load_preferences as load_caption_preferences
 from app.services import (
     auth_service,
     caption_preference_service,
+    chat_reaction_parser,
     comment_llm_insights_service,
     comment_request_promotion_service,
     invite_graph_service,
@@ -131,8 +132,14 @@ def _normalize_filter_values(values: list[str]) -> set[str]:
     return {value.strip().lower() for value in values if value and value.strip()}
 
 
+def _request_description_text(help_request: HelpRequest) -> str:
+    """Return the help request description without inline reaction suffixes."""
+    clean_text, _ = chat_reaction_parser.strip_reactions(help_request.description or "")
+    return clean_text
+
+
 def _infer_request_topics(help_request: HelpRequest) -> set[str]:
-    description = (help_request.description or "").lower()
+    description = _request_description_text(help_request).lower()
     topics: set[str] = set()
     for topic in FILTER_TOPICS:
         if any(keyword in description for keyword in topic["keywords"]):
@@ -141,7 +148,7 @@ def _infer_request_topics(help_request: HelpRequest) -> set[str]:
 
 
 def _infer_request_urgency(help_request: HelpRequest) -> str:
-    description = (help_request.description or "").lower()
+    description = _request_description_text(help_request).lower()
     for level in URGENCY_LEVELS:
         if level["keywords"] and any(keyword in description for keyword in level["keywords"]):
             return level["slug"]
@@ -212,7 +219,7 @@ def _trim_request_title(help_request: HelpRequest) -> str:
     explicit = (help_request.title or "").strip()
     if explicit:
         return explicit
-    description = (help_request.description or "").strip()
+    description = _request_description_text(help_request).strip()
     if not description:
         return f"Request #{help_request.id}" if help_request.id else "Request"
     first_line = description.splitlines()[0].strip()
@@ -404,6 +411,7 @@ def _serialize_requests(
             pinned_only=pinned_only,
         )
     creator_usernames = request_services.load_creator_usernames(db, items)
+    creator_display_names = _map_request_creator_display_names(db, items)
     request_ids = [item.id for item in items if item.id]
     template_metadata = recurring_template_service.load_template_metadata(db, request_ids)
     serialized = []
@@ -415,6 +423,7 @@ def _serialize_requests(
             RequestResponse.from_model(
                 item,
                 created_by_username=creator_usernames.get(item.created_by_user_id),
+                created_by_display_name=creator_display_names.get(item.id),
                 can_complete=can_complete,
                 is_pinned=pin_metadata is not None,
                 pin_rank=pin_metadata.rank if pin_metadata else None,
@@ -423,6 +432,31 @@ def _serialize_requests(
             ).model_dump()
         )
     return serialized
+
+
+def _map_request_creator_display_names(db: Session, requests: Sequence[HelpRequest]) -> dict[int, str]:
+    grouped: dict[str, set[int]] = {}
+    for req in requests:
+        if not req or not req.created_by_user_id:
+            continue
+        attr_key = _signal_display_attr_key(req)
+        if not attr_key:
+            continue
+        grouped.setdefault(attr_key, set()).add(req.created_by_user_id)
+    resolved: dict[str, dict[int, str]] = {}
+    for attr_key, user_ids in grouped.items():
+        resolved[attr_key] = _load_signal_display_names_for_user_ids(db, user_ids, attr_key)
+    mapping: dict[int, str] = {}
+    for req in requests:
+        if not req or not req.id or not req.created_by_user_id:
+            continue
+        attr_key = _signal_display_attr_key(req)
+        if not attr_key:
+            continue
+        display_name = resolved.get(attr_key, {}).get(req.created_by_user_id)
+        if display_name:
+            mapping[req.id] = display_name
+    return mapping
 
 
 def _build_request_channel_rows(
@@ -731,6 +765,18 @@ def home(
 
     session_role = describe_session_role(user, session_record)
     return _render_requests_page(request, db, user, session_record, session_role)
+
+
+@router.get("/brand/logo", include_in_schema=False)
+def logo_capture(request: Request) -> Response:
+    """Render a padded, standalone logo for easy screenshots."""
+    return templates.TemplateResponse("branding/logo_capture.html", {"request": request})
+
+
+@router.get("/brand/logo/flat", include_in_schema=False)
+def logo_capture_flat(request: Request) -> Response:
+    """Render a flat, rectangular logo layout for screenshots."""
+    return templates.TemplateResponse("branding/logo_capture_flat.html", {"request": request})
 
 
 @router.get("/requests")
@@ -1799,11 +1845,14 @@ def _build_request_detail_context(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
     creator_usernames = request_services.load_creator_usernames(db, [help_request])
+    attr_key = _signal_display_attr_key(help_request)
+    creator_display_name = _map_request_creator_display_names(db, [help_request]).get(help_request.id)
     pin_map = request_pin_service.get_pin_map(db)
     pin_meta = pin_map.get(help_request.id)
     serialized = RequestResponse.from_model(
         help_request,
         created_by_username=creator_usernames.get(help_request.created_by_user_id),
+        created_by_display_name=creator_display_name,
         can_complete=calculate_can_complete(help_request, viewer),
         is_pinned=pin_meta is not None,
         pin_rank=pin_meta.rank if pin_meta else None,
@@ -1840,8 +1889,10 @@ def _build_request_detail_context(
             limit=limit,
             offset=offset,
         )
-    attr_key = _signal_display_attr_key(help_request)
     display_names = _load_signal_display_names(db, comment_rows, attr_key)
+    if not creator_display_name and attr_key and help_request.created_by_user_id:
+        fallback_map = _load_signal_display_names_for_user_ids(db, {help_request.created_by_user_id}, attr_key)
+        creator_display_name = fallback_map.get(help_request.created_by_user_id)
     insights_lookup = _build_comment_insights_lookup(help_request.id)
     matching_comment_ids: set[int] | None = None
     if filters_active:
@@ -1870,6 +1921,12 @@ def _build_request_detail_context(
             author,
             display_name=display_names.get(author.id),
         )
+        body_text = serialized_comment.get("body") or ""
+        clean_body, reactions = chat_reaction_parser.strip_reactions(body_text)
+        serialized_comment["body"] = clean_body
+        serialized_comment["reaction_summary"] = [
+            {"emoji": reaction.emoji, "count": reaction.count} for reaction in reactions
+        ]
         metadata = insights_lookup.get(comment.id, {})
         serialized_comment["insight_metadata"] = metadata
         matches_filters = not filters_active or _matches_insight_filters(

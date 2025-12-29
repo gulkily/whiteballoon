@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Account Settings · WhiteBalloon{% endblock %}
+{% block title %}Account Settings · {{ site_title() }}{% endblock %}
 
 {% block main_class %} container--narrow{% endblock %}
 
@@ -57,7 +57,7 @@
         Hide helper captions
       </label>
       <p class="muted small-text">
-        Turn off onboarding captions once you’re comfortable navigating WhiteBalloon.
+        Turn off onboarding captions once you’re comfortable navigating {{ site_title() }}.
       </p>
     </div>
 

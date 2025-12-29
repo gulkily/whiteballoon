@@ -12,7 +12,7 @@ from typing import Callable, Sequence
 
 from sqlmodel import Session
 
-from . import request_comment_service
+from . import chat_reaction_parser, request_comment_service
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +199,14 @@ def search_chat(
 
 
 def serialize_result(result: ChatSearchResult) -> dict[str, object]:
-    return asdict(result)
+    payload = asdict(result)
+    body_text = payload.get("body") or ""
+    clean_body, reactions = chat_reaction_parser.strip_reactions(body_text)
+    payload["body"] = clean_body
+    payload["reaction_summary"] = [
+        {"emoji": reaction.emoji, "count": reaction.count} for reaction in reactions
+    ]
+    return payload
 
 
 def _extract_tokens(text: str) -> list[str]:

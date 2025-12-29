@@ -3,6 +3,13 @@
 {% set creator_username = item.created_by_username | default('') %}
 {% set has_creator_link = creator_username != '' %}
 {% set creator_name = creator_username if has_creator_link else 'Community member' %}
+{% if item.created_by_display_name %}
+  {% set requester_display = item.created_by_display_name %}
+{% elif has_creator_link %}
+  {% set requester_display = '@' ~ creator_username %}
+{% else %}
+  {% set requester_display = creator_name %}
+{% endif %}
 {% if item.status == 'completed' %}
   {% set request_icon = '💫' %}
   {% set status_display = 'Archived' %}
@@ -18,7 +25,7 @@
 {% endif %}
 {% set show_detail_link = show_detail_link if show_detail_link is defined else True %}
 {% set show_meta = show_meta if show_meta is defined else True %}
-{% set requester_value = request_icon ~ ' ' ~ (creator_username if has_creator_link else creator_name) %}
+{% set requester_value = requester_display %}
 {% set request_url = '/requests/' ~ item.id %}
 {% set can_pin_requests = can_pin_requests if can_pin_requests is defined else False %}
 {% set display_pin_badge = show_pin_badge if show_pin_badge is defined else (item.is_pinned | default(false)) %}
@@ -95,11 +102,25 @@
             </span>
           {% endif %}
           <span class="meta-chip meta-chip--requester">
-            <span class="meta-chip__label">Requester</span>
             {% if has_creator_link %}
-              <a class="meta-chip__value meta-chip__value--link" href="/people/{{ creator_username }}" title="View {{ creator_name }}'s profile">{{ requester_value }}</a>
+              {% with
+                username=creator_username,
+                display_name=item.created_by_display_name,
+                href='/people/' ~ creator_username,
+                class_name='meta-chip__value meta-chip__value--link',
+                prefix_icon=request_icon
+              %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
             {% else %}
-              <span class="meta-chip__value">{{ requester_value }}</span>
+              {% with
+                username=None,
+                display_name=item.created_by_display_name,
+                class_name='meta-chip__value',
+                fallback_label=request_icon ~ ' Community member'
+              %}
+                {% include "partials/display_name.html" %}
+              {% endwith %}
             {% endif %}
           </span>
           <span class="{{ status_chip_class }}" aria-label="Status">
@@ -134,7 +155,15 @@
     </div>
   {% endif %}
   <div>
-    <p>{{ item.description or 'No additional details.' }}</p>
+    <p>{{ item.description | render_multiline('No additional details.') }}</p>
+    {% if item.reaction_summary %}
+      <div class="request-item__reactions muted small-text">
+        Reactions:
+        {% for reaction in item.reaction_summary %}
+          <span class="meta-chip meta-chip--small">{{ reaction.emoji }} ×{{ reaction.count }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
   </div>
   <footer class="actions">
     {% if item.status == 'completed' %}

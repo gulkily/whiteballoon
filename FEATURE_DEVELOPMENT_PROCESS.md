@@ -3,6 +3,14 @@
 ## Overview
 Feature work flows through four tightly scoped steps with an optional solution assessment upfront. To keep the instructions inside the context window, the detailed guidance for each step now lives in separate files that you open only when you are ready for that step.
 
+## Pre-Planning Documentation Review
+Before drafting Step 1 (or jumping straight to Step 2 on simple work), skim the canonical project references so your plan aligns with current architecture and previous initiatives:
+- `AI_PROJECT_GUIDE.md` – environment/setup guardrails, modular architecture expectations, and CLI conventions.
+- `README.md` – current product narrative plus the feature set that the new work must complement.
+- `docs/spec.md` – authoritative functional spec for auth, requests, sync, and UX patterns that every module must follow.
+- `docs/specs/whiteballoon_modular.md` (and companion notes) – deeper architectural decomposition used for multi-module or multi-instance planning.
+- `docs/plans/README.md` – index of prior feature plans to reuse or extend instead of duplicating effort; also flag when a new folder is required.
+
 ## How to Use This Chain
 1. Start with the highest-numbered approved step (usually Step 1 unless explicitly skipped).
 2. Read only the dedicated step file in `docs/dev/feature_process/`, complete that deliverable, and request approval in the format “Approved Step N.”

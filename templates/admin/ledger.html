@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Peer Auth Ledger · WhiteBalloon{% endblock %}
+{% block title %}Peer Auth Ledger · {{ site_title() }}{% endblock %}
 
 {% block nav %} {% include "partials/account_nav.html" %} {% endblock %}
 
@@ -61,14 +61,28 @@
                 </td>
                 <td data-label="Requester">
                   {% if requester %}
-                    <a href="/admin/profiles/{{ requester.id }}" class="profile-name-link">@{{ requester.username }}</a>
+                    {% with
+                      username=requester.username,
+                      display_name=requester.display_name,
+                      href='/admin/profiles/' ~ requester.id,
+                      class_name='profile-name-link'
+                    %}
+                      {% include "partials/display_name.html" %}
+                    {% endwith %}
                   {% else %}
                     <span class="muted">User #{{ entry.requester_user_id }}</span>
                   {% endif %}
                 </td>
                 <td data-label="Reviewer">
                   {% if reviewer %}
-                    <a href="/admin/profiles/{{ reviewer.id }}" class="profile-name-link">@{{ reviewer.username }}</a>
+                    {% with
+                      username=reviewer.username,
+                      display_name=reviewer.display_name,
+                      href='/admin/profiles/' ~ reviewer.id,
+                      class_name='profile-name-link'
+                    %}
+                      {% include "partials/display_name.html" %}
+                    {% endwith %}
                   {% else %}
                     <span class="muted">User #{{ entry.reviewer_user_id }}</span>
                   {% endif %}

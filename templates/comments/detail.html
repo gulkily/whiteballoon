@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Comment #{{ comment.id }} · WhiteBalloon{% endblock %}
+{% block title %}Comment #{{ comment.id }} · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}

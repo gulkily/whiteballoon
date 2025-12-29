@@ -17,7 +17,14 @@
       <div class="invite-map__node-body">
         {{ render_avatar(node.avatar_url, node.username) }}
         <div class="invite-map__node-meta">
-          <a class="invite-map__link" href="{{ url_for('profile_view', username=node.username) }}">@{{ node.username }}</a>
+          {% with
+            username=node.username,
+            display_name=node.display_name,
+            href=url_for('profile_view', username=node.username),
+            class_name='invite-map__link'
+          %}
+            {% include "partials/display_name.html" %}
+          {% endwith %}
           <span class="invite-map__degree muted small-text">{{ degree_labels.get(node.degree, node.degree ~ '° degree invitee') }}</span>
         </div>
       </div>
@@ -47,7 +54,14 @@
       <div class="invite-map__node-body">
         {{ render_avatar(ancestor.avatar_url, ancestor.username) }}
         <div class="invite-map__node-meta">
-          <a class="invite-map__link" href="{{ url_for('profile_view', username=ancestor.username) }}">@{{ ancestor.username }}</a>
+          {% with
+            username=ancestor.username,
+            display_name=ancestor.display_name,
+            href=url_for('profile_view', username=ancestor.username),
+            class_name='invite-map__link'
+          %}
+            {% include "partials/display_name.html" %}
+          {% endwith %}
           <span class="invite-map__degree muted small-text">{{ upstream_labels.get(ancestor.degree, ancestor.degree ~ '° inviter') }}</span>
         </div>
       </div>
@@ -73,7 +87,7 @@
   </li>
 {%- endmacro %}
 
-{% block title %}Invite Map · WhiteBalloon{% endblock %}
+{% block title %}Invite Map · {{ site_title() }}{% endblock %}
 
 {% block content %}
 {% set degree_labels = {0: "You", 1: "1st-degree invitee", 2: "2nd-degree invitee"} %}

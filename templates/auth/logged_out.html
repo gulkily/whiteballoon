@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Welcome · WhiteBalloon{% endblock %}
+{% block title %}Welcome · {{ site_title() }}{% endblock %}
 
 {% block main_class %} container--narrow{% endblock %}
 
@@ -12,7 +12,7 @@
 {% block content %}
 <section class="section">
   <div class="card stack">
-    <h1>WhiteBalloon</h1>
+    <h1>{{ site_title() }}</h1>
     <p class="muted">Connect with your community, share needs, and respond together.</p>
     <div class="stack">
       <a class="button" href="/login">Request access</a>

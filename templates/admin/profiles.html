@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin · Profiles · WhiteBalloon{% endblock %}
+{% block title %}Admin · Profiles · {{ site_title() }}{% endblock %}
 
 {% block nav %}
   {% include "partials/account_nav.html" %}
@@ -89,7 +89,14 @@
             {% for profile in profiles %}
               <tr>
                 <td data-label="Username">
-                  <a class="profile-name-link" href="/admin/profiles/{{ profile.id }}">@{{ profile.username }}</a>
+                  {% with
+                    username=profile.username,
+                    display_name=profile_display_names.get(profile.id) or profile.display_name,
+                    href='/admin/profiles/' ~ profile.id,
+                    class_name='profile-name-link'
+                  %}
+                    {% include "partials/display_name.html" %}
+                  {% endwith %}
                   <p class="muted small-text">ID #{{ profile.id }}</p>
                 </td>
                 <td data-label="Contact">

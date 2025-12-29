@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ site_title() }} Logo (Flat)</title>
+    <script>document.documentElement.classList.add('js');</script>
+    <script>
+      (function () {
+        try {
+          var storageKey = 'wb-theme';
+          var stored = localStorage.getItem(storageKey);
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved;
+
+          if (stored === 'dark' || stored === 'light') {
+            resolved = stored;
+          } else {
+            resolved = prefersDark ? 'dark' : 'light';
+            if (stored === null) {
+              localStorage.setItem(storageKey, 'auto');
+            }
+          }
+
+          document.documentElement.setAttribute('data-theme', resolved);
+          document.documentElement.setAttribute('data-theme-preference', stored || 'auto');
+        } catch (err) {
+          var matchesDark = false;
+          if (window.matchMedia) {
+            try {
+              matchesDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            } catch (ignored) {}
+          }
+          document.documentElement.setAttribute('data-theme', matchesDark ? 'dark' : 'light');
+          document.documentElement.setAttribute('data-theme-preference', 'auto');
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ skin_bundle_href(request) }}" />
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      body.logo-capture {
+        margin: 0;
+        min-height: 100vh;
+        padding: clamp(2.5rem, 6vw, 6rem);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        color: var(--color-text);
+      }
+
+      [data-theme='dark'] body.logo-capture {
+        background: #020617;
+      }
+
+      .logo-capture__toggle {
+        position: fixed;
+        top: clamp(1rem, 3vw, 2rem);
+        right: clamp(1rem, 3vw, 2rem);
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.35rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        box-shadow: 0 8px 18px rgba(15, 23, 42, 0.2);
+        backdrop-filter: blur(10px);
+      }
+
+      [data-theme='dark'] .logo-capture__toggle {
+        background: rgba(15, 23, 42, 0.8);
+        box-shadow: 0 12px 28px rgba(2, 6, 23, 0.65);
+      }
+
+      .logo-capture__panel {
+        width: min(960px, 100%);
+        padding: clamp(3rem, 6vw, 5rem);
+        border: 2px solid rgba(124, 58, 237, 0.25);
+        background: var(--color-surface, #fff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      [data-theme='dark'] .logo-capture__panel {
+        border-color: rgba(192, 132, 252, 0.45);
+        background: rgba(15, 23, 42, 0.65);
+      }
+
+      .logo-capture__brand.brand {
+        font-size: clamp(2.5rem, 4vw, 4rem);
+        gap: clamp(1.25rem, 3vw, 2.5rem);
+        color: var(--color-accent);
+      }
+
+      .logo-capture__brand .brand-icon {
+        width: clamp(70px, 11vw, 140px);
+        height: clamp(70px, 11vw, 140px);
+        border-radius: 1rem;
+        padding: clamp(0.85rem, 2vw, 1.5rem);
+        background: rgba(124, 58, 237, 0.2);
+        box-shadow: none;
+      }
+
+      .logo-capture__brand .brand-wordmark {
+        font-size: clamp(2.75rem, 5vw, 4.5rem);
+        color: inherit;
+        text-shadow: none;
+      }
+
+      @media (max-width: 640px) {
+        body.logo-capture {
+          padding: 2rem;
+        }
+
+        .logo-capture__panel {
+          padding: 2.5rem;
+        }
+      }
+    </style>
+  </head>
+  <body class="page logo-capture">
+    <div class="logo-capture__toggle">
+      {% include "partials/theme_toggle.html" %}
+    </div>
+    <main class="logo-capture__panel" aria-labelledby="logo-title">
+      <span id="logo-title" class="logo-capture__brand brand" aria-label="{{ site_title() }}">
+        <span class="brand-icon" aria-hidden="true">
+          {% include "partials/logo_icon.svg" %}
+        </span>
+        <span class="brand-wordmark">{{ site_title() }}</span>
+      </span>
+    </main>
+    <script src="/static/js/theme-toggle.js" defer></script>
+  </body>
+</html>
