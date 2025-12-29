@@ -18,7 +18,7 @@ fail() {
 
 python_exec() {
   # Try Python 3.10+ versions first (common on macOS with Homebrew)
-  for version in python3.14 python3.13 python3.12 python3.11 python3.10; do
+  for version in python3.13 python3.12 python3.11 python3.10; do
     if command -v "$version" >/dev/null 2>&1; then
       if "$version" -c "import sys; exit(0 if sys.version_info >= (3, 10) else 1)" 2>/dev/null; then
         echo "$(command -v "$version")"
