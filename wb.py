@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import errno
+import hashlib
 import io
 import json
 import os
@@ -16,11 +17,30 @@ import subprocess
 import sys
 from pathlib import Path
 
-from app.env import ensure_env_loaded
+def _ensure_env_loaded() -> None:
+    try:
+        from dotenv import load_dotenv
+    except Exception:
+        return
+    load_dotenv()
 
-ensure_env_loaded()
 
-from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
+_ensure_env_loaded()
+
+
+def _get_hub_config_helpers():
+    try:
+        from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
+        return DEFAULT_STORAGE_DIR, hash_token
+    except Exception:
+        default_storage_dir = Path("data/hub_store")
+
+        def _hash_token(token: str) -> str:
+            digest = hashlib.sha256()
+            digest.update(token.encode("utf-8"))
+            return digest.hexdigest()
+
+        return default_storage_dir, _hash_token
 
 
 # -------- Logging helpers --------
@@ -525,12 +545,13 @@ def cmd_dedalus(args: list[str]) -> int:
 
 
 def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
+    default_storage_dir, hash_token = _get_hub_config_helpers()
     token = secrets.token_hex(32)
     config_path.parent.mkdir(parents=True, exist_ok=True)
     if config_path.exists():
         data = json.loads(config_path.read_text(encoding="utf-8"))
     else:
-        data = {"storage_dir": str(DEFAULT_STORAGE_DIR), "peers": []}
+        data = {"storage_dir": str(default_storage_dir), "peers": []}
     admin_tokens = data.get("admin_tokens") or []
     admin_tokens = [entry for entry in admin_tokens if entry.get("name") != token_name]
     admin_tokens.append({"name": token_name, "token_hash": hash_token(token)})
