@@ -43,7 +43,7 @@ All new feature work follows the four-step process outlined in `FEATURE_DEVELOPM
 
 ## Quick start
 
-Requires Python 3.10+.
+Requires Python 3.10+ or a managed runtime configured for `./wb setup`.
 
 1. **Setup the environment** (creates venv, installs deps, initializes database)
    ```bash
@@ -53,6 +53,7 @@ Requires Python 3.10+.
    ```cmd
    wb.bat setup
    ```
+   > **Setup options**: `./wb setup` prefers a managed runtime when `WB_MANAGED_PYTHON_URL` or `WB_MANAGED_PYTHON_PATH` is set; otherwise it uses system Python. Override with `WB_SETUP_STRATEGY=system|managed|auto`. Run `./wb setup --diagnose` to see the chosen path. Optional: set `WB_PIP_CONSTRAINTS` or add `constraints.txt`/`requirements.lock` to pin dependencies.
 
 2. **Run the development server**
  ```bash

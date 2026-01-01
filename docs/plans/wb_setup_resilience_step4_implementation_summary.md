@@ -22,3 +22,8 @@
 - Changes: added setup diagnostics output (`./wb setup --diagnose`), including requested/resolved strategy, Python version, and active constraints file; improved warnings when falling back to system Python.
 - Verification: Not run (per project guidance to avoid running commands).
 - Notes: Diagnostics run before setup and exit early when `--diagnose` is used.
+
+## Stage 6 – Documentation updates
+- Changes: documented managed runtime setup options in `README.md`, `AI_PROJECT_GUIDE.md`, and `.env.example`.
+- Verification: Not run (per project guidance to avoid running commands).
+- Notes: Docs now call out optional constraints and strategy overrides.
