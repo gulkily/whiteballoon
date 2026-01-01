@@ -7,3 +7,8 @@
 - Changes: defaulted setup strategy to prefer managed runtime; added managed runtime configuration via `WB_SETUP_STRATEGY`, `WB_MANAGED_PYTHON_PATH`, `WB_MANAGED_PYTHON_URL`, `WB_MANAGED_PYTHON_VERSION`, and `WB_MANAGED_PYTHON_DIR`; implemented cached runtime download/extract flow with safe archive handling.
 - Verification: Not run (per project guidance to avoid running commands).
 - Notes: Managed runtime download requires a configured URL; falls back to system Python if unavailable or failing.
+
+## Stage 3 – System Python fallback hardening
+- Changes: added system Python preflight checks for version/venv/ensurepip and improved broken-venv repair handling when falling back to system Python.
+- Verification: Not run (per project guidance to avoid running commands).
+- Notes: System Python must be 3.10+ or setup exits with actionable guidance to use a managed runtime.

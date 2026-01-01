@@ -549,7 +549,10 @@ def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
 def cmd_setup(_args: argparse.Namespace) -> int:
     ctx = _build_bootstrap_context()
     base_python = _resolve_setup_python(ctx)
-    wb_bootstrap.create_venv(ctx.venv_dir, base_python, log_info=info)
+    if base_python == ctx.base_python:
+        if not wb_bootstrap.validate_system_python(ctx, log_error=error, log_warn=warn):
+            return 1
+    wb_bootstrap.create_venv(ctx.venv_dir, base_python, log_info=info, log_warn=warn)
     vpy = python_in_venv()
     if not wb_bootstrap.ensure_pip(vpy, log_info=info, log_error=error):
         return 1

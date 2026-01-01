@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Callable
+import json
 import os
 import platform
 import shutil
@@ -12,6 +13,7 @@ import tarfile
 import tempfile
 import urllib.request
 import zipfile
+import sys
 
 LogFn = Callable[[str], None]
 
@@ -28,6 +30,8 @@ MANAGED_PYTHON_VERSION_ENV = "WB_MANAGED_PYTHON_VERSION"
 MANAGED_PYTHON_DIR_ENV = "WB_MANAGED_PYTHON_DIR"
 
 DEFAULT_MANAGED_PYTHON_VERSION = "3.11.9"
+MIN_PYTHON_VERSION = (3, 10)
+MIN_PYTHON_TEXT = "3.10"
 
 
 @dataclass(frozen=True)
@@ -222,9 +226,20 @@ def _find_python_executable(root: Path) -> Path | None:
     return None
 
 
-def create_venv(venv_dir: Path, base_python: Path, *, log_info: LogFn | None = None) -> None:
-    if python_in_venv(venv_dir).exists():
-        return
+def create_venv(
+    venv_dir: Path,
+    base_python: Path,
+    *,
+    log_info: LogFn | None = None,
+    log_warn: LogFn | None = None,
+) -> None:
+    venv_python = python_in_venv(venv_dir)
+    if venv_python.exists():
+        if _python_usable(venv_python):
+            return
+        if log_warn:
+            log_warn("Existing virtualenv appears broken; recreating")
+        shutil.rmtree(venv_dir)
     if log_info:
         log_info("Creating virtual environment at .venv")
     subprocess.run([str(base_python), "-m", "venv", str(venv_dir)], check=True)
@@ -286,3 +301,84 @@ def create_env_file(
     else:
         if log_warn:
             log_warn(".env.example not found; skipping .env creation")
+
+
+def validate_system_python(
+    ctx: BootstrapContext,
+    *,
+    log_error: LogFn | None = None,
+    log_warn: LogFn | None = None,
+) -> bool:
+    version = _get_python_version(ctx.base_python)
+    if version is None:
+        if log_error:
+            log_error("Unable to run system Python. Install Python 3.10+ or configure a managed runtime.")
+        return False
+    if version < MIN_PYTHON_VERSION:
+        if log_error:
+            log_error(
+                f"Python {MIN_PYTHON_TEXT}+ is required. Install a newer Python or configure "
+                f"{MANAGED_PYTHON_URL_ENV}/{MANAGED_PYTHON_PATH_ENV} to use a managed runtime."
+            )
+        return False
+    if not _python_can_import(ctx.base_python, "venv"):
+        if log_error:
+            log_error(
+                "System Python is missing the venv module. On Debian/Ubuntu, install 'python3-venv'."
+            )
+        return False
+    if not _python_can_import(ctx.base_python, "ensurepip") and log_warn:
+        log_warn(
+            "System Python is missing ensurepip; dependency installs may fail. "
+            "On Debian/Ubuntu, install 'python3-venv'."
+        )
+    return True
+
+
+def _python_usable(python_path: Path) -> bool:
+    try:
+        subprocess.run(
+            [str(python_path), "-V"],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _get_python_version(python_path: Path) -> tuple[int, int, int] | None:
+    if python_path.resolve() == Path(sys.executable).resolve():
+        return tuple(sys.version_info[:3])
+    code = "import json, sys; print(json.dumps(list(sys.version_info[:3])))"
+    try:
+        result = subprocess.run(
+            [str(python_path), "-c", code],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except Exception:
+        return None
+    try:
+        data = result.stdout.strip()
+        version = json.loads(data)
+        return tuple(int(part) for part in version[:3])
+    except Exception:
+        return None
+
+
+def _python_can_import(python_path: Path, module: str) -> bool:
+    code = f"import {module}"
+    try:
+        subprocess.run(
+            [str(python_path), "-c", code],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except Exception:
+        return False
