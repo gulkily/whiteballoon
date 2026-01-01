@@ -17,3 +17,8 @@
 - Changes: added optional pip constraints support via `WB_PIP_CONSTRAINTS` or local `constraints.txt`/`requirements.lock`, while continuing to install from `pyproject.toml` via editable install.
 - Verification: Not run (per project guidance to avoid running commands).
 - Notes: Setup remains independent of a `requirements.txt` file; constraints are opt-in.
+
+## Stage 5 – Diagnostics and user-facing messaging
+- Changes: added setup diagnostics output (`./wb setup --diagnose`), including requested/resolved strategy, Python version, and active constraints file; improved warnings when falling back to system Python.
+- Verification: Not run (per project guidance to avoid running commands).
+- Notes: Diagnostics run before setup and exit early when `--diagnose` is used.

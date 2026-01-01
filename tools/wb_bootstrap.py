@@ -52,6 +52,14 @@ class BootstrapContext:
     base_python: Path
 
 
+@dataclass(frozen=True)
+class SetupPlan:
+    requested_strategy: SetupStrategy
+    resolved_strategy: SetupStrategy
+    python_path: Path
+    detail: str | None = None
+
+
 def python_in_venv(venv_dir: Path) -> Path:
     if platform.system() == "Windows":
         return venv_dir / "Scripts" / "python.exe"
@@ -69,6 +77,34 @@ def select_setup_strategy(ctx: BootstrapContext, *, requested: str | None = None
 
 def ensure_system_python(ctx: BootstrapContext) -> Path:
     return ctx.base_python
+
+
+def resolve_setup_plan(
+    ctx: BootstrapContext,
+    *,
+    requested: str | None = None,
+    log_info: LogFn | None = None,
+    log_warn: LogFn | None = None,
+) -> SetupPlan:
+    requested_strategy = select_setup_strategy(ctx, requested=requested)
+    detail = None
+    if requested_strategy in (SetupStrategy.AUTO, SetupStrategy.MANAGED):
+        runtime = ensure_managed_runtime(ctx, log_info=log_info, log_warn=log_warn)
+        if runtime.available and runtime.python_path:
+            detail = runtime.detail
+            return SetupPlan(
+                requested_strategy=requested_strategy,
+                resolved_strategy=SetupStrategy.MANAGED,
+                python_path=runtime.python_path,
+                detail=detail,
+            )
+        detail = runtime.detail or detail
+    return SetupPlan(
+        requested_strategy=requested_strategy,
+        resolved_strategy=SetupStrategy.SYSTEM,
+        python_path=ensure_system_python(ctx),
+        detail=detail,
+    )
 
 
 def ensure_managed_runtime(
@@ -369,7 +405,8 @@ def validate_system_python(
     if not _python_can_import(ctx.base_python, "venv"):
         if log_error:
             log_error(
-                "System Python is missing the venv module. On Debian/Ubuntu, install 'python3-venv'."
+                "System Python is missing the venv module. On Debian/Ubuntu, install 'python3-venv' "
+                "or configure a managed runtime."
             )
         return False
     if not _python_can_import(ctx.base_python, "ensurepip") and log_warn:
@@ -427,3 +464,10 @@ def _python_can_import(python_path: Path, module: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def format_python_version(python_path: Path) -> str:
+    version = _get_python_version(python_path)
+    if not version:
+        return "unknown"
+    return ".".join(str(part) for part in version)

@@ -106,18 +106,25 @@ def _build_bootstrap_context() -> wb_bootstrap.BootstrapContext:
     )
 
 
-def _resolve_setup_python(ctx: wb_bootstrap.BootstrapContext) -> Path:
+def _resolve_setup_plan(ctx: wb_bootstrap.BootstrapContext) -> wb_bootstrap.SetupPlan:
     requested = os.environ.get(wb_bootstrap.SETUP_STRATEGY_ENV)
-    strategy = wb_bootstrap.select_setup_strategy(ctx, requested=requested)
-    if strategy in (wb_bootstrap.SetupStrategy.AUTO, wb_bootstrap.SetupStrategy.MANAGED):
-        runtime = wb_bootstrap.ensure_managed_runtime(ctx, log_info=info, log_warn=warn)
-        if runtime.available and runtime.python_path:
-            if runtime.detail:
-                info(runtime.detail)
-            return runtime.python_path
-        if runtime.detail:
-            warn(runtime.detail)
-    return wb_bootstrap.ensure_system_python(ctx)
+    plan = wb_bootstrap.resolve_setup_plan(ctx, requested=requested, log_info=info, log_warn=warn)
+    if plan.resolved_strategy == wb_bootstrap.SetupStrategy.SYSTEM and plan.requested_strategy == wb_bootstrap.SetupStrategy.MANAGED:
+        if plan.detail:
+            warn(plan.detail)
+    elif plan.detail:
+        info(plan.detail)
+    return plan
+
+
+def _log_setup_diagnostics(ctx: wb_bootstrap.BootstrapContext, plan: wb_bootstrap.SetupPlan) -> None:
+    info(
+        "Setup strategy: "
+        f"requested={plan.requested_strategy.value} resolved={plan.resolved_strategy.value}"
+    )
+    version = wb_bootstrap.format_python_version(plan.python_path)
+    info(f"Using Python: {plan.python_path} ({version})")
+    wb_bootstrap.resolve_constraints_file(ctx.project_root, log_info=info, log_warn=warn)
 
 
 # -------- Dev tool integration --------
@@ -546,10 +553,19 @@ def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
 
 # -------- CLI handlers --------
 
-def cmd_setup(_args: argparse.Namespace) -> int:
+def cmd_setup(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="wb setup", description="Bootstrap the local environment")
+    parser.add_argument("--diagnose", action="store_true", help="Print setup diagnostics and exit")
+    ns = parser.parse_args(args)
+
     ctx = _build_bootstrap_context()
-    base_python = _resolve_setup_python(ctx)
-    if base_python == ctx.base_python:
+    plan = _resolve_setup_plan(ctx)
+    _log_setup_diagnostics(ctx, plan)
+    if ns.diagnose:
+        return 0
+
+    base_python = plan.python_path
+    if plan.resolved_strategy == wb_bootstrap.SetupStrategy.SYSTEM:
         if not wb_bootstrap.validate_system_python(ctx, log_error=error, log_warn=warn):
             return 1
     wb_bootstrap.create_venv(ctx.venv_dir, base_python, log_info=info, log_warn=warn)
@@ -686,7 +702,7 @@ def print_help() -> None:
     print("Usage: wb <command> [options]")
     print()
     print("Core commands:")
-    print("  setup                 Create virtualenv, install dependencies, and initialize the database")
+    print("  setup [--diagnose]    Create virtualenv, install dependencies, and initialize the database")
     print("  runserver [--opts]    Start the development server")
     print("  init-db               Initialize the SQLite database")
     print("  create-admin USER     Promote a user to admin")
@@ -753,7 +769,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if ns.command == "setup":
-        return cmd_setup(ns)
+        return cmd_setup(passthrough)
 
     if ns.command == "hub":
         return cmd_hub(passthrough)
