@@ -107,10 +107,13 @@ def _build_bootstrap_context() -> wb_bootstrap.BootstrapContext:
 
 
 def _resolve_setup_python(ctx: wb_bootstrap.BootstrapContext) -> Path:
-    strategy = wb_bootstrap.select_setup_strategy(ctx)
-    if strategy == wb_bootstrap.SetupStrategy.MANAGED:
-        runtime = wb_bootstrap.ensure_managed_runtime(ctx)
+    requested = os.environ.get(wb_bootstrap.SETUP_STRATEGY_ENV)
+    strategy = wb_bootstrap.select_setup_strategy(ctx, requested=requested)
+    if strategy in (wb_bootstrap.SetupStrategy.AUTO, wb_bootstrap.SetupStrategy.MANAGED):
+        runtime = wb_bootstrap.ensure_managed_runtime(ctx, log_info=info, log_warn=warn)
         if runtime.available and runtime.python_path:
+            if runtime.detail:
+                info(runtime.detail)
             return runtime.python_path
         if runtime.detail:
             warn(runtime.detail)
