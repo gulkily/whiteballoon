@@ -10,12 +10,13 @@ import json
 import os
 import platform
 import secrets
-import shutil
 import signal
 import socket
 import subprocess
 import sys
 from pathlib import Path
+
+from tools import wb_bootstrap
 
 def _ensure_env_loaded() -> None:
     try:
@@ -86,9 +87,7 @@ COMMENT_PROMOTION_BATCH_MODULE = "app.tools.comment_promotion_batch"
 
 
 def python_in_venv() -> Path:
-    if platform.system() == "Windows":
-        return VENV_DIR / "Scripts" / "python.exe"
-    return VENV_DIR / "bin" / "python"
+    return wb_bootstrap.python_in_venv(VENV_DIR)
 
 
 def run(argv: list[str], check: bool = False) -> subprocess.CompletedProcess:
@@ -97,46 +96,25 @@ def run(argv: list[str], check: bool = False) -> subprocess.CompletedProcess:
 
 # -------- Environment bootstrap --------
 
-def create_venv() -> None:
-    if python_in_venv().exists():
-        return
-    info("Creating virtual environment at .venv")
-    subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
+def _build_bootstrap_context() -> wb_bootstrap.BootstrapContext:
+    return wb_bootstrap.BootstrapContext(
+        project_root=SCRIPT_DIR,
+        venv_dir=VENV_DIR,
+        env_file=SCRIPT_DIR / ".env",
+        env_example=SCRIPT_DIR / ".env.example",
+        base_python=Path(sys.executable),
+    )
 
 
-def ensure_pip(venv_python: Path) -> None:
-    try:
-        subprocess.run([str(venv_python), "-m", "pip", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return
-    except Exception:
-        info("Bootstrapping pip in virtual environment")
-    # Try ensurepip
-    result = subprocess.run([str(venv_python), "-m", "ensurepip", "--upgrade"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if result.returncode != 0:
-        error(
-            "Virtualenv missing pip and ensurepip is unavailable. On Debian/Ubuntu, install 'python3-venv'. On Windows, repair Python install to enable pip."
-        )
-        sys.exit(1)
-
-
-def upgrade_pip(venv_python: Path) -> None:
-    subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True)
-
-
-def editable_install(venv_python: Path) -> None:
-    subprocess.run([str(venv_python), "-m", "pip", "install", "-e", str(SCRIPT_DIR)], check=True)
-
-
-def create_env_file() -> None:
-    env_file = SCRIPT_DIR / ".env"
-    env_example = SCRIPT_DIR / ".env.example"
-    if env_file.exists():
-        return
-    if env_example.exists():
-        shutil.copyfile(env_example, env_file)
-        info("Created .env from .env.example")
-    else:
-        warn(".env.example not found; skipping .env creation")
+def _resolve_setup_python(ctx: wb_bootstrap.BootstrapContext) -> Path:
+    strategy = wb_bootstrap.select_setup_strategy(ctx)
+    if strategy == wb_bootstrap.SetupStrategy.MANAGED:
+        runtime = wb_bootstrap.ensure_managed_runtime(ctx)
+        if runtime.available and runtime.python_path:
+            return runtime.python_path
+        if runtime.detail:
+            warn(runtime.detail)
+    return wb_bootstrap.ensure_system_python(ctx)
 
 
 # -------- Dev tool integration --------
@@ -566,13 +544,16 @@ def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
 # -------- CLI handlers --------
 
 def cmd_setup(_args: argparse.Namespace) -> int:
-    create_venv()
+    ctx = _build_bootstrap_context()
+    base_python = _resolve_setup_python(ctx)
+    wb_bootstrap.create_venv(ctx.venv_dir, base_python, log_info=info)
     vpy = python_in_venv()
-    ensure_pip(vpy)
+    if not wb_bootstrap.ensure_pip(vpy, log_info=info, log_error=error):
+        return 1
     info("Installing project dependencies")
-    upgrade_pip(vpy)
-    editable_install(vpy)
-    create_env_file()
+    wb_bootstrap.upgrade_pip(vpy)
+    wb_bootstrap.editable_install(vpy, ctx.project_root)
+    wb_bootstrap.create_env_file(ctx.env_file, ctx.env_example, log_info=info, log_warn=warn)
     info("Initializing database")
     rc = dev_invoke(vpy, "init-db")
     if rc != 0:
