@@ -28,10 +28,12 @@ MANAGED_PYTHON_PATH_ENV = "WB_MANAGED_PYTHON_PATH"
 MANAGED_PYTHON_URL_ENV = "WB_MANAGED_PYTHON_URL"
 MANAGED_PYTHON_VERSION_ENV = "WB_MANAGED_PYTHON_VERSION"
 MANAGED_PYTHON_DIR_ENV = "WB_MANAGED_PYTHON_DIR"
+PIP_CONSTRAINTS_ENV = "WB_PIP_CONSTRAINTS"
 
 DEFAULT_MANAGED_PYTHON_VERSION = "3.11.9"
 MIN_PYTHON_VERSION = (3, 10)
 MIN_PYTHON_TEXT = "3.10"
+DEFAULT_CONSTRAINTS_FILES = ("constraints.txt", "requirements.lock")
 
 
 @dataclass(frozen=True)
@@ -281,8 +283,24 @@ def upgrade_pip(venv_python: Path) -> None:
     subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True)
 
 
-def editable_install(venv_python: Path, project_root: Path) -> None:
-    subprocess.run([str(venv_python), "-m", "pip", "install", "-e", str(project_root)], check=True)
+def editable_install(
+    venv_python: Path,
+    project_root: Path,
+    *,
+    constraints_file: Path | None = None,
+    log_info: LogFn | None = None,
+    log_warn: LogFn | None = None,
+) -> None:
+    if constraints_file is None:
+        constraints_file = resolve_constraints_file(
+            project_root,
+            log_info=log_info,
+            log_warn=log_warn,
+        )
+    cmd = [str(venv_python), "-m", "pip", "install", "-e", str(project_root)]
+    if constraints_file:
+        cmd.extend(["-c", str(constraints_file)])
+    subprocess.run(cmd, check=True)
 
 
 def create_env_file(
@@ -301,6 +319,33 @@ def create_env_file(
     else:
         if log_warn:
             log_warn(".env.example not found; skipping .env creation")
+
+
+def resolve_constraints_file(
+    project_root: Path,
+    *,
+    log_info: LogFn | None = None,
+    log_warn: LogFn | None = None,
+) -> Path | None:
+    override = os.environ.get(PIP_CONSTRAINTS_ENV)
+    if override:
+        path = Path(override).expanduser()
+        if not path.is_absolute():
+            path = project_root / path
+        if path.exists():
+            if log_info:
+                log_info(f"Using pip constraints from {path}")
+            return path
+        if log_warn:
+            log_warn(f"Constraints file not found: {path}")
+        return None
+    for name in DEFAULT_CONSTRAINTS_FILES:
+        candidate = project_root / name
+        if candidate.exists():
+            if log_info:
+                log_info(f"Using pip constraints from {candidate}")
+            return candidate
+    return None
 
 
 def validate_system_python(

@@ -558,7 +558,7 @@ def cmd_setup(_args: argparse.Namespace) -> int:
         return 1
     info("Installing project dependencies")
     wb_bootstrap.upgrade_pip(vpy)
-    wb_bootstrap.editable_install(vpy, ctx.project_root)
+    wb_bootstrap.editable_install(vpy, ctx.project_root, log_info=info, log_warn=warn)
     wb_bootstrap.create_env_file(ctx.env_file, ctx.env_example, log_info=info, log_warn=warn)
     info("Initializing database")
     rc = dev_invoke(vpy, "init-db")

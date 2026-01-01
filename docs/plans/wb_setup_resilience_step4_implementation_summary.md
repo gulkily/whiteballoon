@@ -12,3 +12,8 @@
 - Changes: added system Python preflight checks for version/venv/ensurepip and improved broken-venv repair handling when falling back to system Python.
 - Verification: Not run (per project guidance to avoid running commands).
 - Notes: System Python must be 3.10+ or setup exits with actionable guidance to use a managed runtime.
+
+## Stage 4 – Dependency install strategy alignment
+- Changes: added optional pip constraints support via `WB_PIP_CONSTRAINTS` or local `constraints.txt`/`requirements.lock`, while continuing to install from `pyproject.toml` via editable install.
+- Verification: Not run (per project guidance to avoid running commands).
+- Notes: Setup remains independent of a `requirements.txt` file; constraints are opt-in.
