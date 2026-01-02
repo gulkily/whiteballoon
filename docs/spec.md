@@ -153,6 +153,7 @@ enhancement so the project can be restored accurately using this document.
 ## CLI & Tooling
 - `./wb` bootstraps a virtual environment (via `wb setup`), installs
   dependencies, and delegates to `tools/dev.py`.
+- `./wb generate-requirements` regenerates the committed `requirements.txt` from `pyproject.toml`; the file should not be edited manually.
 - Core commands:
   - `wb runserver [--host --port --reload]` – start the FastAPI app with
     uvicorn (preflight ensures port availability).
