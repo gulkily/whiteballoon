@@ -554,6 +554,15 @@ def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
 
 # -------- CLI handlers --------
 
+def cmd_generate_requirements(args: list[str]) -> int:
+    script = SCRIPT_DIR / "tools" / "generate_requirements.py"
+    if not script.exists():
+        error(f"Missing helper script: {script}")
+        return 1
+    cmd = [sys.executable, str(script), *args]
+    return subprocess.call(cmd)
+
+
 def cmd_setup(args: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="wb setup", description="Bootstrap the local environment")
     parser.add_argument("--diagnose", action="store_true", help="Print setup diagnostics and exit")
@@ -704,6 +713,7 @@ def print_help() -> None:
     print()
     print("Core commands:")
     print("  setup [--diagnose]    Create virtualenv, install dependencies, and initialize the database")
+    print("  generate-requirements Regenerate requirements.txt from pyproject.toml")
     print("  runserver [--opts]    Start the development server")
     print("  init-db               Initialize the SQLite database")
     print("  create-admin USER     Promote a user to admin")
@@ -735,6 +745,7 @@ def main(argv: list[str] | None = None) -> int:
     subparsers.add_parser("help")
     subparsers.add_parser("version")
     subparsers.add_parser("setup")
+    subparsers.add_parser("generate-requirements")
     subparsers.add_parser("runserver")
     subparsers.add_parser("init-db")
     subparsers.add_parser("create-admin")
@@ -771,6 +782,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if ns.command == "setup":
         return cmd_setup(passthrough)
+
+    if ns.command == "generate-requirements":
+        return cmd_generate_requirements(passthrough)
 
     if ns.command == "hub":
         return cmd_hub(passthrough)

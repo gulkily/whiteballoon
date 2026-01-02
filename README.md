@@ -84,6 +84,8 @@ Requires Python 3.10+ or a managed runtime configured for `./wb setup`.
 
 > **Developer reminder**: Whenever you add a new configuration flag or environment variable, update `.env.example` with the default and a short description so fresh installs pick it up.
 >
+> **Requirements.txt**: Regenerate the committed `requirements.txt` with `./wb generate-requirements` (or `python tools/generate_requirements.py`) whenever `pyproject.toml` dependencies change. Do not edit `requirements.txt` manually.
+>
 > **Frontend skins**: Whenever you change files under `static/skins/` or adjust shared design tokens, run `./wb skins build` (or `./wb skins watch` during development) so the hashed bundles in `static/build/skins/` stay in sync. Use `./wb skins list` to see which entry bundles exist before rebuilding. Skipping the rebuild leaves browsers serving the previous CSS and makes refreshed layouts look broken.
 
 ### Direct messaging storage

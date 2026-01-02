@@ -1,5 +1,6 @@
 # Requirements for WhiteBalloon
 # Generated from pyproject.toml dependencies
+# Do not edit manually; run ./wb generate-requirements
 # Install with: pip install -r requirements.txt
 
 fastapi>=0.111,<1.0
@@ -16,4 +17,3 @@ qrcode[pil]>=7.4,<8.0
 cryptography>=43.0.0,<44.0
 python-dotenv>=1.0,<2.0
 dedalus-labs>=0.1.0
-
