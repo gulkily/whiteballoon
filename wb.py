@@ -4,37 +4,45 @@ from __future__ import annotations
 import argparse
 import contextlib
 import errno
+import hashlib
 import io
 import json
 import os
 import platform
 import secrets
-import shutil
 import signal
 import socket
 import subprocess
 import sys
 from pathlib import Path
 
-# Check Python version before importing app code
-if sys.version_info < (3, 10):
-    print(
-        f"Oops! WhiteBalloon requires Python 3.10 or newer (detected: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}).",
-        file=sys.stderr,
-    )
-    print(
-        "Please upgrade your Python installation to version 3.10 or above. If you have questions, feel free to ask for help!",
-        file=sys.stderr,
-    )
-    sys.exit(1)
+from tools import wb_bootstrap
 
-# Load .env file directly without importing app code (which requires dependencies)
-try:
-    from dotenv import load_dotenv
+
+def _ensure_env_loaded() -> None:
+    try:
+        from dotenv import load_dotenv
+    except Exception:
+        return
     load_dotenv()
-except ImportError:
-    # dotenv not installed yet, that's okay for setup
-    pass
+
+
+_ensure_env_loaded()
+
+
+def _get_hub_config_helpers():
+    try:
+        from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
+        return DEFAULT_STORAGE_DIR, hash_token
+    except Exception:
+        default_storage_dir = Path("data/hub_store")
+
+        def _hash_token(token: str) -> str:
+            digest = hashlib.sha256()
+            digest.update(token.encode("utf-8"))
+            return digest.hexdigest()
+
+        return default_storage_dir, _hash_token
 
 
 # -------- Logging helpers --------
@@ -80,9 +88,7 @@ COMMENT_PROMOTION_BATCH_MODULE = "app.tools.comment_promotion_batch"
 
 
 def python_in_venv() -> Path:
-    if platform.system() == "Windows":
-        return VENV_DIR / "Scripts" / "python.exe"
-    return VENV_DIR / "bin" / "python"
+    return wb_bootstrap.python_in_venv(VENV_DIR)
 
 
 def run(argv: list[str], check: bool = False) -> subprocess.CompletedProcess:
@@ -91,46 +97,35 @@ def run(argv: list[str], check: bool = False) -> subprocess.CompletedProcess:
 
 # -------- Environment bootstrap --------
 
-def create_venv() -> None:
-    if python_in_venv().exists():
-        return
-    info("Creating virtual environment at .venv")
-    subprocess.run([sys.executable, "-m", "venv", str(VENV_DIR)], check=True)
+def _build_bootstrap_context() -> wb_bootstrap.BootstrapContext:
+    return wb_bootstrap.BootstrapContext(
+        project_root=SCRIPT_DIR,
+        venv_dir=VENV_DIR,
+        env_file=SCRIPT_DIR / ".env",
+        env_example=SCRIPT_DIR / ".env.example",
+        base_python=Path(sys.executable),
+    )
 
 
-def ensure_pip(venv_python: Path) -> None:
-    try:
-        subprocess.run([str(venv_python), "-m", "pip", "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return
-    except Exception:
-        info("Bootstrapping pip in virtual environment")
-    # Try ensurepip
-    result = subprocess.run([str(venv_python), "-m", "ensurepip", "--upgrade"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if result.returncode != 0:
-        error(
-            "Virtualenv missing pip and ensurepip is unavailable. On Debian/Ubuntu, install 'python3-venv'. On Windows, repair Python install to enable pip."
-        )
-        sys.exit(1)
+def _resolve_setup_plan(ctx: wb_bootstrap.BootstrapContext) -> wb_bootstrap.SetupPlan:
+    requested = os.environ.get(wb_bootstrap.SETUP_STRATEGY_ENV)
+    plan = wb_bootstrap.resolve_setup_plan(ctx, requested=requested, log_info=info, log_warn=warn)
+    if plan.resolved_strategy == wb_bootstrap.SetupStrategy.SYSTEM and plan.requested_strategy == wb_bootstrap.SetupStrategy.MANAGED:
+        if plan.detail:
+            warn(plan.detail)
+    elif plan.detail:
+        info(plan.detail)
+    return plan
 
 
-def upgrade_pip(venv_python: Path) -> None:
-    subprocess.run([str(venv_python), "-m", "pip", "install", "--upgrade", "pip"], check=True)
-
-
-def editable_install(venv_python: Path) -> None:
-    subprocess.run([str(venv_python), "-m", "pip", "install", "-e", str(SCRIPT_DIR)], check=True)
-
-
-def create_env_file() -> None:
-    env_file = SCRIPT_DIR / ".env"
-    env_example = SCRIPT_DIR / ".env.example"
-    if env_file.exists():
-        return
-    if env_example.exists():
-        shutil.copyfile(env_example, env_file)
-        info("Created .env from .env.example")
-    else:
-        warn(".env.example not found; skipping .env creation")
+def _log_setup_diagnostics(ctx: wb_bootstrap.BootstrapContext, plan: wb_bootstrap.SetupPlan) -> None:
+    info(
+        "Setup strategy: "
+        f"requested={plan.requested_strategy.value} resolved={plan.resolved_strategy.value}"
+    )
+    version = wb_bootstrap.format_python_version(plan.python_path)
+    info(f"Using Python: {plan.python_path} ({version})")
+    wb_bootstrap.resolve_constraints_file(ctx.project_root, log_info=info, log_warn=warn)
 
 
 # -------- Dev tool integration --------
@@ -539,15 +534,13 @@ def cmd_dedalus(args: list[str]) -> int:
 
 
 def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
-    # Lazy import to avoid importing app code before venv is set up
-    from app.hub.config import DEFAULT_STORAGE_DIR, hash_token
-    
+    default_storage_dir, hash_token = _get_hub_config_helpers()
     token = secrets.token_hex(32)
     config_path.parent.mkdir(parents=True, exist_ok=True)
     if config_path.exists():
         data = json.loads(config_path.read_text(encoding="utf-8"))
     else:
-        data = {"storage_dir": str(DEFAULT_STORAGE_DIR), "peers": []}
+        data = {"storage_dir": str(default_storage_dir), "peers": []}
     admin_tokens = data.get("admin_tokens") or []
     admin_tokens = [entry for entry in admin_tokens if entry.get("name") != token_name]
     admin_tokens.append({"name": token_name, "token_hash": hash_token(token)})
@@ -561,14 +554,29 @@ def _create_hub_admin_token(config_path: Path, token_name: str) -> int:
 
 # -------- CLI handlers --------
 
-def cmd_setup(_args: argparse.Namespace) -> int:
-    create_venv()
+def cmd_setup(args: list[str]) -> int:
+    parser = argparse.ArgumentParser(prog="wb setup", description="Bootstrap the local environment")
+    parser.add_argument("--diagnose", action="store_true", help="Print setup diagnostics and exit")
+    ns = parser.parse_args(args)
+
+    ctx = _build_bootstrap_context()
+    plan = _resolve_setup_plan(ctx)
+    _log_setup_diagnostics(ctx, plan)
+    if ns.diagnose:
+        return 0
+
+    base_python = plan.python_path
+    if plan.resolved_strategy == wb_bootstrap.SetupStrategy.SYSTEM:
+        if not wb_bootstrap.validate_system_python(ctx, log_error=error, log_warn=warn):
+            return 1
+    wb_bootstrap.create_venv(ctx.venv_dir, base_python, log_info=info, log_warn=warn)
     vpy = python_in_venv()
-    ensure_pip(vpy)
+    if not wb_bootstrap.ensure_pip(vpy, log_info=info, log_error=error):
+        return 1
     info("Installing project dependencies")
-    upgrade_pip(vpy)
-    editable_install(vpy)
-    create_env_file()
+    wb_bootstrap.upgrade_pip(vpy)
+    wb_bootstrap.editable_install(vpy, ctx.project_root, log_info=info, log_warn=warn)
+    wb_bootstrap.create_env_file(ctx.env_file, ctx.env_example, log_info=info, log_warn=warn)
     info("Initializing database")
     rc = dev_invoke(vpy, "init-db")
     if rc != 0:
@@ -695,7 +703,7 @@ def print_help() -> None:
     print("Usage: wb <command> [options]")
     print()
     print("Core commands:")
-    print("  setup                 Create virtualenv, install dependencies, and initialize the database")
+    print("  setup [--diagnose]    Create virtualenv, install dependencies, and initialize the database")
     print("  runserver [--opts]    Start the development server")
     print("  init-db               Initialize the SQLite database")
     print("  create-admin USER     Promote a user to admin")
@@ -762,7 +770,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if ns.command == "setup":
-        return cmd_setup(ns)
+        return cmd_setup(passthrough)
 
     if ns.command == "hub":
         return cmd_hub(passthrough)

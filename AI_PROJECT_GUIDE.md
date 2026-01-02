@@ -5,6 +5,7 @@
 - Do not attempt to diagnose or change production systems directly from this workspace
 - Avoid `sudo` and global package installs; rely on project tooling instead
 - Use the git-style `./wb` wrapper (backed by `tools/dev.py`) to run local workflows (server, database init, admin creation)
+- `./wb setup` supports a managed runtime and optional constraints (see `WB_SETUP_STRATEGY`, `WB_MANAGED_PYTHON_*`, and `WB_PIP_CONSTRAINTS` in `.env.example`)
 - After applying code changes, do not run follow-up commands/tests—the requestor prefers to execute all post-change commands manually.
 
 ## Project Overview

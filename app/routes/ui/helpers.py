@@ -5,11 +5,13 @@ from typing import Optional, Union
 
 from fastapi.templating import Jinja2Templates
 from markupsafe import Markup, escape
+from sqlmodel import Session
 
 from app.config import get_settings
 from app.modules.messaging import services as messaging_services
 from app.models import User, UserSession
 from app.skins.runtime import register_skin_helpers
+from app.services import user_attribute_service
 
 templates = Jinja2Templates(directory="templates")
 register_skin_helpers(templates)
@@ -145,4 +147,12 @@ def describe_session_role(user: User, session: Optional[UserSession]) -> Optiona
     return {"label": "Member", "tone": "muted"}
 
 
-__all__ = ["describe_session_role", "friendly_time", "render_multiline", "templates"]
+def get_account_avatar(db: Session, user_id: int) -> Optional[str]:
+    return user_attribute_service.get_attribute(
+        db,
+        user_id=user_id,
+        key=user_attribute_service.PROFILE_PHOTO_URL_KEY,
+    )
+
+
+__all__ = ["describe_session_role", "friendly_time", "get_account_avatar", "render_multiline", "templates"]
