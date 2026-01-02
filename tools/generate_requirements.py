@@ -13,6 +13,7 @@ except ModuleNotFoundError:  # pragma: no cover - handled at runtime
 HEADER = [
     "# Requirements for WhiteBalloon",
     "# Generated from pyproject.toml dependencies",
+    "# Do not edit manually; run ./wb generate-requirements",
     "# Install with: pip install -r requirements.txt",
     "",
 ]
