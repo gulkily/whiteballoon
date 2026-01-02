@@ -18,6 +18,7 @@ from pathlib import Path
 
 from tools import wb_bootstrap
 
+
 def _ensure_env_loaded() -> None:
     try:
         from dotenv import load_dotenv

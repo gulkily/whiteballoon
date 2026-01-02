@@ -917,13 +917,14 @@ def create_invite(
                 click.echo(f"User '{normalized}' is not an admin.")
                 raise click.Abort()
 
-        invite = auth_service.create_invite_token(
+        invite_result = auth_service.create_invite_token(
             session,
             created_by=creator,
             max_uses=max_uses,
             expires_in_days=expires_in_days,
             auto_approve=auto_approve,
         )
+        invite = invite_result.invite
         click.secho(f"Invite token: {invite.token}", fg="green")
         click.echo(f"Invite link: {build_invite_link(invite.token)}")
         if invite.expires_at:
