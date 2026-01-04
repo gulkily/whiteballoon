@@ -1,8 +1,6 @@
 todo
 ====
 
-add generator script to keep requirements.txt in sync with pyproject.toml
-
 allow encrypting (publishing) packets specifically for individual/multiple clients (using their public key)
 
 idea: entry page with a door opening
