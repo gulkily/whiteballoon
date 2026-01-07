@@ -679,8 +679,10 @@
   }
 
   function updateChannelRowMeta(channel) {
-    registerChannel(channel);
     const channelId = Number(channel.id);
+    const existing = channelStore.get(channelId) || channelMeta[channelId] || {};
+    const merged = { ...existing, ...channel, id: channelId };
+    registerChannel(merged);
     const button = buttons.find((btn) => Number(btn.dataset.channelId) === channelId);
     if (!button) return;
     let replyBadge = button.querySelector('[data-channel-replies]');

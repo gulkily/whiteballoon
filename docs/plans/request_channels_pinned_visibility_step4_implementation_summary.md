@@ -14,3 +14,8 @@
 - Changes: Styled the priority container and list in `static/skins/base/30-requests.css`.
 - Verification: Not run (per project guidance).
 - Notes: None.
+
+## Stage 4 – Preserve channel titles when updating metadata
+- Changes: Merge updated channel metadata with stored row data to avoid dropping titles in `static/js/request-channels.js`.
+- Verification: Not run (per project guidance).
+- Notes: None.
