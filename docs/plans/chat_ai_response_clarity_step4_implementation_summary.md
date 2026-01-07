@@ -7,3 +7,8 @@
 - Changes: Replaced the CLI's full title list response with the same concise summary and pointer to Sources.
 - Verification: Not run (per AI_PROJECT_GUIDE). Suggested manual check: run `./wb chat ai --prompt "<question>"` and confirm the reply is a short summary with Sources listed below.
 - Notes: None.
+
+## Stage 3 – Copy review for AI panel helper text
+- Changes: Updated the AI panel subtitle to reinforce that Sources contains the full list.
+- Verification: Not run (per AI_PROJECT_GUIDE). Suggested manual check: load Request Channels and confirm the subtitle reads clearly.
+- Notes: None.
