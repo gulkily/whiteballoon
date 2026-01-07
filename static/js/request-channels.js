@@ -367,17 +367,13 @@
     const iso = target.getAttribute('data-timestamp');
     if (!iso) return;
     const date = new Date(iso);
-    const now = new Date();
-    const diff = now - date;
-    const minutes = Math.floor(diff / 60000);
-    let label = 'just now';
-    if (minutes >= 60) {
-      const hours = Math.floor(minutes / 60);
-      label = hours === 1 ? '1 hour ago' : `${hours} hours ago`;
-    } else if (minutes > 1) {
-      label = `${minutes} minutes ago`;
-    } else if (minutes === 1) {
-      label = '1 minute ago';
+    if (isNaN(date.getTime())) return;
+    let label = '';
+    if (typeof window.formatFriendlyTime === 'function') {
+      label = window.formatFriendlyTime(date);
+    }
+    if (!label) {
+      label = date.toLocaleString();
     }
     target.textContent = label;
   }
