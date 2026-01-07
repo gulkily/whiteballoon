@@ -25,16 +25,7 @@ extend comment LLM rubric to capture signals about the author
 	aggregate them into auto-generated public profiles.
 	be positive in the profiles only
 
-user directory page
-
-make sure auth required page is not just a json message
-	members page
-	check other pages
-	make some kind of systematic update
-
 when indexing chats, if a message looks like a request, spawn a new request for it
-
-Log Dedalus-powered comment indexer runs (start/finalize) so they appear in /admin/dedalus/logs.
 
 peer auth
 	hide message about self-authentication being disabled
