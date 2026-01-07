@@ -28,6 +28,14 @@
         data-channel-search
       />
     </div>
+    <div class="request-channels__priority" data-channel-priority hidden>
+      <div
+        class="request-channels__priority-list"
+        data-channel-priority-list
+        role="listbox"
+        aria-label="Priority channels"
+      ></div>
+    </div>
     <div class="request-channels__filters" data-channel-filters role="toolbar" aria-label="Channel filters">
       {% set filters = [
         {"slug": "all", "label": "All"},
@@ -45,12 +53,6 @@
           {{ filter.label }}
         </button>
       {% endfor %}
-    </div>
-    <div class="request-channels__notice" data-channel-filter-notice hidden>
-      <span>Active request is hidden by the current filters.</span>
-      <button type="button" class="channel-filter channel-filter--reset" data-channel-reset>
-        Clear filters
-      </button>
     </div>
     {% set initial_channel_count = channel_requests | length %}
     {% if is_single_status_view %}
