@@ -130,6 +130,10 @@ body.page {
   letter-spacing: 0.3em;
 }
 
+.brand-wordmark {
+  white-space: nowrap;
+}
+
 .nav-links a:not(.button) {
   color: #d2d8ff;
 }

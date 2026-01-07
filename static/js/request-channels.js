@@ -222,10 +222,6 @@
     presence.setAttribute('hidden', 'hidden');
     meta.append(status, time, presence);
 
-    const preview = document.createElement('span');
-    preview.className = 'request-channel__preview';
-    preview.textContent = channel.preview;
-
     const badges = document.createElement('div');
     badges.className = 'request-channel__badges';
     if (channel.is_pinned) {
@@ -250,7 +246,7 @@
       badges.appendChild(unread);
     }
 
-    button.append(title, meta, preview, badges);
+    button.append(title, meta, badges);
     channelMeta[channel.id] = channel;
     return button;
   }
