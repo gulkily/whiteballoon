@@ -1,8 +1,6 @@
 todo
 ====
 
-add generator script to keep requirements.txt in sync with pyproject.toml
-
 allow encrypting (publishing) packets specifically for individual/multiple clients (using their public key)
 
 idea: entry page with a door opening
@@ -27,16 +25,7 @@ extend comment LLM rubric to capture signals about the author
 	aggregate them into auto-generated public profiles.
 	be positive in the profiles only
 
-user directory page
-
-make sure auth required page is not just a json message
-	members page
-	check other pages
-	make some kind of systematic update
-
 when indexing chats, if a message looks like a request, spawn a new request for it
-
-Log Dedalus-powered comment indexer runs (start/finalize) so they appear in /admin/dedalus/logs.
 
 peer auth
 	hide message about self-authentication being disabled
@@ -48,6 +37,7 @@ peer auth
 channels page
 	the channes list should be expandable on mobile, not all the way at the bottom
 	the send textbox should be always visible
+	update request channel timestamps over time (e.g., "just now" → "1 minute ago") without reload
 
 peer auth
 	add device fingerprinting

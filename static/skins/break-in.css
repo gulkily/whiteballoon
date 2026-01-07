@@ -45,6 +45,7 @@
   --skin-button-bg: linear-gradient(120deg, #d8ff3f, #f6ff6f);
   --skin-button-hover-bg: linear-gradient(120deg, #f6ff6f, #d8ff3f);
   --skin-button-text: #030406;
+  --skin-button-hover-text: var(--color-on-accent);
   --skin-button-hover-shadow: 0 20px 45px rgba(216, 255, 63, 0.35);
   --skin-button-ghost-bg: rgba(255, 255, 255, 0.06);
   --skin-button-ghost-color: #f4f8ff;
@@ -53,7 +54,7 @@
   --skin-button-secondary-color: #f4f8ff;
   --skin-button-secondary-border: rgba(255, 255, 255, 0.45);
   --skin-button-secondary-bg-dark: rgba(255, 255, 255, 0.08);
-  --skin-button-secondary-color-dark: #030406;
+  --skin-button-secondary-color-dark: var(--color-text);
   --skin-button-secondary-border-dark: rgba(216, 255, 63, 0.8);
 }
 
@@ -83,7 +84,7 @@
   --skin-theme-toggle-auto-bg: rgba(1, 4, 12, 0.95);
   --skin-bubble-background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(216, 255, 63, 0.09));
   --skin-button-secondary-bg: rgba(255, 255, 255, 0.08);
-  --skin-button-secondary-color: #030406;
+  --skin-button-secondary-color: var(--color-text);
   --skin-button-secondary-border: rgba(216, 255, 63, 0.75);
 }
 
@@ -129,12 +130,16 @@ body.page {
   letter-spacing: 0.3em;
 }
 
-.nav-links a {
+.brand-wordmark {
+  white-space: nowrap;
+}
+
+.nav-links a:not(.button) {
   color: #d2d8ff;
 }
 
-.nav-links a:hover,
-.nav-links a:focus-visible {
+.nav-links a:not(.button):hover,
+.nav-links a:not(.button):focus-visible {
   color: var(--color-accent);
 }
 

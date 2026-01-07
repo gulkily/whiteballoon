@@ -18,14 +18,14 @@ body.page {
   font-feature-settings: "liga" 1, "kern" 1;
 }
 
-a,
-a:visited {
+a:not(.button),
+a:not(.button):visited {
   color: var(--color-accent);
   transition: color 0.2s ease;
 }
 
-a:hover,
-a:focus-visible {
+a:not(.button):hover,
+a:not(.button):focus-visible {
   color: var(--color-accent-strong, var(--color-accent));
 }
 

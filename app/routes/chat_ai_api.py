@@ -132,19 +132,19 @@ def _compose_response_text(
         return context.guardrail
     if not citations:
         return "I couldn't find any matching requests or chat messages. Try adding specific keywords or request IDs."
+    request_count = len(context.request_citations)
+    comment_count = len(context.comment_citations)
+    if request_count and comment_count:
+        summary = (
+            f"I found {request_count} request{'s' if request_count != 1 else ''} and "
+            f"{comment_count} chat message{'s' if comment_count != 1 else ''} related to that."
+        )
+    elif request_count:
+        summary = f"I found {request_count} request{'s' if request_count != 1 else ''} related to that."
+    else:
+        summary = f"I found {comment_count} chat message{'s' if comment_count != 1 else ''} related to that."
 
-    lines: list[str] = []
-    if context.request_citations:
-        lines.append("Here are the closest requests I found:")
-        for idx, citation in enumerate(context.request_citations, start=1):
-            lines.append(f"{idx}. {citation.label}: {citation.snippet}")
-    if context.comment_citations:
-        if lines:
-            lines.append("")
-        lines.append("Related chat messages:")
-        for idx, citation in enumerate(context.comment_citations, start=1):
-            lines.append(f"{idx}. {citation.label}: {citation.snippet}")
+    response_parts = [summary, "See Sources for the full list."]
     if context.guardrail:
-        lines.append("")
-        lines.append(context.guardrail)
-    return "\n".join(lines).strip()
+        response_parts.append(context.guardrail)
+    return " ".join(response_parts).strip()

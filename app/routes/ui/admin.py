@@ -808,7 +808,7 @@ def admin_profile_highlight_action(
         severity = "error"
         message = "Unknown action."
 
-    target = URL(request.url_for("admin_profile_detail", user_id=user_id)).include_query_params(
+    target = request.url_for("admin_profile_detail", user_id=user_id).include_query_params(
         message=message,
         severity=severity,
     )
