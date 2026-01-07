@@ -92,20 +92,25 @@ def _handle_prompt(session: Session, user: User, prompt: str, scope: str, max_it
 def _format_response(context: chat_ai_service.ChatAIContextResult) -> str:
     if context.guardrail and context.is_empty():
         return context.guardrail
-    lines: list[str] = []
-    if context.request_citations:
-        lines.append("Requests:")
-        for idx, citation in enumerate(context.request_citations, start=1):
-            lines.append(f"  {idx}. {citation.label} — {citation.snippet}")
-    if context.comment_citations:
-        lines.append("Comments:")
-        for idx, citation in enumerate(context.comment_citations, start=1):
-            lines.append(f"  {idx}. {citation.label} — {citation.snippet}")
-    if not lines:
-        lines.append("No matching requests or chats found. Try refining your question.")
+    request_count = len(context.request_citations)
+    comment_count = len(context.comment_citations)
+    if not request_count and not comment_count:
+        return "No matching requests or chats found. Try refining your question."
+
+    if request_count and comment_count:
+        summary = (
+            f"I found {request_count} request{'s' if request_count != 1 else ''} and "
+            f"{comment_count} chat message{'s' if comment_count != 1 else ''} related to that."
+        )
+    elif request_count:
+        summary = f"I found {request_count} request{'s' if request_count != 1 else ''} related to that."
+    else:
+        summary = f"I found {comment_count} chat message{'s' if comment_count != 1 else ''} related to that."
+
+    response_parts = [summary, "See Sources for the full list."]
     if context.guardrail:
-        lines.append(context.guardrail)
-    return "\n".join(lines)
+        response_parts.append(context.guardrail)
+    return " ".join(response_parts).strip()
 
 
 def _print_citations(citations: Iterable[chat_ai_service.ChatAIContextCitation]) -> None:
