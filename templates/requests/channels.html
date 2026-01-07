@@ -194,6 +194,8 @@
     "active_channel_id": active_channel_id,
   } | tojson }}
 </script>
+{% endblock %}
+{% block scripts %}
 <script src="/static/js/chat-ai-panel.js" defer></script>
 <script src="/static/js/request-channels.js" defer></script>
 {% if session and session.is_fully_authenticated %}
