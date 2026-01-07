@@ -822,6 +822,23 @@
   margin-bottom: 16px;
 }
 
+.request-channels__priority {
+  margin-bottom: 16px;
+}
+
+.request-channels__priority[hidden] {
+  display: none;
+}
+
+.request-channels__priority-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-radius: 16px;
+  background: var(--color-card-muted, rgba(255, 255, 255, 0.08));
+  padding: 4px;
+}
+
 .request-channels__filters {
   display: flex;
   flex-wrap: wrap;

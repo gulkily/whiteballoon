@@ -9,3 +9,8 @@
 - Changes: Added priority list handling, pinned extraction, active-channel fallback, and filter/list coordination in `static/js/request-channels.js`.
 - Verification: Not run (per project guidance).
 - Notes: None.
+
+## Stage 3 – Style the priority area to match the list
+- Changes: Styled the priority container and list in `static/skins/base/30-requests.css`.
+- Verification: Not run (per project guidance).
+- Notes: None.
