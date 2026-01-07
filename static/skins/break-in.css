@@ -45,6 +45,7 @@
   --skin-button-bg: linear-gradient(120deg, #d8ff3f, #f6ff6f);
   --skin-button-hover-bg: linear-gradient(120deg, #f6ff6f, #d8ff3f);
   --skin-button-text: #030406;
+  --skin-button-hover-text: var(--color-on-accent);
   --skin-button-hover-shadow: 0 20px 45px rgba(216, 255, 63, 0.35);
   --skin-button-ghost-bg: rgba(255, 255, 255, 0.06);
   --skin-button-ghost-color: #f4f8ff;
@@ -129,12 +130,12 @@ body.page {
   letter-spacing: 0.3em;
 }
 
-.nav-links a {
+.nav-links a:not(.button) {
   color: #d2d8ff;
 }
 
-.nav-links a:hover,
-.nav-links a:focus-visible {
+.nav-links a:not(.button):hover,
+.nav-links a:not(.button):focus-visible {
   color: var(--color-accent);
 }
 

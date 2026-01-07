@@ -410,6 +410,7 @@
 .button:hover,
 .button:focus {
   background: var(--skin-button-hover-bg, linear-gradient(135deg, rgba(192, 132, 252, 0.95), rgba(124, 58, 237, 0.95)));
+  color: var(--skin-button-hover-text, var(--skin-button-text, #fff));
   transform: translateY(-1px);
   box-shadow: var(--skin-button-hover-shadow, 0 14px 26px rgba(124, 58, 237, 0.25));
 }
