@@ -4,3 +4,8 @@
 - Changes: Added the priority container above filters and removed the hidden-active notice block in `templates/requests/channels.html`.
 - Verification: Not run (per project guidance).
 - Notes: None.
+
+## Stage 2 – Update client-side channel list logic for priority entries
+- Changes: Added priority list handling, pinned extraction, active-channel fallback, and filter/list coordination in `static/js/request-channels.js`.
+- Verification: Not run (per project guidance).
+- Notes: None.
