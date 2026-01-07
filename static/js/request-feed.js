@@ -645,6 +645,12 @@
   }
 
   function formatDate(value) {
+    if (typeof window.formatFriendlyTime === 'function') {
+      const friendly = window.formatFriendlyTime(value);
+      if (friendly) {
+        return friendly;
+      }
+    }
     try {
       const date = new Date(value);
       return date.toLocaleString(undefined, {
