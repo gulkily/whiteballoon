@@ -22,7 +22,7 @@
             {% if entry.counterpart %}
               {% with
                 username=entry.counterpart.username,
-                href='/people/' ~ entry.counterpart.username,
+                href='/messages/' ~ entry.thread.id,
                 class_name='message-thread-card__name'
               %}
                 {% include "partials/display_name.html" %}
@@ -50,7 +50,6 @@
           {% else %}
             <p class="muted small-text">No messages exchanged yet.</p>
           {% endif %}
-          <a class="button button--primary" href="/messages/{{ entry.thread.id }}">Open conversation</a>
         </article>
       {% endfor %}
     </div>

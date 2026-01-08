@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 @lru_cache(maxsize=1)
 def ensure_env_loaded() -> None:
     """Load .env file once if present."""
-    load_dotenv()
+    load_dotenv(override=True)
 
 
 __all__ = ["ensure_env_loaded"]

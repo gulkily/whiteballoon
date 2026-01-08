@@ -14,15 +14,20 @@
 
   const defaultFilter = container.dataset.defaultFilter || 'all';
   const list = container.querySelector('[data-channel-list]');
+  const priority = container.querySelector('[data-channel-priority]');
+  const priorityList = container.querySelector('[data-channel-priority-list]');
   const searchInput = container.querySelector('[data-channel-search]');
-  let buttons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
+  let listButtons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
+  let priorityButtons = priorityList
+    ? Array.from(priorityList.querySelectorAll('[data-channel-node]'))
+    : [];
+  let buttons = [...priorityButtons, ...listButtons];
   const filters = container.querySelector('[data-channel-filters]');
   const chatPane = container.querySelector('[data-channel-pane]');
   const emptyState = container.querySelector('[data-channel-empty]');
-  const filterNotice = container.querySelector('[data-channel-filter-notice]');
-  const filterReset = container.querySelector('[data-channel-reset]');
   const resultsAnnouncer = container.querySelector('[data-channel-results-announcer]');
   const channelMeta = {};
+  const channelStore = new Map();
   const resultCache = new Map();
   const visibleCount = container.querySelector('[data-channel-result-count-value]');
   let activeFilter = defaultFilter;
@@ -34,14 +39,12 @@
   var announcer = null;
   let jumpButton = null;
 
-  if (buttons.length) {
-    buttons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const channelId = Number(btn.dataset.channelId);
-        selectChannel(channelId, btn);
-      });
-      updateRelativeTime(btn);
-    });
+  if (Array.isArray(state.requests)) {
+    state.requests.forEach(registerChannel);
+  }
+
+  if (listButtons.length) {
+    bindChannelButtons();
     resultCache.set(buildQueryKey('all', ''), state.requests || []);
   }
 
@@ -130,6 +133,7 @@
       status: entry.status || 'open',
       updated_at: entry.updated_at,
       is_pinned: Boolean(entry.is_pinned),
+      pin_rank: entry.pin_rank ?? null,
       comment_count: entry.comment_count ?? 0,
       unread_count: entry.unread_count ?? 0,
     };
@@ -141,38 +145,143 @@
     return `${value.slice(0, limit - 3)}...`;
   }
 
+  function registerChannel(channel) {
+    if (!channel || !channel.id) return;
+    const id = Number(channel.id);
+    if (!Number.isFinite(id)) return;
+    channel.id = id;
+    channelMeta[id] = channel;
+    channelStore.set(id, channel);
+  }
+
+  function registerChannels(rows) {
+    if (!Array.isArray(rows)) return;
+    rows.forEach(registerChannel);
+  }
+
+  function syncButtonCache() {
+    listButtons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
+    priorityButtons = priorityList
+      ? Array.from(priorityList.querySelectorAll('[data-channel-node]'))
+      : [];
+    buttons = [...priorityButtons, ...listButtons];
+  }
+
+  function getPinnedChannels() {
+    const pinned = [];
+    channelStore.forEach((row) => {
+      if (row && row.is_pinned) {
+        pinned.push(row);
+      }
+    });
+    pinned.sort(comparePinnedChannels);
+    return pinned;
+  }
+
+  function comparePinnedChannels(a, b) {
+    const aRank = Number.isFinite(a.pin_rank) ? a.pin_rank : Number.MAX_SAFE_INTEGER;
+    const bRank = Number.isFinite(b.pin_rank) ? b.pin_rank : Number.MAX_SAFE_INTEGER;
+    if (aRank !== bRank) {
+      return aRank - bRank;
+    }
+    const aId = Number(a.id);
+    const bId = Number(b.id);
+    if (Number.isFinite(aId) && Number.isFinite(bId)) {
+      return aId - bId;
+    }
+    return 0;
+  }
+
+  function renderPriorityList(rows) {
+    if (!priorityList) return;
+    priorityList.innerHTML = '';
+    if (!rows || !rows.length) return;
+    const fragment = document.createDocumentFragment();
+    rows.forEach((row) => {
+      fragment.appendChild(createChannelButton(row));
+    });
+    priorityList.appendChild(fragment);
+  }
+
+  function removePinnedFromList(pinnedIds) {
+    if (!list || !pinnedIds || !pinnedIds.size) return;
+    list.querySelectorAll('[data-channel-node]').forEach((btn) => {
+      const channelId = Number(btn.dataset.channelId);
+      if (pinnedIds.has(channelId)) {
+        btn.remove();
+      }
+    });
+  }
+
+  function updateListEmptyState() {
+    if (!list) return;
+    const hasVisibleList = listButtons.some((btn) => btn.style.display !== 'none');
+    const hasPriority = priorityButtons.length > 0;
+    let empty = list.querySelector('[data-channel-list-empty]');
+    if (hasVisibleList || hasPriority) {
+      if (empty) {
+        empty.remove();
+      }
+      return;
+    }
+    if (!empty) {
+      empty = document.createElement('p');
+      empty.className = 'muted';
+      empty.textContent = 'No requests match the current filters.';
+      empty.setAttribute('data-channel-list-empty', '');
+      list.appendChild(empty);
+    }
+  }
+
+  function syncPriorityList() {
+    if (!priorityList) {
+      syncButtonCache();
+      updateListEmptyState();
+      return;
+    }
+    const pinnedRows = getPinnedChannels();
+    const pinnedIds = new Set(pinnedRows.map((row) => Number(row.id)));
+    const priorityRows = [...pinnedRows];
+    const activeId = Number(state.active_channel_id);
+    if (Number.isFinite(activeId) && !pinnedIds.has(activeId)) {
+      const activeButton = list
+        ? list.querySelector(`[data-channel-id="${activeId}"]`)
+        : null;
+      const activeVisible = activeButton && activeButton.style.display !== 'none';
+      if (!activeVisible) {
+        const activeRow = channelStore.get(activeId) || channelMeta[activeId];
+        if (activeRow) {
+          priorityRows.push(activeRow);
+        }
+      }
+    }
+    renderPriorityList(priorityRows);
+    removePinnedFromList(pinnedIds);
+    if (priority) {
+      if (priorityRows.length) {
+        priority.removeAttribute('hidden');
+      } else {
+        priority.setAttribute('hidden', 'hidden');
+      }
+    }
+    syncButtonCache();
+    updateListEmptyState();
+    bindChannelButtons();
+  }
+
   function renderChannelList(rows) {
     if (!list) return;
     state.requests = rows;
+    registerChannels(rows);
     list.innerHTML = '';
-    const hasActive = rows.some((row) => Number(row.id) === Number(state.active_channel_id));
-    updateFilterNotice(Boolean(state.active_channel_id) && !hasActive);
-    if (!rows.length) {
-      const empty = document.createElement('p');
-      empty.className = 'muted';
-      empty.textContent = 'No requests match the current filters.';
-      list.appendChild(empty);
-      buttons = [];
-      announceResults(0);
-      return;
-    }
     const fragment = document.createDocumentFragment();
     rows.forEach((row) => {
       fragment.appendChild(createChannelButton(row));
     });
     list.appendChild(fragment);
-    bindChannelButtons();
+    syncButtonCache();
     applyFilters();
     announceResults(rows.length);
-  }
-
-  function updateFilterNotice(shouldShow) {
-    if (!filterNotice) return;
-    if (shouldShow) {
-      filterNotice.removeAttribute('hidden');
-    } else {
-      filterNotice.setAttribute('hidden', 'hidden');
-    }
   }
 
   function updateChannelQuery(channelId) {
@@ -247,17 +356,20 @@
     }
 
     button.append(title, meta, badges);
-    channelMeta[channel.id] = channel;
+    registerChannel(channel);
     return button;
   }
 
   function bindChannelButtons() {
-    buttons = list ? Array.from(list.querySelectorAll('[data-channel-node]')) : [];
+    syncButtonCache();
     buttons.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const channelId = Number(btn.dataset.channelId);
-        selectChannel(channelId, btn);
-      });
+      if (!btn.dataset.channelBound) {
+        btn.dataset.channelBound = 'true';
+        btn.addEventListener('click', () => {
+          const channelId = Number(btn.dataset.channelId);
+          selectChannel(channelId, btn);
+        });
+      }
       updateRelativeTime(btn);
     });
   }
@@ -315,20 +427,6 @@
     });
   }
 
-  if (filterReset) {
-    filterReset.addEventListener('click', () => {
-      if (searchInput) {
-        searchInput.value = '';
-      }
-      searchTerm = '';
-      activeFilter = defaultFilter;
-      syncFilterButtons();
-      applyFilters();
-      scheduleSearch();
-      updateFilterNotice(false);
-    });
-  }
-
   container.addEventListener('keydown', (event) => {
     if (!event.altKey) return;
     if (event.key === 'ArrowDown') {
@@ -352,6 +450,7 @@
       button.setAttribute('aria-current', 'true');
     }
     state.active_channel_id = channelId;
+    syncPriorityList();
     updateChannelQuery(channelId);
     if (emptyState && chatPane) {
       emptyState.setAttribute('hidden', 'hidden');
@@ -381,7 +480,7 @@
   function applyFilters() {
     updateStatusVisibility();
     const normalizedSearch = searchTerm.trim().toLowerCase();
-    buttons.forEach((btn) => {
+    listButtons.forEach((btn) => {
       const status = (btn.dataset.channelStatus || '').toLowerCase();
       const isPinned = btn.dataset.channelPinned === 'true';
       const matchesSearch = btn.textContent.toLowerCase().includes(normalizedSearch);
@@ -393,6 +492,7 @@
       }
       btn.style.display = matchesSearch && matchesFilter ? '' : 'none';
     });
+    syncPriorityList();
   }
 
   function updateStatusVisibility() {
@@ -569,7 +669,6 @@
       restoreScrollState(scrollState);
       if (payload.channel) {
         updateChannelRowMeta(payload.channel);
-        channelMeta[payload.channel.id] = payload.channel;
       }
       announce('Channel updated');
     } catch (error) {
@@ -580,7 +679,11 @@
   }
 
   function updateChannelRowMeta(channel) {
-    const button = buttons.find((btn) => Number(btn.dataset.channelId) === Number(channel.id));
+    const channelId = Number(channel.id);
+    const existing = channelStore.get(channelId) || channelMeta[channelId] || {};
+    const merged = { ...existing, ...channel, id: channelId };
+    registerChannel(merged);
+    const button = buttons.find((btn) => Number(btn.dataset.channelId) === channelId);
     if (!button) return;
     let replyBadge = button.querySelector('[data-channel-replies]');
     if (typeof channel.comment_count === 'number' && channel.comment_count > 0) {
@@ -604,7 +707,6 @@
     if (unreadBadge) {
       unreadBadge.remove();
     }
-    channelMeta[channel.id] = channel;
   }
 
   async function pingPresence(isTyping) {
