@@ -12,3 +12,8 @@
 - Changes: Aggregated request IDs across tabs for polling, stored shared presence payloads with TTL checks, and applied updates via the `storage` event.
 - Verification: Not run (requires browser session).
 - Notes: None.
+
+## Stage 4 – Prune stale tab registrations
+- Changes: Added TTL pruning for stored tab scopes and cleared the current tab scope on `pagehide`/`beforeunload` or when no IDs remain.
+- Verification: Not run (requires browser session).
+- Notes: Scope TTL set to two polling intervals plus a small buffer.

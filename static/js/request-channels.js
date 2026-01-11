@@ -37,6 +37,7 @@
   const presenceHeartbeatInterval = 8000;
   const presencePollInterval = 9000;
   const presencePayloadTtl = presencePollInterval * 2 + 2000;
+  const presenceScopeTtl = presencePollInterval * 2 + 2000;
   const presenceStoragePrefix = 'wb-presence';
   const presenceTabKey = presenceStoragePrefix + ':tab';
   const presenceHeartbeatKey = presenceStoragePrefix + ':heartbeat';
@@ -409,9 +410,11 @@
   const presencePoller = setInterval(refreshPresence, presencePollInterval);
   refreshPresence();
   window.addEventListener('storage', handlePresenceStorage);
+  window.addEventListener('pagehide', clearPresenceScope);
   window.addEventListener('beforeunload', () => {
     clearInterval(heartbeat);
     clearInterval(presencePoller);
+    clearPresenceScope();
   });
 
   function buildQueryKey(filter = activeFilter, term = searchTerm) {
@@ -820,18 +823,50 @@
     return writeJsonStorage(presenceScopeKey, scopes);
   }
 
+  function prunePresenceScopes(scopes, now) {
+    if (!scopes || typeof scopes !== 'object') {
+      return { scopes: {}, changed: true };
+    }
+    const cleaned = {};
+    let changed = false;
+    Object.keys(scopes).forEach((tabId) => {
+      const entry = scopes[tabId] || {};
+      const updatedAt = Number(entry.updated_at) || 0;
+      if (!updatedAt || now - updatedAt > presenceScopeTtl) {
+        changed = true;
+        return;
+      }
+      const ids = normalizePresenceIds(entry.ids);
+      cleaned[tabId] = { updated_at: updatedAt, ids: ids };
+      if (!entry.ids || ids.length !== entry.ids.length) {
+        changed = true;
+      }
+    });
+    if (Object.keys(cleaned).length !== Object.keys(scopes).length) {
+      changed = true;
+    }
+    return { scopes: cleaned, changed: changed };
+  }
+
   function upsertPresenceScope(ids) {
     const tabId = getPresenceTabId();
+    const now = Date.now();
     const scopes = readPresenceScope();
-    scopes[tabId] = { updated_at: Date.now(), ids: normalizePresenceIds(ids) };
-    writePresenceScope(scopes);
+    scopes[tabId] = { updated_at: now, ids: normalizePresenceIds(ids) };
+    const result = prunePresenceScopes(scopes, now);
+    writePresenceScope(result.scopes);
   }
 
   function readPresenceScopeIds() {
+    const now = Date.now();
     const scopes = readPresenceScope();
+    const result = prunePresenceScopes(scopes, now);
+    if (result.changed) {
+      writePresenceScope(result.scopes);
+    }
     const idSet = new Set();
-    Object.keys(scopes).forEach((tabId) => {
-      const entry = scopes[tabId];
+    Object.keys(result.scopes).forEach((tabId) => {
+      const entry = result.scopes[tabId];
       const ids = entry && Array.isArray(entry.ids) ? entry.ids : [];
       ids.forEach((id) => {
         const value = Number(id);
@@ -841,6 +876,16 @@
       });
     });
     return Array.from(idSet);
+  }
+
+  function clearPresenceScope() {
+    const tabId = getPresenceTabId();
+    const scopes = readPresenceScope();
+    if (!scopes[tabId]) {
+      return;
+    }
+    delete scopes[tabId];
+    writePresenceScope(scopes);
   }
 
   function storePresencePayload(presence) {
@@ -907,7 +952,10 @@
 
   async function refreshPresence() {
     const ids = buildPresenceIdList();
-    if (!ids.length) return;
+    if (!ids.length) {
+      clearPresenceScope();
+      return;
+    }
     upsertPresenceScope(ids);
     const scopeIds = readPresenceScopeIds();
     const pollIds = scopeIds.length ? scopeIds : ids;
