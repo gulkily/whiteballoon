@@ -34,6 +34,15 @@
   let searchTerm = '';
   let searchDebounce = null;
   let inflightController = null;
+  const presenceHeartbeatInterval = 8000;
+  const presencePollInterval = 9000;
+  const presenceStoragePrefix = 'wb-presence';
+  const presenceTabKey = presenceStoragePrefix + ':tab';
+  const presenceHeartbeatKey = presenceStoragePrefix + ':heartbeat';
+  const presencePollKey = presenceStoragePrefix + ':poll';
+  const presencePayloadKey = presenceStoragePrefix + ':payload';
+  const presenceScopeKey = presenceStoragePrefix + ':scope';
+  var presenceTabId = null;
   var lastTypingSignal = 0;
   var typingIndicator = null;
   var announcer = null;
@@ -707,6 +716,144 @@
     if (unreadBadge) {
       unreadBadge.remove();
     }
+  }
+
+  function safeStorageGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function safeStorageSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function safeStorageRemove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function readJsonStorage(key) {
+    const raw = safeStorageGet(key);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeJsonStorage(key, value) {
+    return safeStorageSet(key, JSON.stringify(value));
+  }
+
+  function getPresenceTabId() {
+    if (presenceTabId) {
+      return presenceTabId;
+    }
+    let stored = null;
+    try {
+      stored = sessionStorage.getItem(presenceTabKey);
+    } catch (error) {
+      stored = null;
+    }
+    if (!stored) {
+      stored = `tab-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      try {
+        sessionStorage.setItem(presenceTabKey, stored);
+      } catch (error) {
+        /* no-op */
+      }
+    }
+    presenceTabId = stored;
+    return stored;
+  }
+
+  function normalizePresenceIds(ids) {
+    if (!Array.isArray(ids)) return [];
+    const list = [];
+    ids.forEach((id) => {
+      const value = Number(id);
+      if (Number.isFinite(value)) {
+        list.push(value);
+      }
+    });
+    return list;
+  }
+
+  function shouldSendPresencePing(key, intervalMs) {
+    const now = Date.now();
+    const payload = readJsonStorage(key);
+    const lastAt = payload && typeof payload.at === 'number' ? payload.at : 0;
+    if (now - lastAt < intervalMs) {
+      return false;
+    }
+    writeJsonStorage(key, { at: now, tab: getPresenceTabId() });
+    return true;
+  }
+
+  function readPresenceScope() {
+    const scopes = readJsonStorage(presenceScopeKey);
+    if (!scopes || typeof scopes !== 'object') {
+      return {};
+    }
+    return scopes;
+  }
+
+  function writePresenceScope(scopes) {
+    if (!scopes || typeof scopes !== 'object') {
+      return false;
+    }
+    return writeJsonStorage(presenceScopeKey, scopes);
+  }
+
+  function upsertPresenceScope(ids) {
+    const tabId = getPresenceTabId();
+    const scopes = readPresenceScope();
+    scopes[tabId] = { updated_at: Date.now(), ids: normalizePresenceIds(ids) };
+    writePresenceScope(scopes);
+  }
+
+  function readPresenceScopeIds() {
+    const scopes = readPresenceScope();
+    const idSet = new Set();
+    Object.keys(scopes).forEach((tabId) => {
+      const entry = scopes[tabId];
+      const ids = entry && Array.isArray(entry.ids) ? entry.ids : [];
+      ids.forEach((id) => {
+        const value = Number(id);
+        if (Number.isFinite(value)) {
+          idSet.add(value);
+        }
+      });
+    });
+    return Array.from(idSet);
+  }
+
+  function storePresencePayload(presence) {
+    return writeJsonStorage(presencePayloadKey, {
+      updated_at: Date.now(),
+      presence: presence || {},
+    });
+  }
+
+  function readPresencePayload() {
+    const payload = readJsonStorage(presencePayloadKey);
+    if (!payload || typeof payload.updated_at !== 'number') {
+      return null;
+    }
+    return payload.presence || null;
   }
 
   async function pingPresence(isTyping) {
