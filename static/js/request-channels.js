@@ -36,6 +36,7 @@
   let inflightController = null;
   const presenceHeartbeatInterval = 8000;
   const presencePollInterval = 9000;
+  const presencePayloadTtl = presencePollInterval * 2 + 2000;
   const presenceStoragePrefix = 'wb-presence';
   const presenceTabKey = presenceStoragePrefix + ':tab';
   const presenceHeartbeatKey = presenceStoragePrefix + ':heartbeat';
@@ -407,6 +408,7 @@
   const heartbeat = setInterval(pingPresenceHeartbeat, presenceHeartbeatInterval);
   const presencePoller = setInterval(refreshPresence, presencePollInterval);
   refreshPresence();
+  window.addEventListener('storage', handlePresenceStorage);
   window.addEventListener('beforeunload', () => {
     clearInterval(heartbeat);
     clearInterval(presencePoller);
@@ -853,7 +855,15 @@
     if (!payload || typeof payload.updated_at !== 'number') {
       return null;
     }
+    if (Date.now() - payload.updated_at > presencePayloadTtl) {
+      return null;
+    }
     return payload.presence || null;
+  }
+
+  function applyPresencePayload(presence) {
+    if (!presence) return;
+    updatePresenceIndicators(presence);
   }
 
   async function sendPresencePing(isTyping) {
@@ -883,7 +893,7 @@
     sendPresencePing(false);
   }
 
-  async function refreshPresence() {
+  function buildPresenceIdList() {
     const idSet = new Set(
       buttons
         .map((btn) => Number(btn.dataset.channelId))
@@ -892,18 +902,40 @@
     if (Number(state.active_channel_id)) {
       idSet.add(Number(state.active_channel_id));
     }
-    const ids = Array.from(idSet).filter((id) => Number.isFinite(id));
+    return Array.from(idSet).filter((id) => Number.isFinite(id));
+  }
+
+  async function refreshPresence() {
+    const ids = buildPresenceIdList();
     if (!ids.length) return;
-    const params = ids.map((id) => `id=${id}`).join('&');
+    upsertPresenceScope(ids);
+    const scopeIds = readPresenceScopeIds();
+    const pollIds = scopeIds.length ? scopeIds : ids;
+    if (!pollIds.length) return;
+    if (!shouldSendPresencePing(presencePollKey, presencePollInterval)) {
+      applyPresencePayload(readPresencePayload());
+      return;
+    }
+    const params = pollIds.map((id) => `id=${id}`).join('&');
     try {
       const response = await fetch(`/requests/channels/presence?${params}`, {
         headers: { 'X-Requested-With': 'Fetch', Accept: 'application/json' },
       });
       if (!response.ok) return;
       const payload = await response.json();
-      updatePresenceIndicators(payload.presence || {});
+      const presence = payload.presence || {};
+      storePresencePayload(presence);
+      updatePresenceIndicators(presence);
     } catch (error) {
       console.warn('Presence polling failed', error);
+    }
+  }
+
+  function handlePresenceStorage(event) {
+    if (!event || event.key !== presencePayloadKey) return;
+    const payload = readPresencePayload();
+    if (payload) {
+      updatePresenceIndicators(payload);
     }
   }
 

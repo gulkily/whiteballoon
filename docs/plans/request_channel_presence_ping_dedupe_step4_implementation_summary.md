@@ -7,3 +7,8 @@
 - Changes: Routed periodic heartbeat through `pingPresenceHeartbeat` with per-request throttle and renamed the direct sender to `sendPresencePing`.
 - Verification: Not run (requires browser session).
 - Notes: None.
+
+## Stage 3 – Combine thread scopes into shared presence polling
+- Changes: Aggregated request IDs across tabs for polling, stored shared presence payloads with TTL checks, and applied updates via the `storage` event.
+- Verification: Not run (requires browser session).
+- Notes: None.
