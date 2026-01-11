@@ -404,8 +404,8 @@
 
   wireChatPane(chatPane);
   restoreScrollState({ stick: true, distance: 0 });
-  const heartbeat = setInterval(() => pingPresence(false), 8000);
-  const presencePoller = setInterval(refreshPresence, 9000);
+  const heartbeat = setInterval(pingPresenceHeartbeat, presenceHeartbeatInterval);
+  const presencePoller = setInterval(refreshPresence, presencePollInterval);
   refreshPresence();
   window.addEventListener('beforeunload', () => {
     clearInterval(heartbeat);
@@ -466,7 +466,7 @@
       chatPane.removeAttribute('aria-busy');
     }
     loadChannel(channelId, { preserveScroll: false });
-    pingPresence(false);
+    sendPresencePing(false);
   }
 
   function updateRelativeTime(button) {
@@ -601,7 +601,7 @@
       return;
     }
     lastTypingSignal = now;
-    pingPresence(true);
+    sendPresencePing(true);
   }
 
   async function handleComposerSubmit(event) {
@@ -856,7 +856,7 @@
     return payload.presence || null;
   }
 
-  async function pingPresence(isTyping) {
+  async function sendPresencePing(isTyping) {
     if (!state.active_channel_id) return;
     try {
       await fetch('/requests/channels/presence', {
@@ -871,6 +871,16 @@
     } catch (error) {
       // ignore network blips
     }
+  }
+
+  function pingPresenceHeartbeat() {
+    const requestId = Number(state.active_channel_id);
+    if (!Number.isFinite(requestId)) return;
+    const key = `${presenceHeartbeatKey}:${requestId}`;
+    if (!shouldSendPresencePing(key, presenceHeartbeatInterval)) {
+      return;
+    }
+    sendPresencePing(false);
   }
 
   async function refreshPresence() {
