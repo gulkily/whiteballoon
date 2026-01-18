@@ -4,38 +4,38 @@ When pursuing multi-instance sync or other large-scale features, use this five-s
 
 ## Stage 0 – Problem Framing
 **When**: At the first hint of cross-cutting impact (infra, data sync, multiple orgs, external integrations).
-- Deliverable: `docs/plans/<feature>_stage0_problem.md`
+- Deliverable: `docs/plans/<feature>/<feature>_stage0_problem.md` (or root for single-file efforts)
 - Content: One-paragraph problem statement, current pain points, top-level success metrics, explicit guardrails (time/tech).
 - Goal: Align on why this feature matters and what “done” means before solutioning.
 
 ## Stage 1 – Architecture Brief
 **Purpose**: Sketch the viable solution spaces and trade-offs.
-- Deliverable: `*_stage1_architecture_brief.md`
+- Deliverable: `docs/plans/<feature>/<feature>_stage1_architecture_brief.md`
 - Content: 2–3 architectural options (diagram or bullet list), trade-offs (latency, consistency, ops), existing components to reuse, data contracts to touch.
 - Format: ≤1.5 pages, include lightweight diagram or structured list.
 - Outcome: Pick a direction and enumerate open questions.
 
 ## Stage 2 – Capability Decomposition
 **Purpose**: Break the chosen architecture into independently shippable capabilities.
-- Deliverable: `*_stage2_capability_map.md`
+- Deliverable: `docs/plans/<feature>/<feature>_stage2_capability_map.md`
 - Content: List of capabilities (e.g., “Instance discovery”, “Sync queue”, “Conflict resolver”), for each: scope, dependencies, acceptance tests.
 - Add a dependency graph/table showing sequencing.
 
 ## Stage 3 – Implementation Playbook
 **Purpose**: Turn capabilities into actionable work packages.
-- Deliverable: `*_stage3_playbook.md`
+- Deliverable: `docs/plans/<feature>/<feature>_stage3_playbook.md`
 - Content: For each capability: step-by-step tasks (≤1 hr or ≤75 LoC each), data/API changes, rollout/ops plan, verification strategy (unit/integration/load), fallback plan.
 - Include instrumentation/logging requirements and feature-flag strategy.
 
 ## Stage 4 – Execution Logs
 **Purpose**: Track progress and guard against drift.
-- Deliverable: `*_stage4_execution_log.md`
+- Deliverable: `docs/plans/<feature>/<feature>_stage4_execution_log.md`
 - Content: Table per iteration: date, stage/task, code refs, tests run, open risks.
 - Update after each merged increment. Serves as living changelog.
 
 ## Stage 5 – Post-Implementation Review
 **Purpose**: Capture outcomes and follow-ups.
-- Deliverable: `*_stage5_postmortem.md`
+- Deliverable: `docs/plans/<feature>/<feature>_stage5_postmortem.md`
 - Content: What worked, what didn’t, perf metrics vs targets, remaining debt, next bets.
 - Include checklist: docs updated, ops handoff done, dashboards/alerts live.
 

@@ -20,12 +20,12 @@ Grassroots organizers often coordinate through Signal chats, but the exports are
 5. Publish a bundle or start the read-only API: `signal-pipeline publish --batch <id>` or `SIGNAL_PIPELINE_ALLOW_API=1 signal-pipeline serve`.
 
 ## Key references
-- `docs/plans/signal_chat_repo_bootstrap_stage0_problem.md`
-- `docs/plans/signal_chat_repo_bootstrap_stage1_architecture_brief.md`
-- `docs/plans/signal_chat_repo_bootstrap_stage2_capability_map.md`
-- `docs/plans/signal_chat_repo_bootstrap_stage3_playbook.md`
-- `docs/plans/signal_chat_repo_bootstrap_step1_solution_assessment.md`
-- `docs/plans/signal_chat_repo_bootstrap_step2_feature_description.md`
-- `docs/plans/signal_chat_repo_bootstrap_step3_development_plan.md`
+- `docs/plans/signal_chat_repo_bootstrap/signal_chat_repo_bootstrap_stage0_problem.md`
+- `docs/plans/signal_chat_repo_bootstrap/signal_chat_repo_bootstrap_stage1_architecture_brief.md`
+- `docs/plans/signal_chat_repo_bootstrap/signal_chat_repo_bootstrap_stage2_capability_map.md`
+- `docs/plans/signal_chat_repo_bootstrap/signal_chat_repo_bootstrap_stage3_playbook.md`
+- `docs/plans/signal_chat_repo_bootstrap/signal_chat_repo_bootstrap_step1_solution_assessment.md`
+- `docs/plans/signal_chat_repo_bootstrap/signal_chat_repo_bootstrap_step2_feature_description.md`
+- `docs/plans/signal_chat_repo_bootstrap/signal_chat_repo_bootstrap_step3_development_plan.md`
 
 These artifacts must be approved and committed in order before implementation begins, per `FEATURE_DEVELOPMENT_PROCESS.md`. Future iterations will add the Step 4 implementation summary once code ships.

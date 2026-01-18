@@ -64,7 +64,7 @@ For every new feature or module, follow the four-step process in `FEATURE_DEVELO
 - Stage work per the planning doc and get each stage “green” (migration verified, endpoint callable, UI renders) before touching the next.
 - When writing temporary setup/cleanup utilities (tests, scripts), rely on SQLModel/ORM helpers or wrap raw SQL in `sqlalchemy.text()` so failures don’t mask real regressions.
 - Don’t let uncommitted work pile up—if you’re about to explore a risky change, commit what works first so you can recover quickly.
-- Capture verification evidence in `docs/plans/<feature>_step4_implementation_summary.md` immediately after testing each stage.
+- Capture verification evidence in `docs/plans/<feature>/<feature>_step4_implementation_summary.md` (or the root file for single-file efforts) immediately after testing each stage.
 
 ## Environment Variables
 ```bash

@@ -26,13 +26,13 @@ Before drafting Step 1 (or jumping straight to Step 2 on simple work), skim th
 Each file ends with instructions for when to proceed to the next step so you never overrun the context window.
 
 ## Planning Artifacts
-Each step MUST be a separate file in `docs/plans/`:
+Each step MUST be a separate file in `docs/plans/` (root or a feature subfolder):
 - **Step 1**: `{feature_name}_step1_solution_assessment.md`
 - **Step 2**: `{feature_name}_step2_feature_description.md`
 - **Step 3**: `{feature_name}_step3_development_plan.md`
 - **Step 4**: `{feature_name}_step4_implementation_summary.md`
 
-**Directory structure**: When a feature accumulates four or more planning artifacts (e.g., all Step 1–4 docs plus auxiliary notes), move them into `docs/plans/{feature_name}/`. Keep smaller efforts at the root until they grow, and update `docs/plans/README.md` when a new folder appears so others can navigate.
+**Directory structure**: When a feature has multiple related artifacts (e.g., Step docs plus auxiliary notes), group them under `docs/plans/{feature_name}/`. Keep single-file efforts at the root until they grow, and update `docs/plans/README.md` when a new folder appears so others can navigate.
 
 **Commit discipline**: Keep each stage’s document uncommitted until the user reviews it. Commit only after approval and immediately before starting the next stage to keep IDE “dirty file” views meaningful.
 

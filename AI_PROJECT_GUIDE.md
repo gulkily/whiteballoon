@@ -23,7 +23,7 @@ The platform is designed so that new capabilities can be added as _atomic module
 - Declare its routes, templates, and static assets within a dedicated package under `app/modules/<module_name>/`
 - Expose a small service layer for business logic that the rest of the app can call
 - Register dependencies and background tasks without tightly coupling to other modules
-- Provide its own plan documents (`docs/plans/<module_name>_*.md`) that follow the feature process below
+- Provide its own plan documents under `docs/plans/<module_name>/` (or a single root file for one-offs) that follow the feature process below
 
 The base authentication and request feed modules serve as reference implementations for this pattern. Future modules should follow the same structure to keep onboarding and maintenance predictable.
 

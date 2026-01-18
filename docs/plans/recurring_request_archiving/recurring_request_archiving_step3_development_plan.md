@@ -25,6 +25,6 @@
 - **Changes**:
   - Log the archive event with acting admin, template id/title, number of requests affected, and timestamp.
   - Surface recent archive events on the recurring templates page or admin log page if feasible (reuse existing component; otherwise extend log serializer).
-  - Document the operation in `docs/plans/recurring_request_archiving_step4_implementation_summary.md` scaffolding for later.
+  - Document the operation in `docs/plans/recurring_request_archiving/recurring_request_archiving_step4_implementation_summary.md` scaffolding for later.
 - **Verification**: Trigger archive and inspect admin log output/DB rows to confirm entry content; optionally render the entry in UI if exposed there.
 - **Risks**: Log spam if action retried; ensure sensitive data isn’t logged; keep log retrieval performant.
