@@ -24,6 +24,7 @@ WhiteBalloon is a modular FastAPI + SQLModel application that ships with invite-
 - Manual sync bundles (`*.sync.txt`) use email-style headers plus plain-text bodies so exports are Git-friendly
 - Vanilla CSS design system with reusable layout primitives and components
 - JSON API under `/api/requests` for programmatic access to the request feed
+- Runtime `/llms.txt` endpoint that summarizes agent engagement guidance and live feature flags (no secrets)
 - Invite generation returns share-ready links using the current request origin (fallback to `SITE_URL`)
 - Animated, bubbly theme with gradient background/responsive cards inspired by mutual-aid celebrations (respects `prefers-reduced-motion`)
 - Admin-only Sync Control Center (`/admin/sync-control`) for managing peers, triggering push/pull jobs, and reviewing recent sync activity

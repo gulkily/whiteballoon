@@ -12,3 +12,8 @@
 - Changes: Expanded the features section to include skin preview and strictness flags from live settings.
 - Verification: Generated a sample response and confirmed the new `skins_*` lines render.
 - Notes: Feature list remains concise and avoids sensitive values.
+
+## Stage 4 – Documentation pointer and safety check
+- Changes: Added README feature note for `/llms.txt`; confirmed the docs + safety sections are present in the response.
+- Verification: Generated a sample response and verified the Docs/Safety sections render as expected.
+- Notes: Documentation now highlights the endpoint while keeping the response free of secrets.
