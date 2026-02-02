@@ -2213,6 +2213,7 @@ from . import requests as requests_routes
 from . import invite as invite_routes
 from . import members as members_routes
 from . import menu as menu_routes
+from . import misc as misc_routes
 from . import peer_auth as peer_auth_routes
 from . import sessions as session_routes
 from . import sync as sync_routes
@@ -2227,5 +2228,6 @@ router.include_router(branding_routes.router)
 router.include_router(invite_routes.router)
 router.include_router(members_routes.router)
 router.include_router(menu_routes.router)
+router.include_router(misc_routes.router)
 router.include_router(peer_auth_routes.router)
 router.include_router(admin_routes.router)

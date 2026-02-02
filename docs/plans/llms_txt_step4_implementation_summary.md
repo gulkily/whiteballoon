@@ -2,3 +2,8 @@
 - Changes: Reviewed settings in `app/config.py`, routing in `app/main.py`, and canonical docs (`README.md`, `docs/spec.md`) to determine fields and public routes to expose.
 - Verification: Manual review of settings + route inventory.
 - Notes: Confirmed sensitive fields (e.g., API keys) must be excluded from output.
+
+## Stage 2 – Add runtime /llms.txt endpoint
+- Changes: Added a `/llms.txt` route under `app/routes/ui/misc.py` that renders a text response from live settings; mounted the misc router in `app/routes/ui/__init__.py`.
+- Verification: Ran a local Python snippet to build the response via `_build_llms_text` and confirmed the header fields render.
+- Notes: Output is plain text and avoids any secret-bearing settings.
