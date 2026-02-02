@@ -40,4 +40,4 @@ _Template_
 - Documentation updated
 
 ## Next
-Once the summary is complete and all work is committed, notify the user for review or handoff as needed. If additional scope emerges, return to the appropriate earlier step instead of improvising within Step 4.
+Once the summary is complete and all work is committed, request review and apply any fixes as needed. The user will typically handle merging the feature branch. If additional scope emerges, return to the appropriate earlier step instead of improvising within Step 4.

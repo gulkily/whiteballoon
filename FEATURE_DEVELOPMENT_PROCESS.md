@@ -14,8 +14,10 @@ Before drafting Step 1 (or jumping straight to Step 2 on simple work), skim th
 ## How to Use This Chain
 1. Start with the highest-numbered approved step (usually Step 1 unless explicitly skipped).
 2. Read only the dedicated step file in `docs/dev/feature_process/`, complete that deliverable, and request approval in the format “Approved Step N.”
-3. Do not open the next file until the user replies with the exact approval phrase.
-4. Reprint the instructions from the relevant file before you begin working on that step’s deliverable.
+3. Save each step document in `docs/plans/` before asking for approval (drafts remain uncommitted).
+4. Do not open the next file until the user replies with the exact approval phrase.
+5. Reprint the instructions from the relevant file before you begin working on that step’s deliverable.
+6. If the user says they edited a step document, re-open it and confirm the latest contents before proceeding.
 
 ## Step Guide
 - **Step 1 – Solution Assessment (Optional)**: resolve uncertainty across multiple approaches. `docs/dev/feature_process/step1_solution_assessment.md`
@@ -34,9 +36,9 @@ Each step MUST be a separate file in `docs/plans/` (root or a feature subfolder)
 
 **Directory structure**: When a feature has multiple related artifacts (e.g., Step docs plus auxiliary notes), group them under `docs/plans/{feature_name}/`. Keep single-file efforts at the root until they grow, and update `docs/plans/README.md` when a new folder appears so others can navigate.
 
-**Commit discipline**: Keep each stage’s document uncommitted until the user reviews it. Commit only after approval and immediately before starting the next stage to keep IDE “dirty file” views meaningful.
+**Commit discipline**: Keep each stage’s document uncommitted until the user reviews it. Commit Steps 1–3 together only after “Approved Step 3” and immediately before starting Step 4.
 
-**Plan review**: Do not commit Step 1–3 plan files until the user explicitly reviews and approves them. Deliver the drafts for feedback, wait for “Approved Step N,” then commit before beginning the next step. Step 4 must start on a feature branch with the approved plan already committed.
+**Plan review**: Do not commit Step 1–3 plan files until the user explicitly reviews and approves them. Deliver the drafts for feedback, wait for “Approved Step N,” and proceed to the next step only after approval. After “Approved Step 3,” create a feature branch and commit Steps 1–3 before any implementation work. Step 4 must start on that branch with the approved plan already committed. The user will typically merge the feature branch after review.
 
 ## Key Rules
 
@@ -44,7 +46,8 @@ Each step MUST be a separate file in `docs/plans/` (root or a feature subfolder)
 - Recommend Step 1 for complex features or whenever multiple solutions exist
 - Stay in the current step; do not draft/edit later deliverables without approval
 - After delivering each step, explicitly request “Approved Step N” and pause until the user responds with that exact phrase
-- Create separate files for each step only after receiving the relevant approval
+- Create and save each step document before approval (do not commit until Step 3 is approved)
+- If the user updates a step document, re-open it before continuing
 - ALWAYS create a feature branch before Step 4 implementation
 - Prefer shared components/API contracts first; reuse or extend instead of forking markup, CSS, or payloads
 - Flag scope creep early and bounce back to planning steps rather than improvising mid-implementation

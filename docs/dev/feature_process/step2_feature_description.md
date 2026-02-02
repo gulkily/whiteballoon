@@ -1,6 +1,6 @@
 # Step 2: Feature Description
 
-_Open this only after receiving “Approved Step 1” (or if Step 1 was skipped). Pause again after delivering Step 2 until the user sends “Approved Step 2.”_
+_Open this only after receiving “Approved Step 1” (or if Step 1 was skipped). Save the Step 2 document before asking for approval. Pause again after delivering Step 2 until the user sends “Approved Step 2.”_
 
 ## Objective
 Capture the problem framing, desired outcomes, and shared-component considerations before planning implementation work.
@@ -22,4 +22,4 @@ Capture the problem framing, desired outcomes, and shared-component consideratio
 - Keep the doc lightweight enough to consume at a glance
 
 ## Next
-Deliver the document, request confirmation, and wait for “Approved Step 2.” Once approved, continue with `docs/dev/feature_process/step3_development_plan.md`.
+Save the document, request confirmation, and wait for “Approved Step 2.” If the user says they edited the file, re-open it before continuing with `docs/dev/feature_process/step3_development_plan.md`.

@@ -1,6 +1,6 @@
 # Step 3: Development Plan
 
-_Proceed only after “Approved Step 2.” Pause again after delivering Step 3 until the user replies with “Approved Step 3.”_
+_Proceed only after “Approved Step 2.” Save the Step 3 document before asking for approval. Pause again after delivering Step 3 until the user replies with “Approved Step 3.”_
 
 ## Objective
 Break the feature into atomic implementation stages, identify dependencies, and define verification expectations before coding starts.
@@ -28,4 +28,4 @@ Additional requirements:
 - Keep Stage count manageable; if work exceeds about eight stages or a day of effort, recommend splitting into separate features before moving on
 
 ## Next
-Send the plan for review and wait for “Approved Step 3.” Only after approval should you commit Steps 1–3 (if not already) and move on to `docs/dev/feature_process/step4_implementation.md`.
+Save the plan for review and wait for “Approved Step 3.” If the user says they edited the file, re-open it before continuing. After approval, create a feature branch, commit Steps 1–3, and move on to `docs/dev/feature_process/step4_implementation.md`.

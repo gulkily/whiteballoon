@@ -1,6 +1,6 @@
 # Step 1: Solution Assessment (Optional)
 
-_Read this file only if the feature is complex enough to require Step 1. Pause again after finishing until the user replies with “Approved Step 1.”_
+_Read this file only if the feature is complex enough to require Step 1. Save the Step 1 document before asking for approval. Pause again after finishing until the user replies with “Approved Step 1.”_
 
 ## Objective
 Resolve uncertainty when there are multiple viable approaches, complex trade-offs, or an unclear direction before investing in further planning.
@@ -19,4 +19,4 @@ Resolve uncertainty when there are multiple viable approaches, complex trade-off
 - Favor bullets over paragraphs for fast comparisons
 
 ## Next
-Share the document for review and stop. Do not create Step 2 until the user explicitly responds with “Approved Step 1.” When approval arrives, continue with `docs/dev/feature_process/step2_feature_description.md`.
+Save the document, share it for review, and stop. Do not create Step 2 until the user explicitly responds with “Approved Step 1.” If the user says they edited the file, re-open it before continuing with `docs/dev/feature_process/step2_feature_description.md`.
