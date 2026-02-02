@@ -68,6 +68,8 @@ def _build_llms_text(request: Request) -> str:
             f"- skins: {_format_bool(settings.skins_enabled)}",
             f"- skins_default: {settings.skin_default}",
             f"- skins_allowed: {skins_allowed}",
+            f"- skins_preview: {_format_bool(settings.skin_preview_enabled)}",
+            f"- skins_strict: {_format_bool(settings.skin_strict)}",
             f"- request_channels: {_format_bool(settings.request_channels_enabled)}",
             f"- contact_email: {_format_bool(settings.enable_contact_email)}",
             f"- comment_insights_indicator: {_format_bool(settings.comment_insights_indicator_enabled)}",

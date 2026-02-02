@@ -7,3 +7,8 @@
 - Changes: Added a `/llms.txt` route under `app/routes/ui/misc.py` that renders a text response from live settings; mounted the misc router in `app/routes/ui/__init__.py`.
 - Verification: Ran a local Python snippet to build the response via `_build_llms_text` and confirmed the header fields render.
 - Notes: Output is plain text and avoids any secret-bearing settings.
+
+## Stage 3 – Align content with enabled feature flags
+- Changes: Expanded the features section to include skin preview and strictness flags from live settings.
+- Verification: Generated a sample response and confirmed the new `skins_*` lines render.
+- Notes: Feature list remains concise and avoids sensitive values.
